@@ -43,6 +43,9 @@ export class Moderator implements IModerator {
         this.config.passThresholdBps
       );
       
+      // Initialize the proposal (blockchain interactions)
+      await proposal.initialize();
+      
       // Store proposal at index matching its ID
       this.proposals[this.proposalIdCounter] = proposal;
       this.proposalIdCounter++;  // Increment counter for next proposal
