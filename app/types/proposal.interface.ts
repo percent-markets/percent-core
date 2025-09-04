@@ -1,8 +1,9 @@
-import { Transaction, PublicKey } from '@solana/web3.js';
+import { Transaction, PublicKey, Keypair } from '@solana/web3.js';
 import { IAMM } from './amm.interface';
 import { IVault } from './vault.interface';
 import { ITWAPOracle } from './twap-oracle.interface';
 import { ProposalStatus } from './moderator.interface';
+import { IExecutionResult, IExecutionConfig } from './execution.interface';
 
 /**
  * Interface for governance proposals in the protocol
@@ -57,7 +58,10 @@ export interface IProposal {
   
   /**
    * Executes the proposal's transaction
+   * @param signer - Keypair to sign and execute the transaction
+   * @param executionConfig - Configuration for transaction execution
+   * @returns Execution result with signature and status
    * @throws Error if proposal hasn't passed or already executed
    */
-  execute(): Promise<void>;
+  execute(signer: Keypair, executionConfig: IExecutionConfig): Promise<IExecutionResult>;
 }

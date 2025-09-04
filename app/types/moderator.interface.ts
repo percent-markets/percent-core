@@ -1,4 +1,5 @@
-import { Transaction, PublicKey } from '@solana/web3.js';
+import { Transaction, PublicKey, Keypair } from '@solana/web3.js';
+import { IExecutionConfig, IExecutionResult } from './execution.interface';
 import { IProposal } from './proposal.interface';
 
 /**
@@ -48,8 +49,10 @@ export interface IModerator {
   /**
    * Executes a passed proposal's transaction
    * @param id - The ID of the proposal to execute
-   * @returns true if successfully executed
+   * @param signer - Keypair to sign the transaction
+   * @param executionConfig - Configuration for execution
+   * @returns Execution result with signature and status
    * @throws Error if proposal cannot be executed
    */
-  executeProposal(id: number): Promise<boolean>;
+  executeProposal(id: number, signer: Keypair, executionConfig: IExecutionConfig): Promise<IExecutionResult>;
 }

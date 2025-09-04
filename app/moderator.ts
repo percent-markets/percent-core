@@ -1,5 +1,6 @@
-import { Transaction, PublicKey } from '@solana/web3.js';
+import { Transaction, PublicKey, Keypair } from '@solana/web3.js';
 import { IModerator, IModeratorConfig, ProposalStatus } from './types/moderator.interface';
+import { IExecutionConfig, IExecutionResult } from './types/execution.interface';
 import { IProposal } from './types/proposal.interface';
 import { Proposal } from './proposal';
 
@@ -44,7 +45,7 @@ export class Moderator implements IModerator {
       );
       
       // Initialize the proposal (blockchain interactions)
-      await proposal.initialize();
+      //await proposal.initialize();
       
       // Store proposal at index matching its ID
       this.proposals[this.proposalIdCounter] = proposal;
@@ -82,10 +83,16 @@ export class Moderator implements IModerator {
    * Executes the transaction of a passed proposal
    * Only callable for proposals with Passed status
    * @param id - The ID of the proposal to execute
-   * @returns true if successfully executed
+   * @param signer - Keypair to sign the transaction
+   * @param executionConfig - Configuration for execution
+   * @returns Execution result with signature and status
    * @throws Error if proposal doesn't exist, is pending, already executed, or failed
    */
-  async executeProposal(id: number): Promise<boolean> {
+  async executeProposal(
+    id: number,
+    signer: Keypair,
+    executionConfig: IExecutionConfig
+  ): Promise<IExecutionResult> {
     if (id >= this.proposalIdCounter || !this.proposals[id]) {
       throw new Error(`Proposal with ID ${id} does not exist`);
     }
@@ -104,8 +111,6 @@ export class Moderator implements IModerator {
       throw new Error('Cannot execute a failed proposal');
     }
     
-    await proposal.execute();
-    
-    return true;
+    return await proposal.execute(signer, executionConfig);
   }
 }

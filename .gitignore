@@ -30,8 +30,9 @@ logs/
 # Testing
 coverage/
 .nyc_output/
+wallet.json
 
 # Temporary files
 tmp/
 temp/
-*.tmp
+*.tmp.env.test

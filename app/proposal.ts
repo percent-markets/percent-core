@@ -1,10 +1,13 @@
-import { Transaction, PublicKey } from '@solana/web3.js';
+import { Transaction, PublicKey, Keypair } from '@solana/web3.js';
 import { IProposal } from './types/proposal.interface';
 import { IAMM } from './types/amm.interface';
-import { IVault } from './types/vault.interface';
+import { IVault, VaultType } from './types/vault.interface';
 import { ITWAPOracle } from './types/twap-oracle.interface';
 import { ProposalStatus } from './types/moderator.interface';
 import { TWAPOracle } from './twap-oracle';
+import { ExecutionService } from './services/execution.service';
+import { IExecutionResult, IExecutionConfig } from './types/execution.interface';
+import { Vault } from './vault';
 
 /**
  * Proposal class representing a governance proposal in the protocol
@@ -81,7 +84,23 @@ export class Proposal implements IProposal {
    * Deploys AMMs, vaults, and starts TWAP oracle recording
    */
   async initialize(): Promise<void> {
-    // TODO: Initialize AMMs, Vaults, and other blockchain interactions
+    // Initialize vaults for pass and fail markets
+    this.__pVault = new Vault({
+      proposalId: this.id,
+      vaultType: VaultType.Pass,
+      baseMint: this.baseMint,
+      quoteMint: this.quoteMint
+    });
+    
+    this.__fVault = new Vault({
+      proposalId: this.id,
+      vaultType: VaultType.Fail,
+      baseMint: this.baseMint,
+      quoteMint: this.quoteMint
+    });
+    
+    // TODO: Initialize AMMs using conditional token mints from vaults
+    // TODO: Start TWAP oracle recording
   }
 
   /**
@@ -93,21 +112,6 @@ export class Proposal implements IProposal {
     return Math.max(0, Math.floor(remaining / 1000));
   }
 
-  /**
-   * Deploys virtual vaults for token management
-   * @private
-   */
-  private async deployVirtualVault(): Promise<void> {
-    throw new Error('Method not implemented.');
-  }
-
-  /**
-   * Deploys AMMs for prediction market trading
-   * @private
-   */
-  private async deployAMM(): Promise<void> {
-    throw new Error('Method not implemented.');
-  }
 
   /**
    * Returns both AMMs for the proposal
@@ -146,7 +150,7 @@ export class Proposal implements IProposal {
     
     // Update status if still pending after finalization time
     if (this._status === ProposalStatus.Pending) {
-      this._status = ProposalStatus.Failed; // TODO: Implement finalization logic
+      this._status = ProposalStatus.Passed; // TODO: Implement finalization logic
     }
     
     return this._status;
@@ -155,9 +159,15 @@ export class Proposal implements IProposal {
   /**
    * Executes the proposal's Solana transaction
    * Only callable for proposals with Passed status
+   * @param signer - Keypair to sign and execute the transaction
+   * @param executionConfig - Configuration for transaction execution
+   * @returns Execution result with signature and status
    * @throws Error if proposal is pending, already executed, or failed
    */
-  async execute(): Promise<void> {
+  async execute(
+    signer: Keypair, 
+    executionConfig: IExecutionConfig
+  ): Promise<IExecutionResult> {
     if (this._status === ProposalStatus.Pending) {
       throw new Error('Cannot execute proposal that has not been finalized');
     }
@@ -170,7 +180,17 @@ export class Proposal implements IProposal {
       throw new Error('Cannot execute proposal that has not passed');
     }
     
-    // TODO: Execute the Solana transaction
+    // Execute the Solana transaction
+    const executionService = new ExecutionService(executionConfig);
+    const result = await executionService.executeTransaction(
+      this.transaction,
+      signer,
+      this.id
+    );
+    
+    // Update status to Executed regardless of transaction result
     this._status = ProposalStatus.Executed;
+    
+    return result;
   }
 }
