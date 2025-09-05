@@ -120,7 +120,7 @@ export class Proposal implements IProposal {
    */
   getAMMs(): [IAMM, IAMM] {
     if (!this.__pAMM || !this.__fAMM) {
-      throw new Error('Proposal AMMs are uninitialized');
+      throw new Error(`Proposal #${this.id}: AMMs are uninitialized`);
     }
     return [this.__pAMM, this.__fAMM];
   }
@@ -132,7 +132,7 @@ export class Proposal implements IProposal {
    */
   getVaults(): [IVault, IVault] {
     if (!this.__pVault || !this.__fVault) {
-      throw new Error('Proposal Vaults are uninitialized');
+      throw new Error(`Proposal #${this.id}: Vaults are uninitialized`);
     }
     return [this.__pVault, this.__fVault];
   }
@@ -169,15 +169,15 @@ export class Proposal implements IProposal {
     executionConfig: IExecutionConfig
   ): Promise<IExecutionResult> {
     if (this._status === ProposalStatus.Pending) {
-      throw new Error('Cannot execute proposal that has not been finalized');
+      throw new Error(`Cannot execute proposal #${this.id} - not finalized`);
     }
     
     if (this._status === ProposalStatus.Executed) {
-      throw new Error('Proposal has already been executed');
+      throw new Error(`Proposal #${this.id} has already been executed`);
     }
     
     if (this._status !== ProposalStatus.Passed) {
-      throw new Error('Cannot execute proposal that has not passed');
+      throw new Error(`Cannot execute proposal #${this.id} - status is ${this._status}`);
     }
     
     // Execute the Solana transaction

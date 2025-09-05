@@ -53,7 +53,7 @@ export class Moderator implements IModerator {
       
       return proposal;
     } catch (error) {
-      console.error('Failed to create proposal:', error);
+      console.error(`Failed to create proposal #${this.proposalIdCounter}:`, error);
       throw error;
     }
   }
@@ -100,16 +100,19 @@ export class Moderator implements IModerator {
     const proposal = this.proposals[id];
     
     if (proposal.status === ProposalStatus.Pending) {
-      throw new Error('Cannot execute proposal that is still pending');
+      throw new Error(`Cannot execute proposal #${id} - still pending`);
     }
     
     if (proposal.status === ProposalStatus.Executed) {
-      throw new Error('Proposal has already been executed');
+      throw new Error(`Proposal #${id} has already been executed`);
     }
     
     if (proposal.status === ProposalStatus.Failed) {
-      throw new Error('Cannot execute a failed proposal');
+      throw new Error(`Cannot execute proposal #${id} - failed status`);
     }
+
+    // Log proposal being executed
+    console.log(`Executing proposal #${id}: "${proposal.description}"`);
     
     return await proposal.execute(signer, executionConfig);
   }
