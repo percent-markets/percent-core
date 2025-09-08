@@ -150,6 +150,7 @@ describe('Proposal Flow', () => {
       await moderator.finalizeProposal(proposal.id);
       
       // Execute proposal
+      console.log(`🔄 Executing proposal transaction: memo instruction with text "${memoText}"`);
       const result = await moderator.executeProposal(
         proposal.id,
         authorityWallet,
@@ -200,6 +201,7 @@ describe('Proposal Flow', () => {
       // Finalize and execute
       await new Promise(resolve => setTimeout(resolve, (TEST_PERIODS.INSTANT + 1) * 1000));
       await moderator.finalizeProposal(proposal.id);
+      console.log('🔄 Executing proposal for double execution test');
       await moderator.executeProposal(
         proposal.id,
         authorityWallet,

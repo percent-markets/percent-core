@@ -16,8 +16,18 @@ export default defineConfig({
       reporter: ['text', 'json', 'html']
     },
     sequence: {
-      shuffle: false // Run tests in order for better debugging
-    }
+      shuffle: false, // Run tests in order for better debugging
+      concurrent: false // Force sequential execution of test files
+    },
+    // Force sequential execution for integration tests
+    poolOptions: {
+      threads: {
+        singleThread: true // Run all tests in a single thread
+      }
+    },
+    // Ensure integration tests run one file at a time
+    maxConcurrency: 1,
+    fileParallelism: false
   },
   resolve: {
     alias: {

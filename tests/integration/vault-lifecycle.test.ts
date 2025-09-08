@@ -173,6 +173,7 @@ describe('Vault Lifecycle', () => {
       );
       tx.partialSign(aliceWallet);
       
+      console.log('🔄 Executing split transaction: 100M base tokens → 100M pass + 100M fail tokens');
       const signature = await vault.executeSplitTx(tx);
       
       // Check balance changes
@@ -218,6 +219,7 @@ describe('Vault Lifecycle', () => {
         firstSplit
       );
       tx1.partialSign(aliceWallet);
+      console.log('🔄 Executing first split: 50M base tokens');
       await vault.executeSplitTx(tx1);
       
       // Second split
@@ -226,6 +228,7 @@ describe('Vault Lifecycle', () => {
         secondSplit
       );
       tx2.partialSign(aliceWallet);
+      console.log('🔄 Executing second split: 30M base tokens');
       await vault.executeSplitTx(tx2);
       
       // Check cumulative results
@@ -301,6 +304,7 @@ describe('Vault Lifecycle', () => {
         splitAmount
       );
       tx.partialSign(aliceWallet);
+      console.log('🔄 Executing split for merge test setup: 100M base tokens');
       await vault.executeSplitTx(tx);
     });
     
@@ -318,6 +322,7 @@ describe('Vault Lifecycle', () => {
       );
       tx.partialSign(aliceWallet);
       
+      console.log('🔄 Executing merge transaction: 50M pass + 50M fail → 50M base tokens');
       const signature = await vault.executeMergeTx(tx);
       
       // Check Alice has regular tokens back
@@ -391,6 +396,7 @@ describe('Vault Lifecycle', () => {
         splitAmount
       );
       tx.partialSign(aliceWallet);
+      console.log('🔄 Executing split for finalization test setup: 50M base tokens');
       await vault.executeSplitTx(tx);
     });
     
@@ -455,6 +461,7 @@ describe('Vault Lifecycle', () => {
       const tx = await vault.buildRedeemWinningTokensTx(aliceWallet.publicKey);
       tx.partialSign(aliceWallet);
       
+      console.log('🔄 Executing redemption: redeeming pass tokens for base tokens (proposal passed)');
       const signature = await vault.executeRedeemWinningTokensTx(tx);
       
       // Alice should have regular tokens back (from pass tokens)
@@ -485,6 +492,7 @@ describe('Vault Lifecycle', () => {
       const tx = await vault.buildRedeemWinningTokensTx(aliceWallet.publicKey);
       tx.partialSign(aliceWallet);
       
+      console.log('🔄 Executing redemption: redeeming fail tokens for base tokens (proposal failed)');
       const signature = await vault.executeRedeemWinningTokensTx(tx);
       
       // Alice should have regular tokens back (from fail tokens)
@@ -549,6 +557,7 @@ describe('Vault Lifecycle', () => {
         splitAmount
       );
       tx1.partialSign(aliceWallet);
+      console.log('🔄 Executing split for cleanup test: 50M base tokens');
       await vault.executeSplitTx(tx1);
       
       // Check that accounts have tokens
@@ -570,6 +579,7 @@ describe('Vault Lifecycle', () => {
         splitAmount
       );
       tx2.partialSign(aliceWallet);
+      console.log('🔄 Executing merge to empty accounts: 50M pass + 50M fail → 50M base tokens');
       await vault.executeMergeTx(tx2);
       
       // Verify accounts are empty before closing
@@ -589,6 +599,7 @@ describe('Vault Lifecycle', () => {
       const closeTx = await vault.buildCloseEmptyAccountsTx(aliceWallet.publicKey);
       closeTx.partialSign(aliceWallet);
       
+      console.log('🔄 Executing close empty accounts: closing pass and fail token accounts');
       const signature = await vault.executeCloseEmptyAccountsTx(closeTx);
       
       // Accounts should remain at 0 (attempting to access closed accounts returns 0)
