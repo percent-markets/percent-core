@@ -42,16 +42,16 @@ export default function TradingInterface({
   };
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-lg p-6">
-      <h2 className="text-lg font-semibold mb-4">Trade</h2>
+    <div>
+      <h2 className="text-xl font-semibold mb-6">Trade</h2>
       
       <div className="grid grid-cols-2 gap-2 mb-4">
         <button
           onClick={() => onMarketChange('pass')}
           className={`py-2 px-4 rounded-lg font-medium transition ${
             selectedMarket === 'pass'
-              ? 'bg-green-600 text-white'
-              : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+              ? 'bg-green-500/20 text-green-400'
+              : 'bg-gray-900 text-gray-400 hover:bg-gray-800'
           }`}
         >
           PASS
@@ -60,8 +60,8 @@ export default function TradingInterface({
           onClick={() => onMarketChange('fail')}
           className={`py-2 px-4 rounded-lg font-medium transition ${
             selectedMarket === 'fail'
-              ? 'bg-red-600 text-white'
-              : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+              ? 'bg-red-500/20 text-red-400'
+              : 'bg-gray-900 text-gray-400 hover:bg-gray-800'
           }`}
         >
           FAIL
@@ -73,8 +73,8 @@ export default function TradingInterface({
           onClick={() => setTradeType('buy')}
           className={`py-2 px-4 rounded-lg font-medium transition ${
             tradeType === 'buy'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+              ? 'bg-orange-500 text-white'
+              : 'bg-gray-900 text-gray-400 hover:bg-gray-800'
           }`}
         >
           Buy
@@ -83,8 +83,8 @@ export default function TradingInterface({
           onClick={() => setTradeType('sell')}
           className={`py-2 px-4 rounded-lg font-medium transition ${
             tradeType === 'sell'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+              ? 'bg-orange-500 text-white'
+              : 'bg-gray-900 text-gray-400 hover:bg-gray-800'
           }`}
         >
           Sell
@@ -98,11 +98,11 @@ export default function TradingInterface({
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           placeholder="0.00"
-          className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:border-blue-500 text-lg"
+          className="w-full px-4 py-3 bg-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-lg"
         />
       </div>
 
-      <div className="bg-gray-800/50 rounded-lg p-4 mb-6">
+      <div className="bg-gray-900 rounded-lg p-4 mb-6">
         <div className="flex justify-between text-sm mb-2">
           <span className="text-gray-400">Current Price</span>
           <span className="font-medium">${currentPrice.toFixed(3)}</span>
@@ -111,7 +111,7 @@ export default function TradingInterface({
           <span className="text-gray-400">Tokens</span>
           <span className="font-medium">{amount || '0'}</span>
         </div>
-        <div className="border-t border-gray-700 pt-2 mt-2">
+        <div className="pt-2 mt-2">
           <div className="flex justify-between">
             <span className="text-gray-400">Total Cost</span>
             <span className="font-bold text-lg">${estimatedCost.toFixed(2)}</span>
@@ -124,10 +124,8 @@ export default function TradingInterface({
         disabled={!amount || parseFloat(amount) <= 0}
         className={`w-full py-3 px-6 rounded-lg font-medium transition flex items-center justify-center gap-2 ${
           amount && parseFloat(amount) > 0
-            ? tradeType === 'buy'
-              ? 'bg-green-600 hover:bg-green-700 text-white'
-              : 'bg-red-600 hover:bg-red-700 text-white'
-            : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+            ? 'bg-orange-500 hover:bg-orange-600 text-white'
+            : 'bg-gray-900 text-gray-500 cursor-not-allowed'
         }`}
       >
         <ArrowUpDown className="h-4 w-4" />
@@ -135,7 +133,7 @@ export default function TradingInterface({
       </button>
 
       {!connected && (
-        <p className="text-center text-yellow-500 text-sm mt-4">
+        <p className="text-center text-orange-500 text-sm mt-4">
           Connect wallet to trade
         </p>
       )}

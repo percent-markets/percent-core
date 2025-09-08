@@ -1,21 +1,15 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import WalletContextProvider from "@/providers/WalletProvider";
-import Navbar from "@/components/Navbar";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  variable: "--font-inter",
 });
 
 export const metadata: Metadata = {
-  title: "Governance Market Protocol",
+  title: "Prediction Market",
   description: "Trade on governance proposal outcomes",
 };
 
@@ -27,13 +21,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-950 text-white`}
+        className={`${inter.variable} font-sans antialiased bg-gray-950 text-white`}
       >
         <WalletContextProvider>
-          <Navbar />
-          <main className="min-h-screen">
-            {children}
-          </main>
+          {children}
         </WalletContextProvider>
       </body>
     </html>
