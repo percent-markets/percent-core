@@ -1,4 +1,5 @@
 import { Transaction, PublicKey, Keypair, Connection } from '@solana/web3.js';
+import { BN } from '@coral-xyz/anchor';
 import { IProposal, IProposalConfig } from './types/proposal.interface';
 import { IAMM } from './types/amm.interface';
 import { IVault, VaultType } from './types/vault.interface';
@@ -8,6 +9,7 @@ import { TWAPOracle } from './twap-oracle';
 import { ExecutionService } from './services/execution.service';
 import { IExecutionResult, IExecutionConfig } from './types/execution.interface';
 import { Vault } from './vault';
+import { AMM } from './amm';
 
 /**
  * Proposal class representing a governance proposal in the protocol
@@ -91,10 +93,68 @@ export class Proposal implements IProposal {
     await this.__baseVault.initialize();
     await this.__quoteVault.initialize();
     
-    // TODO: Initialize AMMs using conditional token mints from vaults
-    // The AMMs will use:
-    // - pAMM: trades pBase/pQuote tokens (this.__baseVault.passConditionalMint / this.__quoteVault.passConditionalMint)
-    // - fAMM: trades fBase/fQuote tokens (this.__baseVault.failConditionalMint / this.__quoteVault.failConditionalMint)
+    // Create execution config for AMMs
+    const executionConfig: IExecutionConfig = {
+      rpcEndpoint: this.config.connection.rpcEndpoint,
+      commitment: 'confirmed',
+      maxRetries: 3,
+      skipPreflight: false
+    };
+    
+    // Initialize pass AMM (trades pBase/pQuote tokens)
+    this.__pAMM = new AMM(
+      this.__baseVault.passConditionalMint,
+      this.__quoteVault.passConditionalMint,
+      this.config.baseDecimals,
+      this.config.quoteDecimals,
+      this.config.authority,
+      executionConfig
+    );
+    
+    // Initialize fail AMM (trades fBase/fQuote tokens)
+    this.__fAMM = new AMM(
+      this.__baseVault.failConditionalMint,
+      this.__quoteVault.failConditionalMint,
+      this.config.baseDecimals,
+      this.config.quoteDecimals,
+      this.config.authority,
+      executionConfig
+    );
+    
+    // Split regular tokens through vaults to get conditional tokens for AMM seeding
+    // The authority needs to have regular tokens to split
+    // Splitting gives equal amounts of pass and fail tokens
+    
+    const baseTokensToSplit = BigInt(this.config.ammConfig.initialBaseAmount.toString());
+    const quoteTokensToSplit = BigInt(this.config.ammConfig.initialQuoteAmount.toString());
+    
+    // Build and execute split transactions for both vaults
+    const baseSplitTx = await this.__baseVault.buildSplitTx(
+      this.config.authority.publicKey,
+      baseTokensToSplit
+    );
+    
+    const quoteSplitTx = await this.__quoteVault.buildSplitTx(
+      this.config.authority.publicKey,
+      quoteTokensToSplit
+    );
+    
+    // Execute splits using vault's executeSplitTx method
+    await this.__baseVault.executeSplitTx(baseSplitTx);
+    await this.__quoteVault.executeSplitTx(quoteSplitTx);
+    
+    // Initialize AMMs with initial liquidity
+    // Both AMMs get the same amounts since splitting gives equal pass and fail tokens
+    await this.__pAMM.initialize(
+      this.config.ammConfig.initialBaseAmount,
+      this.config.ammConfig.initialQuoteAmount
+    );
+    
+    await this.__fAMM.initialize(
+      this.config.ammConfig.initialBaseAmount,
+      this.config.ammConfig.initialQuoteAmount
+    );
+    
     // TODO: Start TWAP oracle recording
   }
 
@@ -135,7 +195,7 @@ export class Proposal implements IProposal {
   /**
    * Finalizes the proposal based on time
    * Currently assumes all proposals pass for simplicity
-   * Also finalizes the vaults accordingly
+   * Also finalizes the AMMs and vaults accordingly
    * @returns The current or updated proposal status
    */
   async finalize(): Promise<ProposalStatus> {
@@ -151,10 +211,30 @@ export class Proposal implements IProposal {
       const passed = true;
       this._status = passed ? ProposalStatus.Passed : ProposalStatus.Failed;
       
+      // Remove liquidity from AMMs before finalizing vaults
+      if (this.__pAMM && !this.__pAMM.isFinalized) {
+        await this.__pAMM.removeLiquidity();
+      }
+      if (this.__fAMM && !this.__fAMM.isFinalized) {
+        await this.__fAMM.removeLiquidity();
+      }
+      
       // Finalize both vaults with the proposal status
       if (this.__baseVault && this.__quoteVault) {
         await this.__baseVault.finalize(this._status);
         await this.__quoteVault.finalize(this._status);
+        
+        // Redeem authority's winning tokens after finalization
+        // This converts winning conditional tokens back to regular tokens
+        const baseRedeemTx = await this.__baseVault.buildRedeemWinningTokensTx(
+          this.config.authority.publicKey
+        );
+        const quoteRedeemTx = await this.__quoteVault.buildRedeemWinningTokensTx(
+          this.config.authority.publicKey
+        );
+        
+        await this.__baseVault.executeRedeemWinningTokensTx(baseRedeemTx);
+        await this.__quoteVault.executeRedeemWinningTokensTx(quoteRedeemTx);
       }
     }
     

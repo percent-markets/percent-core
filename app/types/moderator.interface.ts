@@ -1,4 +1,5 @@
 import { Transaction, PublicKey, Keypair, Connection } from '@solana/web3.js';
+import { BN } from '@coral-xyz/anchor';
 import { IExecutionConfig, IExecutionResult } from './execution.interface';
 import { IProposal } from './proposal.interface';
 
@@ -13,10 +14,23 @@ export enum ProposalStatus {
 }
 
 /**
+ * Parameters for creating a new proposal
+ */
+export interface ICreateProposalParams {
+  description: string;                          // Human-readable description of the proposal
+  transaction: Transaction;                     // Solana transaction to execute if passed
+  proposalLength: number;                       // Duration of voting period in seconds
+  passThresholdBps: number;                     // Basis points threshold for proposal to pass (e.g., 5000 = 50%)
+  amm: {
+    initialBaseAmount: BN;                      // Initial base token liquidity (same for both pass and fail AMMs)
+    initialQuoteAmount: BN;                     // Initial quote token liquidity (same for both pass and fail AMMs)
+  };
+}
+
+/**
  * Configuration for the Moderator contract
  */
 export interface IModeratorConfig {
-  proposalLength: number;                       // Duration of voting period in seconds
   baseMint: PublicKey;                         // Public key of the base token mint
   quoteMint: PublicKey;                        // Public key of the quote token mint
   baseDecimals: number;                        // Number of decimals for base token conditional mints
@@ -25,7 +39,6 @@ export interface IModeratorConfig {
   connection: Connection;                      // Solana connection for blockchain interactions
   twapMaxObservationChangePerUpdate: bigint;   // Maximum TWAP observation change allowed per update
   twapStartDelay: number;                      // Delay before TWAP starts recording in seconds
-  passThresholdBps: number;                    // Basis points threshold for proposal to pass (e.g., 5000 = 50%)
 }
 
 /**
@@ -37,11 +50,10 @@ export interface IModerator {
   
   /**
    * Creates a new proposal
-   * @param description - Description of what the proposal does
-   * @param transaction - Solana transaction to execute if proposal passes
+   * @param params - Parameters for creating the proposal including AMM configuration
    * @returns The created proposal
    */
-  createProposal(description: string, transaction: Transaction): Promise<IProposal>;
+  createProposal(params: ICreateProposalParams): Promise<IProposal>;
   
   /**
    * Finalizes a proposal after voting period ends

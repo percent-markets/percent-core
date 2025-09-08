@@ -1,6 +1,7 @@
 import { PublicKey, Transaction, Keypair, Connection } from '@solana/web3.js';
+import { BN } from '@coral-xyz/anchor';
 import { createMemoInstruction } from '@solana/spl-memo';
-import { IModeratorConfig } from '../../app/types/moderator.interface';
+import { IModeratorConfig, ICreateProposalParams } from '../../app/types/moderator.interface';
 
 /**
  * Standard test token configurations
@@ -65,10 +66,8 @@ export function createTestModeratorConfig(
     quoteDecimals: 9, // Standard for quote tokens (SOL)
     authority,
     connection,
-    proposalLength: TEST_PERIODS.VOTING_PERIOD,
     twapMaxObservationChangePerUpdate: BigInt(100),
     twapStartDelay: 0,
-    passThresholdBps: 5000, // 50%
     ...overrides
   };
 }
@@ -152,4 +151,25 @@ export function createTestKeypair(seed: string): Keypair {
     paddedSeed[i] = seedBytes[i];
   }
   return Keypair.fromSeed(paddedSeed);
+}
+
+/**
+ * Create test proposal parameters with default AMM configuration
+ */
+export function createTestProposalParams(
+  description: string,
+  transaction: Transaction,
+  overrides?: Partial<ICreateProposalParams>
+): ICreateProposalParams {
+  return {
+    description,
+    transaction,
+    proposalLength: TEST_PERIODS.VOTING_PERIOD,
+    passThresholdBps: 5000, // 50%
+    amm: {
+      initialBaseAmount: new BN(1000000),   // 1 token with 6 decimals (for both AMMs)
+      initialQuoteAmount: new BN(1000000000), // 1 SOL with 9 decimals (for both AMMs)
+    },
+    ...overrides
+  };
 }

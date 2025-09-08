@@ -1,5 +1,5 @@
 import { Transaction, PublicKey, Keypair } from '@solana/web3.js';
-import { IModerator, IModeratorConfig, ProposalStatus } from './types/moderator.interface';
+import { IModerator, IModeratorConfig, ProposalStatus, ICreateProposalParams } from './types/moderator.interface';
 import { IExecutionConfig, IExecutionResult } from './types/execution.interface';
 import { IProposal, IProposalConfig } from './types/proposal.interface';
 import { Proposal } from './proposal';
@@ -23,20 +23,19 @@ export class Moderator implements IModerator {
 
   /**
    * Creates a new governance proposal
-   * @param description - Human-readable description of the proposal
-   * @param transaction - Solana transaction that will be executed if proposal passes
+   * @param params - Parameters for creating the proposal including AMM configuration
    * @returns The newly created proposal object
    * @throws Error if proposal creation fails
    */
-  async createProposal(description: string, transaction: Transaction): Promise<IProposal> {
+  async createProposal(params: ICreateProposalParams): Promise<IProposal> {
     try {
-      // Create proposal config from moderator config
+      // Create proposal config from moderator config and params
       const proposalConfig: IProposalConfig = {
         id: this.proposalIdCounter,
-        description,
-        transaction,
+        description: params.description,
+        transaction: params.transaction,
         createdAt: Date.now(),
-        proposalLength: this.config.proposalLength,
+        proposalLength: params.proposalLength,
         baseMint: this.config.baseMint,
         quoteMint: this.config.quoteMint,
         baseDecimals: this.config.baseDecimals,
@@ -45,7 +44,8 @@ export class Moderator implements IModerator {
         connection: this.config.connection,
         twapMaxObservationChangePerUpdate: this.config.twapMaxObservationChangePerUpdate,
         twapStartDelay: this.config.twapStartDelay,
-        passThresholdBps: this.config.passThresholdBps
+        passThresholdBps: params.passThresholdBps,
+        ammConfig: params.amm
       };
       
       // Create new proposal with config object

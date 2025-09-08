@@ -10,7 +10,8 @@
     "test:run": "NODE_ENV=test vitest run",
     "test:coverage": "NODE_ENV=test vitest run --coverage",
     "test:vault": "NODE_ENV=test vitest run tests/integration/vault-lifecycle.test.ts",
-    "test:proposal": "NODE_ENV=test vitest run tests/integration/proposal-flow.test.ts"
+    "test:proposal": "NODE_ENV=test vitest run tests/integration/proposal-flow.test.ts",
+    "test:amm": "NODE_ENV=test vitest run tests/integration/amm-lifecycle.test.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1",

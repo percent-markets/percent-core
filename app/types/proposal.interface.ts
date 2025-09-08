@@ -1,4 +1,5 @@
 import { Transaction, PublicKey, Keypair, Connection } from '@solana/web3.js';
+import { BN } from '@coral-xyz/anchor';
 import { IAMM } from './amm.interface';
 import { IVault } from './vault.interface';
 import { ITWAPOracle } from './twap-oracle.interface';
@@ -23,6 +24,10 @@ export interface IProposalConfig {
   twapMaxObservationChangePerUpdate: bigint;   // Max TWAP change per update
   twapStartDelay: number;                      // Delay before TWAP starts in seconds
   passThresholdBps: number;                    // Basis points threshold for passing
+  ammConfig: {
+    initialBaseAmount: BN;                      // Initial base token liquidity (same for both AMMs)
+    initialQuoteAmount: BN;                     // Initial quote token liquidity (same for both AMMs)
+  };
 }
 
 /**

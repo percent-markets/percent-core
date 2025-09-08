@@ -22,7 +22,8 @@ import {
   TEST_AMOUNTS,
   TEST_PERIODS,
   createTestModeratorConfig,
-  createTestTransaction
+  createTestTransaction,
+  createTestProposalParams
 } from '../setup/fixtures';
 
 describe('Proposal Flow', () => {
@@ -47,10 +48,7 @@ describe('Proposal Flow', () => {
       baseMint, 
       quoteMint, 
       authorityWallet,
-      connection,
-      {
-        proposalLength: TEST_PERIODS.INSTANT // 1 second for faster tests
-      }
+      connection
     );
   });
 
@@ -60,21 +58,30 @@ describe('Proposal Flow', () => {
   
   describe('Proposal Creation', () => {
     it('should create a new proposal through moderator', async () => {
-      const description = 'Test Proposal #1';
-      const tx = createTestTransaction('Test execution');
+      const params = createTestProposalParams(
+        'Test Proposal #1',
+        createTestTransaction('Test execution'),
+        { proposalLength: TEST_PERIODS.INSTANT }
+      );
       
-      const proposal = await moderator.createProposal(description, tx);
+      const proposal = await moderator.createProposal(params);
       
       expect(proposal).toBeDefined();
       expect(proposal.id).toBe(0);
-      expect(proposal.description).toBe(description);
+      expect(proposal.description).toBe(params.description);
       assertProposalStatus(proposal as any, ProposalStatus.Pending);
     });
     
     it('should create multiple proposals with unique IDs and track them', async () => {
-      const proposal1 = await moderator.createProposal('Proposal 1', createTestTransaction());
-      const proposal2 = await moderator.createProposal('Proposal 2', createTestTransaction());
-      const proposal3 = await moderator.createProposal('Proposal 3', createTestTransaction());
+      const proposal1 = await moderator.createProposal(
+        createTestProposalParams('Proposal 1', createTestTransaction(), { proposalLength: TEST_PERIODS.INSTANT })
+      );
+      const proposal2 = await moderator.createProposal(
+        createTestProposalParams('Proposal 2', createTestTransaction(), { proposalLength: TEST_PERIODS.INSTANT })
+      );
+      const proposal3 = await moderator.createProposal(
+        createTestProposalParams('Proposal 3', createTestTransaction(), { proposalLength: TEST_PERIODS.INSTANT })
+      );
       
       // Check unique IDs
       expect(proposal1.id).toBe(0);
@@ -96,7 +103,12 @@ describe('Proposal Flow', () => {
   
   describe('Proposal Initialization', () => {
     it('should initialize proposal components', async () => {
-      const proposal = await moderator.createProposal('Test', createTestTransaction());
+      const params = createTestProposalParams(
+        'Test',
+        createTestTransaction(),
+        { proposalLength: TEST_PERIODS.INSTANT }
+      );
+      const proposal = await moderator.createProposal(params);
 
       expect(proposal.description).toBe('Test');
       expect(proposal.transaction).toBeDefined();
@@ -118,7 +130,12 @@ describe('Proposal Flow', () => {
   
   describe('Proposal Finalization', () => {
     it('should finalize proposal after voting period', async () => {
-      const proposal = await moderator.createProposal('Test', createTestTransaction());
+      const params = createTestProposalParams(
+        'Test',
+        createTestTransaction(),
+        { proposalLength: TEST_PERIODS.INSTANT }
+      );
+      const proposal = await moderator.createProposal(params);
       
       // Wait for voting period to end
       console.log(`⏳ Waiting ${TEST_PERIODS.INSTANT} seconds for voting period...`);
@@ -133,7 +150,12 @@ describe('Proposal Flow', () => {
     });
     
     it('should reject finalization before voting period ends', async () => {
-      const proposal = await moderator.createProposal('Test', createTestTransaction());
+      const params = createTestProposalParams(
+        'Test',
+        createTestTransaction(),
+        { proposalLength: TEST_PERIODS.INSTANT }
+      );
+      const proposal = await moderator.createProposal(params);
       
       // Try to finalize immediately
       const finalStatus = await moderator.finalizeProposal(proposal.id);
@@ -149,7 +171,12 @@ describe('Proposal Flow', () => {
         createMemoInstruction(memoText, [])
       );
       
-      const proposal = await moderator.createProposal('Execute test', tx);
+      const params = createTestProposalParams(
+        'Execute test',
+        tx,
+        { proposalLength: TEST_PERIODS.INSTANT }
+      );
+      const proposal = await moderator.createProposal(params);
       
       // Wait and finalize
       console.log(`⏳ Waiting ${TEST_PERIODS.INSTANT} seconds for voting period...`);
@@ -180,7 +207,12 @@ describe('Proposal Flow', () => {
     });
     
     it('should reject execution of pending proposal', async () => {
-      const proposal = await moderator.createProposal('Test', createTestTransaction());
+      const params = createTestProposalParams(
+        'Test',
+        createTestTransaction(),
+        { proposalLength: TEST_PERIODS.INSTANT }
+      );
+      const proposal = await moderator.createProposal(params);
       
       await expect(
         moderator.executeProposal(
@@ -192,7 +224,12 @@ describe('Proposal Flow', () => {
     });
     
     it('should reject execution of failed proposal', async () => {
-      await moderator.createProposal('Test', createTestTransaction());
+      const params = createTestProposalParams(
+        'Test',
+        createTestTransaction(),
+        { proposalLength: TEST_PERIODS.INSTANT }
+      );
+      await moderator.createProposal(params);
       
       // Wait for voting period
       await new Promise(resolve => setTimeout(resolve, (TEST_PERIODS.INSTANT + 1) * 1000));
@@ -203,7 +240,12 @@ describe('Proposal Flow', () => {
     });
     
     it('should reject double execution', async () => {
-      const proposal = await moderator.createProposal('Test', createTestTransaction());
+      const params = createTestProposalParams(
+        'Test',
+        createTestTransaction(),
+        { proposalLength: TEST_PERIODS.INSTANT }
+      );
+      const proposal = await moderator.createProposal(params);
       
       // Finalize and execute
       await new Promise(resolve => setTimeout(resolve, (TEST_PERIODS.INSTANT + 1) * 1000));
