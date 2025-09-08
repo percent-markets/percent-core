@@ -2,6 +2,7 @@ import { Transaction, PublicKey, Keypair, Connection } from '@solana/web3.js';
 import { BN } from '@coral-xyz/anchor';
 import { IExecutionConfig, IExecutionResult } from './execution.interface';
 import { IProposal } from './proposal.interface';
+import { ITWAPConfig } from './twap-oracle.interface';
 
 /**
  * Enum representing the possible states of a proposal
@@ -20,7 +21,7 @@ export interface ICreateProposalParams {
   description: string;                          // Human-readable description of the proposal
   transaction: Transaction;                     // Solana transaction to execute if passed
   proposalLength: number;                       // Duration of voting period in seconds
-  passThresholdBps: number;                     // Basis points threshold for proposal to pass (e.g., 5000 = 50%)
+  twap: ITWAPConfig;                           // TWAP oracle configuration
   amm: {
     initialBaseAmount: BN;                      // Initial base token liquidity (same for both pass and fail AMMs)
     initialQuoteAmount: BN;                     // Initial quote token liquidity (same for both pass and fail AMMs)
@@ -37,8 +38,6 @@ export interface IModeratorConfig {
   quoteDecimals: number;                       // Number of decimals for quote token conditional mints
   authority: Keypair;                          // Authority keypair for managing vaults and mints
   connection: Connection;                      // Solana connection for blockchain interactions
-  twapMaxObservationChangePerUpdate: bigint;   // Maximum TWAP observation change allowed per update
-  twapStartDelay: number;                      // Delay before TWAP starts recording in seconds
 }
 
 /**

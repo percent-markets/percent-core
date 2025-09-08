@@ -3,7 +3,7 @@ import { BN } from '@coral-xyz/anchor';
 import { IProposal, IProposalConfig } from './types/proposal.interface';
 import { IAMM } from './types/amm.interface';
 import { IVault, VaultType } from './types/vault.interface';
-import { ITWAPOracle } from './types/twap-oracle.interface';
+import { ITWAPOracle, TWAPStatus } from './types/twap-oracle.interface';
 import { ProposalStatus } from './types/moderator.interface';
 import { TWAPOracle } from './twap-oracle';
 import { ExecutionService } from './services/execution.service';
@@ -56,9 +56,7 @@ export class Proposal implements IProposal {
     
     this.twapOracle = new TWAPOracle(
       config.id,
-      config.twapMaxObservationChangePerUpdate,
-      config.twapStartDelay,
-      config.passThresholdBps,
+      config.twap,
       config.createdAt,
       this.finalizedAt
     );
@@ -155,7 +153,8 @@ export class Proposal implements IProposal {
       this.config.ammConfig.initialQuoteAmount
     );
     
-    // TODO: Start TWAP oracle recording
+    // Set AMMs in TWAP oracle so it can track prices
+    this.twapOracle.setAMMs(this.__pAMM, this.__fAMM);
   }
 
   /**
@@ -206,9 +205,9 @@ export class Proposal implements IProposal {
     
     // Update status if still pending after finalization time
     if (this._status === ProposalStatus.Pending) {
-      // TODO: Implement TWAP oracle logic to determine pass/fail
-      // For now, assume all proposals pass
-      const passed = true;
+      // Use TWAP oracle to determine pass/fail
+      const twapStatus = await this.twapOracle.fetchStatus();
+      const passed = twapStatus === TWAPStatus.Passing;
       this._status = passed ? ProposalStatus.Passed : ProposalStatus.Failed;
       
       // Remove liquidity from AMMs before finalizing vaults
