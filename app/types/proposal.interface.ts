@@ -2,7 +2,7 @@ import { Transaction, PublicKey, Keypair, Connection } from '@solana/web3.js';
 import { BN } from '@coral-xyz/anchor';
 import { IAMM } from './amm.interface';
 import { IVault } from './vault.interface';
-import { ITWAPOracle } from './twap-oracle.interface';
+import { ITWAPOracle, ITWAPConfig } from './twap-oracle.interface';
 import { ProposalStatus } from './moderator.interface';
 import { IExecutionResult, IExecutionConfig } from './execution.interface';
 
@@ -21,9 +21,7 @@ export interface IProposalConfig {
   quoteDecimals: number;                       // Number of decimals for quote token conditional mints
   authority: Keypair;                          // Authority keypair for managing vaults and mints
   connection: Connection;                      // Solana connection for blockchain interactions
-  twapMaxObservationChangePerUpdate: bigint;   // Max TWAP change per update
-  twapStartDelay: number;                      // Delay before TWAP starts in seconds
-  passThresholdBps: number;                    // Basis points threshold for passing
+  twap: ITWAPConfig;                           // TWAP oracle configuration
   ammConfig: {
     initialBaseAmount: BN;                      // Initial base token liquidity (same for both AMMs)
     initialQuoteAmount: BN;                     // Initial quote token liquidity (same for both AMMs)

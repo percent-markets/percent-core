@@ -42,9 +42,7 @@ export class Moderator implements IModerator {
         quoteDecimals: this.config.quoteDecimals,
         authority: this.config.authority,
         connection: this.config.connection,
-        twapMaxObservationChangePerUpdate: this.config.twapMaxObservationChangePerUpdate,
-        twapStartDelay: this.config.twapStartDelay,
-        passThresholdBps: params.passThresholdBps,
+        twap: params.twap,
         ammConfig: params.amm
       };
       
@@ -52,7 +50,7 @@ export class Moderator implements IModerator {
       const proposal = new Proposal(proposalConfig);
       
       // Initialize the proposal (blockchain interactions)
-      //await proposal.initialize();
+      await proposal.initialize();
       
       // Store proposal at index matching its ID
       this.proposals[this.proposalIdCounter] = proposal;
