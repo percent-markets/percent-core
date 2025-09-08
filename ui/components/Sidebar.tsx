@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { mockProposals } from '@/lib/mock-data';
 
 interface SidebarProps {
@@ -10,6 +11,11 @@ interface SidebarProps {
 
 export default function Sidebar({ selectedProposal, onSelectProposal }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { publicKey } = useWallet();
+  
+  const walletAddress = publicKey?.toBase58() || '';
+  const shortAddress = walletAddress ? `${walletAddress.slice(0, 6)}...` : 'Connect wallet';
+  const avatarText = walletAddress ? walletAddress.slice(0, 2).toUpperCase() : '??';
 
   return (
     <div className={`${isCollapsed ? 'w-16' : 'w-64'} bg-[#212121] h-screen flex flex-col transition-all duration-200`}>
@@ -52,7 +58,9 @@ export default function Sidebar({ selectedProposal, onSelectProposal }: SidebarP
       {!isCollapsed && (
         <div className="flex-1 overflow-y-auto p-2">
           <div className="space-y-1">
-            {mockProposals.map((proposal) => (
+            {mockProposals
+              .sort((a, b) => b.endsAt.getTime() - a.endsAt.getTime())
+              .map((proposal) => (
               <button
                 key={proposal.id}
                 onClick={() => onSelectProposal(proposal.id)}
@@ -101,7 +109,24 @@ export default function Sidebar({ selectedProposal, onSelectProposal }: SidebarP
         </div>
       )}
 
-      {/* Wallet functionality hidden but preserved */}
+      {/* Footer with wallet info - Only show when not collapsed */}
+      {!isCollapsed && (
+        <div className="p-2">
+          <button className="w-full p-3 rounded-lg hover:bg-[#3a3a3a] transition cursor-pointer">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-[#303030] rounded-full flex items-center justify-center">
+                  <span className="text-xs font-medium text-gray-300">{avatarText}</span>
+                </div>
+                <span className="text-sm text-gray-400">{shortAddress}</span>
+              </div>
+              <svg className="w-4 h-4 fill-gray-400" viewBox="0 0 20 20">
+                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+              </svg>
+            </div>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
