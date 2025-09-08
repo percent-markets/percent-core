@@ -5,6 +5,7 @@ import { Moderator } from '../../app/moderator';
 import { ProposalStatus, IModeratorConfig } from '../../app/types/moderator.interface';
 import {
   authorityWallet,
+  connection,
   TEST_CONFIG
 } from '../setup/devnet';
 import {
@@ -42,9 +43,15 @@ describe('Proposal Flow', () => {
     quoteMint = tokens.quoteMint;
 
     // Create moderator with test configuration
-    config = createTestModeratorConfig(baseMint, quoteMint, {
-      proposalLength: TEST_PERIODS.INSTANT // 1 second for faster tests
-    });
+    config = createTestModeratorConfig(
+      baseMint, 
+      quoteMint, 
+      authorityWallet,
+      connection,
+      {
+        proposalLength: TEST_PERIODS.INSTANT // 1 second for faster tests
+      }
+    );
   });
 
   beforeEach(async () => {

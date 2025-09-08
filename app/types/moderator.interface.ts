@@ -1,4 +1,4 @@
-import { Transaction, PublicKey, Keypair } from '@solana/web3.js';
+import { Transaction, PublicKey, Keypair, Connection } from '@solana/web3.js';
 import { IExecutionConfig, IExecutionResult } from './execution.interface';
 import { IProposal } from './proposal.interface';
 
@@ -21,6 +21,8 @@ export interface IModeratorConfig {
   quoteMint: PublicKey;                        // Public key of the quote token mint
   baseDecimals: number;                        // Number of decimals for base token conditional mints
   quoteDecimals: number;                       // Number of decimals for quote token conditional mints
+  authority: Keypair;                          // Authority keypair for managing vaults and mints
+  connection: Connection;                      // Solana connection for blockchain interactions
   twapMaxObservationChangePerUpdate: bigint;   // Maximum TWAP observation change allowed per update
   twapStartDelay: number;                      // Delay before TWAP starts recording in seconds
   passThresholdBps: number;                    // Basis points threshold for proposal to pass (e.g., 5000 = 50%)

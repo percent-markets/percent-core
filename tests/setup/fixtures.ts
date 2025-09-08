@@ -1,4 +1,4 @@
-import { PublicKey, Transaction, Keypair } from '@solana/web3.js';
+import { PublicKey, Transaction, Keypair, Connection } from '@solana/web3.js';
 import { createMemoInstruction } from '@solana/spl-memo';
 import { IModeratorConfig } from '../../app/types/moderator.interface';
 
@@ -49,10 +49,13 @@ export const TEST_PERIODS = {
 
 /**
  * Create a standard test moderator configuration
+ * NOTE: Caller must provide authority and connection through overrides
  */
 export function createTestModeratorConfig(
   baseMint: PublicKey,
   quoteMint: PublicKey,
+  authority: Keypair,
+  connection: Connection,
   overrides?: Partial<IModeratorConfig>
 ): IModeratorConfig {
   return {
@@ -60,6 +63,8 @@ export function createTestModeratorConfig(
     quoteMint,
     baseDecimals: 6,  // Standard for base tokens (memecoins/USDC)
     quoteDecimals: 9, // Standard for quote tokens (SOL)
+    authority,
+    connection,
     proposalLength: TEST_PERIODS.VOTING_PERIOD,
     twapMaxObservationChangePerUpdate: BigInt(100),
     twapStartDelay: 0,

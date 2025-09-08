@@ -1,7 +1,7 @@
 import { Transaction, PublicKey, Keypair } from '@solana/web3.js';
 import { IModerator, IModeratorConfig, ProposalStatus } from './types/moderator.interface';
 import { IExecutionConfig, IExecutionResult } from './types/execution.interface';
-import { IProposal } from './types/proposal.interface';
+import { IProposal, IProposalConfig } from './types/proposal.interface';
 import { Proposal } from './proposal';
 
 /**
@@ -30,19 +30,26 @@ export class Moderator implements IModerator {
    */
   async createProposal(description: string, transaction: Transaction): Promise<IProposal> {
     try {
-      // Create new proposal with current timestamp and config parameters
-      const proposal = new Proposal(
-        this.proposalIdCounter,
+      // Create proposal config from moderator config
+      const proposalConfig: IProposalConfig = {
+        id: this.proposalIdCounter,
         description,
         transaction,
-        Date.now(),  // Set creation timestamp
-        this.config.proposalLength,
-        this.config.baseMint,
-        this.config.quoteMint,
-        this.config.twapMaxObservationChangePerUpdate,
-        this.config.twapStartDelay,
-        this.config.passThresholdBps
-      );
+        createdAt: Date.now(),
+        proposalLength: this.config.proposalLength,
+        baseMint: this.config.baseMint,
+        quoteMint: this.config.quoteMint,
+        baseDecimals: this.config.baseDecimals,
+        quoteDecimals: this.config.quoteDecimals,
+        authority: this.config.authority,
+        connection: this.config.connection,
+        twapMaxObservationChangePerUpdate: this.config.twapMaxObservationChangePerUpdate,
+        twapStartDelay: this.config.twapStartDelay,
+        passThresholdBps: this.config.passThresholdBps
+      };
+      
+      // Create new proposal with config object
+      const proposal = new Proposal(proposalConfig);
       
       // Initialize the proposal (blockchain interactions)
       //await proposal.initialize();
