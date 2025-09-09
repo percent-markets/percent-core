@@ -146,7 +146,7 @@ export class AMM implements IAMM {
     const result = await this.executionService.executeTx(
       tx,
       this.authority,
-      [positionNftKeypair]
+      [positionNftKeypair] 
     );
 
     if (result.status === 'failed') {
