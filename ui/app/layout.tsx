@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import WalletContextProvider from "@/providers/WalletProvider";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -27,14 +28,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <script src="https://s3.tradingview.com/tv.js"></script>
+        <script src="https://s3.tradingview.com/tv.js" async></script>
       </head>
       <body
         className={`${inter.variable} ${ibmPlexMono.variable} font-sans antialiased bg-gray-950 text-white`}
       >
-        <WalletContextProvider>
-          {children}
-        </WalletContextProvider>
+        <ErrorBoundary>
+          <WalletContextProvider>
+            {children}
+          </WalletContextProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

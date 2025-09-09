@@ -1,27 +1,81 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, useCallback, useEffect, memo } from 'react';
+import dynamic from 'next/dynamic';
 import Sidebar from '@/components/Sidebar';
 import TradingInterface from '@/components/TradingInterface';
-import TradingViewChart from '@/components/TradingViewChart';
 import { mockProposals } from '@/lib/mock-data';
 import { IoMdStopwatch } from 'react-icons/io';
 
+const TradingViewChart = dynamic(() => import('@/components/TradingViewChart'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[500px] bg-[#181818] rounded-lg flex items-center justify-center">
+      <div className="text-gray-500">Loading chart...</div>
+    </div>
+  )
+});
+
+const CountdownTimer = memo(({ endsAt }: { endsAt: Date }) => {
+  const [timeLeft, setTimeLeft] = useState('');
+
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const now = new Date();
+      const diff = endsAt.getTime() - now.getTime();
+      
+      if (diff <= 0) {
+        setTimeLeft('00:00:00');
+        return;
+      }
+      
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      
+      setTimeLeft(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+    };
+
+    calculateTimeLeft();
+    const interval = setInterval(calculateTimeLeft, 1000);
+    
+    return () => clearInterval(interval);
+  }, [endsAt]);
+
+  return <>{timeLeft}</>;
+});
+
+CountdownTimer.displayName = 'CountdownTimer';
+
 export default function HomePage() {
-  // Sort proposals by most recent first and select the first one
-  const sortedProposals = [...mockProposals].sort((a, b) => b.endsAt.getTime() - a.endsAt.getTime());
+  // Memoize sorted proposals
+  const sortedProposals = useMemo(() => 
+    [...mockProposals].sort((a, b) => b.endsAt.getTime() - a.endsAt.getTime()),
+    []
+  );
   
   const [selectedProposalId, setSelectedProposalId] = useState(sortedProposals[0].id);
   const [selectedMarket, setSelectedMarket] = useState<'pass' | 'fail'>('pass');
   
-  const proposal = mockProposals.find(p => p.id === selectedProposalId) || sortedProposals[0];
+  const proposal = useMemo(() => 
+    mockProposals.find(p => p.id === selectedProposalId) || sortedProposals[0],
+    [selectedProposalId, sortedProposals]
+  );
+  
+  const handleSelectProposal = useCallback((id: number) => {
+    setSelectedProposalId(id);
+  }, []);
+  
+  const handleMarketChange = useCallback((market: 'pass' | 'fail') => {
+    setSelectedMarket(market);
+  }, []);
 
   return (
     <div className="flex h-screen bg-[#181818]">
       {/* Sidebar */}
       <Sidebar 
         selectedProposal={selectedProposalId}
-        onSelectProposal={setSelectedProposalId}
+        onSelectProposal={handleSelectProposal}
       />
 
       {/* Main Content */}
@@ -73,8 +127,8 @@ export default function HomePage() {
         </div>
         
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto flex">
-          <div className="flex-1 max-w-4xl p-8 pb-16">
+        <div className="flex-1 flex overflow-hidden">
+          <div className="flex-1 max-w-4xl p-8 pb-16 overflow-y-auto scrollbar-hide">
             <div className="mb-8">
               <div className="flex items-center gap-3 mb-2">
                 <span className={`text-xs px-2 py-1 rounded-full inline-flex items-center gap-1 ${
@@ -166,16 +220,7 @@ export default function HomePage() {
                     {/* Stopwatch Icon */}
                     <IoMdStopwatch className="w-6 h-6 text-gray-400 flex-shrink-0" />
                     <div className="text-2xl font-mono text-white">
-                      {(() => {
-                        const now = new Date();
-                        const diff = proposal.endsAt.getTime() - now.getTime();
-                        const hours = Math.floor(diff / (1000 * 60 * 60));
-                        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-                        
-                        if (diff <= 0) return "00:00:00";
-                        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                      })()}
+                      <CountdownTimer endsAt={proposal.endsAt} />
                     </div>
                   </div>
                 </div>
@@ -349,12 +394,12 @@ export default function HomePage() {
           </div>
 
           {/* Trading Panel - Sticky Position */}
-          <div className="w-96 pl-0 pr-8 py-8">
-            <div className="bg-[#272727] rounded-3xl p-6 sticky top-8">
+          <div className="w-96 pl-0 pr-8 py-8 overflow-y-auto">
+            <div className="bg-[#272727] rounded-3xl p-6 sticky top-0">
               <TradingInterface 
                 proposalId={proposal.id}
                 selectedMarket={selectedMarket}
-                onMarketChange={setSelectedMarket}
+                onMarketChange={handleMarketChange}
                 passPrice={proposal.passPrice}
                 failPrice={proposal.failPrice}
               />

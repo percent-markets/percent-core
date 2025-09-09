@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { mockProposals } from '@/lib/mock-data';
 
@@ -9,13 +9,24 @@ interface SidebarProps {
   onSelectProposal: (id: number) => void;
 }
 
-export default function Sidebar({ selectedProposal, onSelectProposal }: SidebarProps) {
+const Sidebar = memo(({ selectedProposal, onSelectProposal }: SidebarProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { publicKey } = useWallet();
   
-  const walletAddress = publicKey?.toBase58() || '';
-  const shortAddress = walletAddress ? `${walletAddress.slice(0, 6)}...` : 'Connect wallet';
-  const avatarText = walletAddress ? walletAddress.slice(0, 2).toUpperCase() : '??';
+  const walletAddress = useMemo(() => publicKey?.toBase58() || '', [publicKey]);
+  const shortAddress = useMemo(() => 
+    walletAddress ? `${walletAddress.slice(0, 6)}...` : 'Connect wallet',
+    [walletAddress]
+  );
+  const avatarText = useMemo(() => 
+    walletAddress ? walletAddress.slice(0, 2).toUpperCase() : '??',
+    [walletAddress]
+  );
+  
+  const sortedProposals = useMemo(() => 
+    [...mockProposals].sort((a, b) => b.endsAt.getTime() - a.endsAt.getTime()),
+    []
+  );
 
   return (
     <div className={`${isCollapsed ? 'w-16' : 'w-64'} bg-[#121212] h-screen flex flex-col transition-all duration-200`}>
@@ -58,9 +69,7 @@ export default function Sidebar({ selectedProposal, onSelectProposal }: SidebarP
       {!isCollapsed && (
         <div className="flex-1 overflow-y-auto p-2">
           <div className="space-y-1">
-            {mockProposals
-              .sort((a, b) => b.endsAt.getTime() - a.endsAt.getTime())
-              .map((proposal) => (
+            {sortedProposals.map((proposal) => (
               <button
                 key={proposal.id}
                 onClick={() => onSelectProposal(proposal.id)}
@@ -129,4 +138,8 @@ export default function Sidebar({ selectedProposal, onSelectProposal }: SidebarP
       )}
     </div>
   );
-}
+});
+
+Sidebar.displayName = 'Sidebar';
+
+export default Sidebar;

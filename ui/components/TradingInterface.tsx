@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useMemo, memo } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { ArrowUpDown } from 'lucide-react';
 
@@ -12,21 +12,28 @@ interface TradingInterfaceProps {
   failPrice: number;
 }
 
-export default function TradingInterface({ 
+const TradingInterface = memo(({ 
   proposalId, 
   selectedMarket, 
   onMarketChange,
   passPrice,
   failPrice 
-}: TradingInterfaceProps) {
+}: TradingInterfaceProps) => {
   const { connected } = useWallet();
   const [tradeType, setTradeType] = useState<'buy' | 'sell'>('buy');
   const [amount, setAmount] = useState('');
   
-  const currentPrice = selectedMarket === 'pass' ? passPrice : failPrice;
-  const estimatedCost = amount ? parseFloat(amount) * currentPrice : 0;
+  const currentPrice = useMemo(() => 
+    selectedMarket === 'pass' ? passPrice : failPrice,
+    [selectedMarket, passPrice, failPrice]
+  );
+  
+  const estimatedCost = useMemo(() => 
+    amount ? parseFloat(amount) * currentPrice : 0,
+    [amount, currentPrice]
+  );
 
-  const handleTrade = () => {
+  const handleTrade = useCallback(() => {
     if (!connected) {
       alert('Please connect your wallet first');
       return;
@@ -39,7 +46,14 @@ export default function TradingInterface({
       amount,
       estimatedCost
     });
-  };
+  }, [connected, proposalId, selectedMarket, tradeType, amount, estimatedCost]);
+  
+  const handleAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setAmount(e.target.value);
+  }, []);
+  
+  const handleSetBuy = useCallback(() => setTradeType('buy'), []);
+  const handleSetSell = useCallback(() => setTradeType('sell'), []);
 
   return (
     <div>
@@ -47,7 +61,7 @@ export default function TradingInterface({
       
       <div className="grid grid-cols-2 gap-2 mb-4">
         <button
-          onClick={() => onMarketChange('pass')}
+          onClick={useCallback(() => onMarketChange('pass'), [onMarketChange])}
           className={`py-2 px-4 rounded-lg font-medium transition ${
             selectedMarket === 'pass'
               ? 'bg-green-500/20 text-green-500'
@@ -57,7 +71,7 @@ export default function TradingInterface({
           PASS
         </button>
         <button
-          onClick={() => onMarketChange('fail')}
+          onClick={useCallback(() => onMarketChange('fail'), [onMarketChange])}
           className={`py-2 px-4 rounded-lg font-medium transition ${
             selectedMarket === 'fail'
               ? 'bg-red-500/20 text-red-500'
@@ -70,7 +84,7 @@ export default function TradingInterface({
 
       <div className="grid grid-cols-2 gap-2 mb-6">
         <button
-          onClick={() => setTradeType('buy')}
+          onClick={handleSetBuy}
           className={`py-2 px-4 rounded-lg font-medium transition ${
             tradeType === 'buy'
               ? 'bg-orange-500 text-white'
@@ -80,7 +94,7 @@ export default function TradingInterface({
           Buy
         </button>
         <button
-          onClick={() => setTradeType('sell')}
+          onClick={handleSetSell}
           className={`py-2 px-4 rounded-lg font-medium transition ${
             tradeType === 'sell'
               ? 'bg-orange-500 text-white'
@@ -96,7 +110,7 @@ export default function TradingInterface({
         <input
           type="number"
           value={amount}
-          onChange={(e) => setAmount(e.target.value)}
+          onChange={handleAmountChange}
           placeholder="0.00"
           className="w-full px-4 py-3 bg-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-lg"
         />
@@ -139,4 +153,8 @@ export default function TradingInterface({
       )}
     </div>
   );
-}
+});
+
+TradingInterface.displayName = 'TradingInterface';
+
+export default TradingInterface;
