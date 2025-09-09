@@ -2,6 +2,7 @@ import { Moderator } from '../../app/moderator';
 import { IModeratorConfig } from '../../app/types/moderator.interface';
 import { PublicKey, Keypair, Connection } from '@solana/web3.js';
 import fs from 'fs';
+import TestModeratorService from '../test/test-moderator.service';
 
 class ModeratorService {
   private static instance: Moderator | null = null;
@@ -37,6 +38,19 @@ class ModeratorService {
 
   public static reset(): void {
     ModeratorService.instance = null;
+  }
+}
+
+/**
+ * Provides the appropriate moderator instance based on environment
+ */
+export function getModerator(): Moderator {
+  // Check if test moderator is initialized (happens in test server)
+  try {
+    return TestModeratorService.getInstance();
+  } catch {
+    // Fall back to production moderator
+    return ModeratorService.getInstance();
   }
 }
 

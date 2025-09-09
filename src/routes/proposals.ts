@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requireApiKey } from '../middleware/auth';
-import { getModerator } from '../services/moderator-provider';
+import { getModerator } from '../services/moderator.service';
 import { CreateProposalRequest, CreateProposalResponse } from '../types/api';
 import { Transaction, PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
