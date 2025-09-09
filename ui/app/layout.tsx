@@ -20,6 +20,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script src="https://s3.tradingview.com/tv.js"></script>
+      </head>
       <body
         className={`${inter.variable} font-sans antialiased bg-gray-950 text-white`}
       >

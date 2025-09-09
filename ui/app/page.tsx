@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Sidebar from '@/components/Sidebar';
 import TradingInterface from '@/components/TradingInterface';
-import { Clock, TrendingUp, TrendingDown, Activity, Users, DollarSign } from 'lucide-react';
+import TradingViewChart from '@/components/TradingViewChart';
 import { mockProposals } from '@/lib/mock-data';
 
 export default function HomePage() {
@@ -79,78 +79,64 @@ export default function HomePage() {
               <p className="text-gray-400 text-lg leading-relaxed">{proposal.description}</p>
             </div>
 
-            {/* Market Prices */}
-            <div className="grid grid-cols-2 gap-4 mb-8">
-              <div className="bg-gray-900/50 rounded-xl p-6">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm text-gray-500 uppercase tracking-wide">Pass Market</span>
-                  <TrendingUp className="h-4 w-4 text-green-500" />
-                </div>
-                <p className="text-3xl font-bold text-green-500">${proposal.passPrice.toFixed(3)}</p>
-                <p className="text-sm text-gray-500 mt-2">Probability: {(proposal.passPrice * 100).toFixed(1)}%</p>
-              </div>
-              
-              <div className="bg-gray-900/50 rounded-xl p-6">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm text-gray-500 uppercase tracking-wide">Fail Market</span>
-                  <TrendingDown className="h-4 w-4 text-red-500" />
-                </div>
-                <p className="text-3xl font-bold text-red-500">${proposal.failPrice.toFixed(3)}</p>
-                <p className="text-sm text-gray-500 mt-2">Probability: {(proposal.failPrice * 100).toFixed(1)}%</p>
-              </div>
+            {/* TradingView Chart */}
+            <div className="mb-8">
+              <TradingViewChart 
+                symbol={selectedMarket.toUpperCase()} 
+                proposalId={proposal.id} 
+              />
             </div>
 
-            {/* Status Bar */}
-            <div className="flex items-center gap-6 mb-8 pb-8">
-              <div className="flex items-center gap-2">
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  proposal.status === 'Pending' 
-                    ? 'bg-orange-500/20 text-orange-500' 
-                    : 'bg-gray-800 text-gray-400'
-                }`}>
-                  {proposal.status}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-gray-400">
-                <Clock className="h-4 w-4" />
-                <span className="text-sm">Ends {proposal.endsAt.toLocaleDateString()}</span>
-              </div>
-            </div>
-
-            {/* Market Statistics */}
-            <div>
-              <h2 className="text-xl font-semibold mb-6">Market Statistics</h2>
-              <div className="grid grid-cols-3 gap-6">
-                <div className="bg-gray-900/30 rounded-xl p-5">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Activity className="h-5 w-5 text-orange-500" />
-                    <span className="text-sm text-gray-500">24h Volume</span>
-                  </div>
-                  <p className="text-2xl font-semibold">${(proposal.volume24h / 1000).toFixed(1)}k</p>
+            {/* Trading History Table */}
+            <div className="bg-[#272727]/30 rounded-xl mb-6">
+              <div className="p-4">
+                <h2 className="text-lg font-semibold mb-4 text-gray-200">Recent Trades</h2>
+                
+                {/* Table Header */}
+                <div className="grid grid-cols-6 gap-4 px-4 py-3 bg-[#1F1F1F]/50 rounded-lg text-xs text-gray-400 font-medium">
+                  <div>Trader</div>
+                  <div>Type</div>
+                  <div>Pass/Fail</div>
+                  <div>Amount</div>
+                  <div>Price</div>
+                  <div>Time</div>
                 </div>
                 
-                <div className="bg-gray-900/30 rounded-xl p-5">
-                  <div className="flex items-center gap-3 mb-2">
-                    <DollarSign className="h-5 w-5 text-orange-500" />
-                    <span className="text-sm text-gray-500">Total Liquidity</span>
+                {/* Table Body */}
+                <div className="mt-2 space-y-1 max-h-[400px] overflow-y-auto">
+                  {/* Sample trade rows - replace with actual data */}
+                  <div className="grid grid-cols-6 gap-4 px-4 py-3 hover:bg-[#2A2A2A]/30 rounded-lg transition-colors">
+                    <div className="text-sm text-gray-300">0xAb5...3d8</div>
+                    <div className="text-sm text-green-400">Buy</div>
+                    <div className="text-sm text-gray-300">Pass</div>
+                    <div className="text-sm text-gray-300">100</div>
+                    <div className="text-sm text-gray-300">$0.701</div>
+                    <div className="text-sm text-gray-500">2m ago</div>
                   </div>
-                  <p className="text-2xl font-semibold">$125.4k</p>
-                </div>
-                
-                <div className="bg-gray-900/30 rounded-xl p-5">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Users className="h-5 w-5 text-orange-500" />
-                    <span className="text-sm text-gray-500">Traders</span>
+                  <div className="grid grid-cols-6 gap-4 px-4 py-3 hover:bg-[#2A2A2A]/30 rounded-lg transition-colors">
+                    <div className="text-sm text-gray-300">0x7F2...9e4</div>
+                    <div className="text-sm text-red-400">Sell</div>
+                    <div className="text-sm text-gray-300">Fail</div>
+                    <div className="text-sm text-gray-300">50</div>
+                    <div className="text-sm text-gray-300">$0.299</div>
+                    <div className="text-sm text-gray-500">5m ago</div>
                   </div>
-                  <p className="text-2xl font-semibold">342</p>
+                  <div className="grid grid-cols-6 gap-4 px-4 py-3 hover:bg-[#2A2A2A]/30 rounded-lg transition-colors">
+                    <div className="text-sm text-gray-300">0x3C9...1a7</div>
+                    <div className="text-sm text-green-400">Buy</div>
+                    <div className="text-sm text-gray-300">Pass</div>
+                    <div className="text-sm text-gray-300">250</div>
+                    <div className="text-sm text-gray-300">$0.698</div>
+                    <div className="text-sm text-gray-500">12m ago</div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Trading Panel - Persistent Rounded Rectangle */}
+          {/* Trading Panel - Sticky Position */}
           <div className="w-96 p-8">
-            <div className="bg-[#272727] rounded-2xl p-6">
+            <div className="bg-[#272727] rounded-3xl p-6 sticky top-8">
               <TradingInterface 
                 proposalId={proposal.id}
                 selectedMarket={selectedMarket}
