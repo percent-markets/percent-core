@@ -29,6 +29,8 @@ export class Proposal implements IProposal {
   public readonly finalizedAt: number;
   public readonly baseMint: PublicKey;
   public readonly quoteMint: PublicKey;
+  public readonly proposalLength: number;
+  public readonly ammConfig: IProposalConfig['ammConfig'];
 
   private _status: ProposalStatus = ProposalStatus.Pending;
   private readonly config: IProposalConfig;
@@ -53,6 +55,8 @@ export class Proposal implements IProposal {
     this.finalizedAt = config.createdAt + (config.proposalLength * 1000);
     this.baseMint = config.baseMint;
     this.quoteMint = config.quoteMint;
+    this.proposalLength = config.proposalLength;
+    this.ammConfig = config.ammConfig;
     
     this.twapOracle = new TWAPOracle(
       config.id,

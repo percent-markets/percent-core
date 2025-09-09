@@ -19,6 +19,7 @@ export interface IAMM {
   readonly quoteMint: PublicKey;      // Quote token mint address (immutable)
   readonly baseDecimals: number;      // Decimals for base token (immutable)
   readonly quoteDecimals: number;     // Decimals for quote token (immutable)
+  readonly state: AMMState;           // Current operational state (readonly)
   readonly isFinalized: boolean;      // Whether the AMM has been finalized
   pool?: PublicKey;                   // Pool address (set after initialization)
   position?: PublicKey;               // Position account address

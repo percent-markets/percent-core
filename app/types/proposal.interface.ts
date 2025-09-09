@@ -45,6 +45,8 @@ export interface IProposal {
   readonly finalizedAt: number;       // Timestamp when voting ends (ms, immutable)
   readonly baseMint: PublicKey;       // Public key of base token mint (immutable)
   readonly quoteMint: PublicKey;      // Public key of quote token mint (immutable)
+  readonly proposalLength: number;    // Duration of voting period in seconds (immutable)
+  readonly ammConfig: IProposalConfig['ammConfig']; // AMM configuration (immutable)
   readonly status: ProposalStatus;    // Current status (Pending, Passed, Failed, Executed)
   
   /**

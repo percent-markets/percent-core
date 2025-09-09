@@ -34,7 +34,7 @@ export class AMM implements IAMM {
   public pool?: PublicKey;                      // Pool address (set after initialization)
   public position?: PublicKey;                  // Position account (tracks LP ownership)
   public positionNft?: PublicKey;               // NFT mint representing position ownership
-  private state: AMMState = AMMState.Trading;   // Current operational state
+  private _state: AMMState = AMMState.Trading;  // Current operational state
 
   /**
    * Creates a new AMM instance
@@ -63,10 +63,17 @@ export class AMM implements IAMM {
   }
 
   /**
+   * Getter for AMM state (read-only access)
+   */
+  get state(): AMMState {
+    return this._state;
+  }
+
+  /**
    * Getter for finalized state (read-only access)
    */
   get isFinalized(): boolean {
-    return this.state === AMMState.Finalized;
+    return this._state === AMMState.Finalized;
   }
 
   /**
@@ -153,7 +160,7 @@ export class AMM implements IAMM {
    * @throws Error if AMM is finalized or pool uninitialized
    */
   async fetchPrice(): Promise<Decimal> {
-    if (this.state === AMMState.Finalized) {
+    if (this._state === AMMState.Finalized) {
       throw new Error('AMM is finalized - cannot fetch price');
     }
     
@@ -172,7 +179,7 @@ export class AMM implements IAMM {
    * @throws Error if AMM is already finalized or pool uninitialized
    */
   async removeLiquidity(): Promise<void> {
-    if (this.state === AMMState.Finalized) {
+    if (this._state === AMMState.Finalized) {
       throw new Error('AMM is already finalized');
     }
     
@@ -218,7 +225,7 @@ export class AMM implements IAMM {
     this.positionNft = undefined;
     
     // Mark AMM as finalized - no further operations allowed
-    this.state = AMMState.Finalized;
+    this._state = AMMState.Finalized;
   }
 
   /**
@@ -234,7 +241,7 @@ export class AMM implements IAMM {
     slippageBps: number = 50, // Default 0.5% slippage
     payer?: PublicKey
   ): Promise<void> {
-    if (this.state === AMMState.Finalized) {
+    if (this._state === AMMState.Finalized) {
       throw new Error('AMM is finalized - cannot execute swaps');
     }
     
