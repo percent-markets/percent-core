@@ -88,6 +88,10 @@ export class Moderator implements IModerator {
 
     const proposal = this.proposals[id];
     
+    if (proposal.status === ProposalStatus.Uninitialized) {
+      throw new Error(`Proposal #${id} is not initialized - cannot finalize`);
+    }
+    
     if (proposal.status === ProposalStatus.Failed || proposal.status === ProposalStatus.Executed) {
       return proposal.status;
     }
@@ -115,21 +119,26 @@ export class Moderator implements IModerator {
 
     const proposal = this.proposals[id];
     
-    if (proposal.status === ProposalStatus.Pending) {
-      throw new Error('Proposal has not passed');
+    switch (proposal.status) {
+      case ProposalStatus.Uninitialized:
+        throw new Error(`Proposal #${id} is not initialized - cannot execute`);
+      
+      case ProposalStatus.Pending:
+        throw new Error('Proposal is still pending');
+      
+      case ProposalStatus.Failed:
+        throw new Error('Proposal has failed');
+      
+      case ProposalStatus.Executed:
+        throw new Error('Proposal has already been executed');
+      
+      case ProposalStatus.Passed:
+        // Log proposal being executed
+        console.log(`Executing proposal #${id}: "${proposal.description}"`);
+        return await proposal.execute(signer, executionConfig);
+      
+      default:
+        throw new Error(`Unknown proposal status: ${proposal.status}`);
     }
-    
-    if (proposal.status === ProposalStatus.Executed) {
-      throw new Error('Proposal has already been executed');
-    }
-    
-    if (proposal.status === ProposalStatus.Failed) {
-      throw new Error('Proposal has not passed');
-    }
-
-    // Log proposal being executed
-    console.log(`Executing proposal #${id}: "${proposal.description}"`);
-    
-    return await proposal.execute(signer, executionConfig);
   }
 }

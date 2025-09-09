@@ -10,6 +10,7 @@ import {
   IVaultConfig, 
   ITokenBalance, 
   VaultType,
+  VaultState,
   IEscrowInfo
 } from './types/vault.interface';
 import { ProposalStatus } from './types/moderator.interface';
@@ -40,6 +41,7 @@ export class Vault implements IVault {
   private _passConditionalMint!: PublicKey;
   private _failConditionalMint!: PublicKey;
   private _escrow!: PublicKey;
+  private _state: VaultState = VaultState.Uninitialized;
   private _isFinalized: boolean = false;
   private _proposalStatus: ProposalStatus = ProposalStatus.Pending;
 
@@ -47,6 +49,7 @@ export class Vault implements IVault {
   get passConditionalMint(): PublicKey { return this._passConditionalMint; }
   get failConditionalMint(): PublicKey { return this._failConditionalMint; }
   get escrow(): PublicKey { return this._escrow; }
+  get state(): VaultState { return this._state; }
   get isFinalized(): boolean { return this._isFinalized; }
   get proposalStatus(): ProposalStatus { return this._proposalStatus; }
 
@@ -85,6 +88,10 @@ export class Vault implements IVault {
    * Creates two conditional mints (pass/fail) with decimals specified in constructor
    */
   async initialize(): Promise<void> {
+    if (this._state !== VaultState.Uninitialized) {
+      throw new Error('Vault already initialized');
+    }
+    
     // Create both pass and fail conditional token mints with specified decimals
     this._passConditionalMint = await this.tokenService.createMint(
       this.decimals,
@@ -104,6 +111,9 @@ export class Vault implements IVault {
       this.authority.publicKey,
       this.authority
     );
+    
+    // Update state to Active
+    this._state = VaultState.Active;
   }
 
   /**
@@ -118,7 +128,11 @@ export class Vault implements IVault {
     user: PublicKey,
     amount: bigint
   ): Promise<Transaction> {
-    if (this._isFinalized) {
+    if (this._state === VaultState.Uninitialized) {
+      throw new Error('Vault not initialized');
+    }
+    
+    if (this._state === VaultState.Finalized) {
       throw new Error('Vault is finalized, no more splits allowed');
     }
     
@@ -218,7 +232,11 @@ export class Vault implements IVault {
     user: PublicKey,
     amount: bigint
   ): Promise<Transaction> {
-    if (this._isFinalized) {
+    if (this._state === VaultState.Uninitialized) {
+      throw new Error('Vault not initialized');
+    }
+    
+    if (this._state === VaultState.Finalized) {
       throw new Error('Cannot merge after vault finalization - use redemption instead');
     }
     
@@ -312,6 +330,14 @@ export class Vault implements IVault {
    * Note: In production, user signs first, then this method adds authority signature
    */
   async executeSplitTx(tx: Transaction): Promise<string> {
+    if (this._state === VaultState.Uninitialized) {
+      throw new Error('Vault not initialized - cannot execute split');
+    }
+    
+    if (this._state === VaultState.Finalized) {
+      throw new Error('Vault is finalized - no splits allowed');
+    }
+    
     // Add authority signature to the user-signed transaction
     const result = await this.executionService.executeTx(
       tx,
@@ -334,6 +360,14 @@ export class Vault implements IVault {
    * Note: In production, user signs first, then this method adds authority signature
    */
   async executeMergeTx(tx: Transaction): Promise<string> {
+    if (this._state === VaultState.Uninitialized) {
+      throw new Error('Vault not initialized - cannot execute merge');
+    }
+    
+    if (this._state === VaultState.Finalized) {
+      throw new Error('Vault is finalized - no merges allowed, use redemption instead');
+    }
+    
     // Add authority signature to the user-signed transaction
     const result = await this.executionService.executeTx(
       tx,
@@ -431,14 +465,20 @@ export class Vault implements IVault {
    * - Stores proposal status to determine which tokens can be redeemed
    */
   async finalize(proposalStatus: ProposalStatus): Promise<void> {
-    if (this._isFinalized) {
+    if (this._state === VaultState.Uninitialized) {
+      throw new Error('Vault not initialized');
+    }
+    
+    if (this._state === VaultState.Finalized) {
       throw new Error('Vault is already finalized');
     }
     
-    if (proposalStatus === ProposalStatus.Pending || proposalStatus === ProposalStatus.Executed) {
+    if (proposalStatus === ProposalStatus.Uninitialized || 
+        proposalStatus === ProposalStatus.Pending) {
       throw new Error(`Cannot finalize vault with status: ${proposalStatus}`);
     }
     
+    this._state = VaultState.Finalized;
     this._isFinalized = true;
     this._proposalStatus = proposalStatus;
   }
@@ -451,7 +491,7 @@ export class Vault implements IVault {
    * @throws Error if vault not finalized or no winning tokens to redeem
    */
   async buildRedeemWinningTokensTx(user: PublicKey): Promise<Transaction> {
-    if (!this._isFinalized) {
+    if (this._state !== VaultState.Finalized) {
       throw new Error('Cannot redeem before vault finalization');
     }
     

@@ -34,7 +34,7 @@ export class AMM implements IAMM {
   public pool?: PublicKey;                      // Pool address (set after initialization)
   public position?: PublicKey;                  // Position account (tracks LP ownership)
   public positionNft?: PublicKey;               // NFT mint representing position ownership
-  private _state: AMMState = AMMState.Trading;  // Current operational state
+  private _state: AMMState = AMMState.Uninitialized;  // Current operational state
 
   /**
    * Creates a new AMM instance
@@ -87,6 +87,10 @@ export class AMM implements IAMM {
     initialBaseTokenAmount: BN,
     initialQuoteAmount: BN
   ): Promise<void> {
+    if (this._state !== AMMState.Uninitialized) {
+      throw new Error('AMM already initialized');
+    }
+    
     // Generate keypair for position NFT (represents LP ownership)
     const positionNftKeypair = new Keypair();
 
@@ -151,6 +155,9 @@ export class AMM implements IAMM {
     this.pool = pool;
     this.position = position;
     this.positionNft = positionNftKeypair.publicKey;
+    
+    // Update state to Trading
+    this._state = AMMState.Trading;
   }
 
   /**
@@ -160,6 +167,10 @@ export class AMM implements IAMM {
    * @throws Error if AMM is finalized or pool uninitialized
    */
   async fetchPrice(): Promise<Decimal> {
+    if (this._state === AMMState.Uninitialized) {
+      throw new Error('AMM not initialized');
+    }
+    
     if (this._state === AMMState.Finalized) {
       throw new Error('AMM is finalized - cannot fetch price');
     }
@@ -179,6 +190,10 @@ export class AMM implements IAMM {
    * @throws Error if AMM is already finalized or pool uninitialized
    */
   async removeLiquidity(): Promise<void> {
+    if (this._state === AMMState.Uninitialized) {
+      throw new Error('AMM not initialized');
+    }
+    
     if (this._state === AMMState.Finalized) {
       throw new Error('AMM is already finalized');
     }
@@ -241,6 +256,10 @@ export class AMM implements IAMM {
     slippageBps: number = 50, // Default 0.5% slippage
     payer?: PublicKey
   ): Promise<void> {
+    if (this._state === AMMState.Uninitialized) {
+      throw new Error('AMM not initialized');
+    }
+    
     if (this._state === AMMState.Finalized) {
       throw new Error('AMM is finalized - cannot execute swaps');
     }

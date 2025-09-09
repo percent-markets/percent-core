@@ -8,10 +8,11 @@ import { ITWAPConfig } from './twap-oracle.interface';
  * Enum representing the possible states of a proposal
  */
 export enum ProposalStatus {
-  Pending = 'Pending',   // Proposal is active and voting is ongoing
-  Passed = 'Passed',     // Proposal passed the threshold
-  Failed = 'Failed',     // Proposal failed to pass the threshold
-  Executed = 'Executed'  // Proposal has been executed
+  Uninitialized = 'Uninitialized', // Proposal created but not yet initialized on-chain
+  Pending = 'Pending',              // Proposal is active and voting is ongoing
+  Passed = 'Passed',                // Proposal passed the threshold
+  Failed = 'Failed',                // Proposal failed to pass the threshold
+  Executed = 'Executed'             // Proposal has been executed
 }
 
 /**

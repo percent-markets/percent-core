@@ -6,8 +6,9 @@ import { Decimal } from "decimal.js";
  * Enum representing the operational state of the AMM
  */
 export enum AMMState {
-  Trading = 'Trading',     // AMM is active and can perform swaps
-  Finalized = 'Finalized'  // AMM has removed liquidity and is closed
+  Uninitialized = 'Uninitialized', // AMM not yet initialized
+  Trading = 'Trading',              // AMM is active and can perform swaps
+  Finalized = 'Finalized'           // AMM has removed liquidity and is closed
 }
 
 /**

@@ -10,6 +10,15 @@ export enum VaultType {
 }
 
 /**
+ * Vault state indicating the operational status
+ */
+export enum VaultState {
+  Uninitialized = 'Uninitialized', // Vault not yet initialized
+  Active = 'Active',                // Vault is active and can perform splits/merges
+  Finalized = 'Finalized'           // Vault is finalized, only redemptions allowed
+}
+
+/**
  * Token type for distinguishing between base and quote tokens
  */
 export enum TokenType {
@@ -59,7 +68,8 @@ export interface IVault {
   readonly passConditionalMint: PublicKey;  // Pass conditional token mint (created on init)
   readonly failConditionalMint: PublicKey;  // Fail conditional token mint (created on init)
   readonly escrow: PublicKey;               // Escrow holding regular tokens
-  readonly isFinalized: boolean;            // Whether vault has been finalized
+  readonly state: VaultState;               // Current operational state of the vault
+  readonly isFinalized: boolean;            // Whether vault has been finalized (deprecated, use state)
   readonly proposalStatus: ProposalStatus;  // Status of the proposal (determines winning tokens)
   
   /**

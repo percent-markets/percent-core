@@ -32,7 +32,7 @@ export class Proposal implements IProposal {
   public readonly proposalLength: number;
   public readonly ammConfig: IProposalConfig['ammConfig'];
 
-  private _status: ProposalStatus = ProposalStatus.Pending;
+  private _status: ProposalStatus = ProposalStatus.Uninitialized;
   private readonly config: IProposalConfig;
 
   /**
@@ -159,6 +159,9 @@ export class Proposal implements IProposal {
     
     // Set AMMs in TWAP oracle so it can track prices
     this.twapOracle.setAMMs(this.__pAMM, this.__fAMM);
+    
+    // Update status to Pending now that everything is initialized
+    this._status = ProposalStatus.Pending;
   }
 
   /**
@@ -177,6 +180,9 @@ export class Proposal implements IProposal {
    * @throws Error if AMMs are not initialized
    */
   getAMMs(): [IAMM, IAMM] {
+    if (this._status === ProposalStatus.Uninitialized) {
+      throw new Error(`Proposal #${this.id}: Not initialized - call initialize() first`);
+    }
     if (!this.__pAMM || !this.__fAMM) {
       throw new Error(`Proposal #${this.id}: AMMs are uninitialized`);
     }
@@ -189,6 +195,9 @@ export class Proposal implements IProposal {
    * @throws Error if vaults are not initialized
    */
   getVaults(): [IVault, IVault] {
+    if (this._status === ProposalStatus.Uninitialized) {
+      throw new Error(`Proposal #${this.id}: Not initialized - call initialize() first`);
+    }
     if (!this.__baseVault || !this.__quoteVault) {
       throw new Error(`Proposal #${this.id}: Vaults are uninitialized`);
     }
@@ -202,6 +211,10 @@ export class Proposal implements IProposal {
    * @returns The current or updated proposal status
    */
   async finalize(): Promise<ProposalStatus> {
+    if (this._status === ProposalStatus.Uninitialized) {
+      throw new Error(`Proposal #${this.id}: Not initialized - call initialize() first`);
+    }
+    
     // Still pending if before finalization time
     if (Date.now() < this.finalizedAt) {
       return ProposalStatus.Pending;
@@ -259,28 +272,34 @@ export class Proposal implements IProposal {
     signer: Keypair, 
     executionConfig: IExecutionConfig
   ): Promise<IExecutionResult> {
-    if (this._status === ProposalStatus.Pending) {
-      throw new Error(`Cannot execute proposal #${this.id} - not finalized`);
+    switch (this._status) {
+      case ProposalStatus.Uninitialized:
+        throw new Error(`Proposal #${this.id}: Not initialized - call initialize() first`);
+      
+      case ProposalStatus.Pending:
+        throw new Error(`Cannot execute proposal #${this.id} - not finalized`);
+      
+      case ProposalStatus.Failed:
+        throw new Error(`Cannot execute proposal #${this.id} - proposal failed`);
+      
+      case ProposalStatus.Executed:
+        throw new Error(`Proposal #${this.id} has already been executed`);
+      
+      case ProposalStatus.Passed:
+        // Execute the Solana transaction
+        const executionService = new ExecutionService(executionConfig);
+        const result = await executionService.executeTx(
+          this.transaction,
+          signer
+        );
+        
+        // Update status to Executed regardless of transaction result
+        this._status = ProposalStatus.Executed;
+        
+        return result;
+      
+      default:
+        throw new Error(`Unknown proposal status: ${this._status}`);
     }
-    
-    if (this._status === ProposalStatus.Executed) {
-      throw new Error(`Proposal #${this.id} has already been executed`);
-    }
-    
-    if (this._status !== ProposalStatus.Passed) {
-      throw new Error(`Cannot execute proposal #${this.id} - status is ${this._status}`);
-    }
-    
-    // Execute the Solana transaction
-    const executionService = new ExecutionService(executionConfig);
-    const result = await executionService.executeTx(
-      this.transaction,
-      signer
-    );
-    
-    // Update status to Executed regardless of transaction result
-    this._status = ProposalStatus.Executed;
-    
-    return result;
   }
 }
