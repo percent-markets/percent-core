@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import ModeratorService from '../services/moderator.service';
+import { getModerator } from '../services/moderator.service';
 import { ProposalStatus } from '../../app/types/moderator.interface';
 import { SchedulerService } from '../../app/services/scheduler.service';
 import { requireApiKey, optionalApiKey } from '../middleware/auth';
@@ -14,7 +14,7 @@ router.get('/:proposalId', optionalApiKey, async (req, res) => {
       return res.status(400).json({ error: 'Invalid proposal ID' });
     }
 
-    const moderator = ModeratorService.getInstance();
+    const moderator = getModerator();
     const proposal = moderator.proposals[proposalId];
     
     if (!proposal) {
@@ -53,7 +53,7 @@ router.post('/:proposalId/crank', requireApiKey, async (req, res) => {
       return res.status(400).json({ error: 'Invalid proposal ID' });
     }
 
-    const moderator = ModeratorService.getInstance();
+    const moderator = getModerator();
     const proposal = moderator.proposals[proposalId];
     
     if (!proposal) {

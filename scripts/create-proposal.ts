@@ -21,7 +21,7 @@ async function createProposal() {
       initialTwapValue: 5000,
       twapMaxObservationChangePerUpdate: 100,
       twapStartDelay: 5000,
-      passThresholdBps: 5100
+      passThresholdBps: 300
     },
     amm: {
       initialBaseAmount: '1000000000',

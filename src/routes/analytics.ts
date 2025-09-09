@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requireApiKey } from '../middleware/auth';
-import ModeratorService from '../services/moderator.service';
+import { getModerator } from '../services/moderator.service';
 import { AMMState } from '../../app/types/amm.interface';
 import { VaultState } from '../../app/types/vault.interface';
 
@@ -8,7 +8,7 @@ const router = Router();
 
 router.get('/:id', requireApiKey, async (req, res, next) => {
   try {
-    const moderator = ModeratorService.getInstance();
+    const moderator = getModerator();
     const id = parseInt(req.params.id);
     
     if (isNaN(id) || id < 0 || id >= moderator.proposals.length) {
