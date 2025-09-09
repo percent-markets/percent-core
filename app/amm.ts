@@ -135,16 +135,18 @@ export class AMM implements IAMM {
       poolFees: poolFees,
       hasAlphaVault: false,                     // No alpha vault needed
       collectFeeMode: 0,                        // Collect fees in both tokens
-      activationPoint: new BN(Date.now()),      // Activate immediately
+      activationPoint: null,                     // Activate immediately
       activationType: 1,                        // Activation by timestamp
       tokenAProgram: TOKEN_PROGRAM_ID,
       tokenBProgram: TOKEN_PROGRAM_ID
     });
 
     // Execute pool creation transaction
+    // The positionNftKeypair needs to sign as it's creating a new account
     const result = await this.executionService.executeTx(
       tx,
-      this.authority
+      this.authority,
+      [positionNftKeypair]
     );
 
     if (result.status === 'failed') {
