@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback, useEffect, memo } from 'react';
 import dynamic from 'next/dynamic';
+import { useWallet } from '@solana/wallet-adapter-react';
 import Sidebar from '@/components/Sidebar';
 import TradingInterface from '@/components/TradingInterface';
 import { mockProposals } from '@/lib/mock-data';
@@ -48,6 +49,19 @@ const CountdownTimer = memo(({ endsAt }: { endsAt: Date }) => {
 CountdownTimer.displayName = 'CountdownTimer';
 
 export default function HomePage() {
+  const { publicKey } = useWallet();
+  
+  // Wallet info
+  const walletAddress = useMemo(() => publicKey?.toBase58() || '', [publicKey]);
+  const shortAddress = useMemo(() => 
+    walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Connect wallet',
+    [walletAddress]
+  );
+  const avatarText = useMemo(() => 
+    walletAddress ? walletAddress.slice(0, 2).toUpperCase() : '??',
+    [walletAddress]
+  );
+  
   // Memoize sorted proposals
   const sortedProposals = useMemo(() => 
     [...mockProposals].sort((a, b) => b.endsAt.getTime() - a.endsAt.getTime()),
@@ -81,7 +95,7 @@ export default function HomePage() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header - Same height as sidebar header */}
-        <div className="h-14 flex items-center px-8 bg-[#181818]">
+        <div className="h-14 flex items-center justify-between px-8 bg-[#181818] border-b border-[#3D3D3D]">
           <div className="flex items-center gap-6">
             <img 
               src="/percent-logo-big.svg" 
@@ -124,11 +138,19 @@ export default function HomePage() {
               </a>
             </div>
           </div>
+          
+          {/* Wallet Info */}
+          <button className="group flex items-center gap-3 transition cursor-pointer">
+            <span className="text-sm text-[#AFAFAF] group-hover:text-gray-300 transition-colors">{shortAddress}</span>
+            <div className="w-8 h-8 bg-[#272727] group-hover:bg-[#303030] rounded-full flex items-center justify-center transition-colors">
+              <span className="text-xs font-medium text-[#AFAFAF]">{avatarText}</span>
+            </div>
+          </button>
         </div>
         
         {/* Content Area */}
         <div className="flex-1 flex overflow-hidden">
-          <div className="flex-1 max-w-4xl p-8 pb-16 overflow-y-auto scrollbar-hide">
+          <div className="flex-1 max-w-4xl p-8 pb-16 overflow-y-auto scrollbar-hide border-r border-[#3D3D3D]">
             <div className="mb-8">
               <div className="flex items-center gap-3 mb-2">
                 <span className={`text-xs px-2 py-1 rounded-full inline-flex items-center gap-1 ${
@@ -175,8 +197,8 @@ export default function HomePage() {
             </div>
 
             {/* Progress Bar Component */}
-            <div className="mb-4">
-              <div className="bg-[#0F0F0F] border border-[#3D3D3D] px-4 py-4">
+            <div>
+              <div className="bg-[#0F0F0F] border-t border-l border-r border-[#3D3D3D] px-4 py-4">
                 <div className="flex items-center gap-6">
                   {/* Progress Bar */}
                   <div className="relative flex-1">
@@ -228,7 +250,7 @@ export default function HomePage() {
             </div>
 
             {/* TradingView Chart */}
-            <div className="mb-4">
+            <div>
               <TradingViewChart 
                 symbol={selectedMarket.toUpperCase()} 
                 proposalId={proposal.id} 
@@ -236,7 +258,7 @@ export default function HomePage() {
             </div>
 
             {/* Trading History Table */}
-            <div className="bg-[#0F0F0F] border border-[#3D3D3D]">
+            <div className="bg-[#0F0F0F] border-b border-l border-r border-[#3D3D3D]">
               {/* Table Header */}
               <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs text-[#9C9D9E] font-medium border-b border-[#3D3D3D]">
                 <div>Trader</div>

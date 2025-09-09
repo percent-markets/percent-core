@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo, memo } from 'react';
-import { useWallet } from '@solana/wallet-adapter-react';
 import { mockProposals } from '@/lib/mock-data';
 
 interface SidebarProps {
@@ -11,17 +10,6 @@ interface SidebarProps {
 
 const Sidebar = memo(({ selectedProposal, onSelectProposal }: SidebarProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const { publicKey } = useWallet();
-  
-  const walletAddress = useMemo(() => publicKey?.toBase58() || '', [publicKey]);
-  const shortAddress = useMemo(() => 
-    walletAddress ? `${walletAddress.slice(0, 6)}...` : 'Connect wallet',
-    [walletAddress]
-  );
-  const avatarText = useMemo(() => 
-    walletAddress ? walletAddress.slice(0, 2).toUpperCase() : '??',
-    [walletAddress]
-  );
   
   const sortedProposals = useMemo(() => 
     [...mockProposals].sort((a, b) => b.endsAt.getTime() - a.endsAt.getTime()),
@@ -115,25 +103,6 @@ const Sidebar = memo(({ selectedProposal, onSelectProposal }: SidebarProps) => {
               </button>
             ))}
           </div>
-        </div>
-      )}
-
-      {/* Footer with wallet info - Only show when not collapsed */}
-      {!isCollapsed && (
-        <div className="p-2">
-          <button className="w-full p-3 rounded-lg hover:bg-[#3a3a3a] transition cursor-pointer">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-[#303030] rounded-full flex items-center justify-center">
-                  <span className="text-xs font-medium text-gray-300">{avatarText}</span>
-                </div>
-                <span className="text-sm text-gray-400">{shortAddress}</span>
-              </div>
-              <svg className="w-4 h-4 fill-gray-400" viewBox="0 0 20 20">
-                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-              </svg>
-            </div>
-          </button>
         </div>
       )}
     </div>
