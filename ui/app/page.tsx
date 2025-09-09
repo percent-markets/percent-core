@@ -413,8 +413,8 @@ export default function HomePage() {
           </div>
 
           {/* Trading Panel - Sticky Position */}
-          <div className="w-96 pl-0 pr-8 py-8 overflow-y-auto">
-            <div className="bg-[#272727] rounded-3xl p-6 sticky top-0">
+          <div className="w-96 p-8 overflow-y-auto">
+            <div className="sticky top-0">
               <TradingInterface 
                 proposalId={proposal.id}
                 selectedMarket={selectedMarket}
