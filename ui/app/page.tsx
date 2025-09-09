@@ -150,7 +150,7 @@ export default function HomePage() {
         
         {/* Content Area */}
         <div className="flex-1 flex overflow-hidden">
-          <div className="flex-1 max-w-4xl p-8 pb-16 overflow-y-auto scrollbar-hide border-r border-[#3D3D3D]">
+          <div className="flex-1 max-w-4xl p-8 overflow-y-auto scrollbar-hide border-r border-[#3D3D3D]">
             <div className="mb-8">
               <div className="flex items-center gap-3 mb-2">
                 <span className={`text-xs px-2 py-1 rounded-full inline-flex items-center gap-1 ${
@@ -410,9 +410,6 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
-            
-            {/* Bottom Spacer */}
-            <div className="h-8"></div>
           </div>
 
           {/* Trading Panel - Sticky Position */}
