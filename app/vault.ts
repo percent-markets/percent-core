@@ -339,6 +339,7 @@ export class Vault implements IVault {
     }
     
     // Add authority signature to the user-signed transaction
+    console.log('Executing transaction to split tokens');
     const result = await this.executionService.executeTx(
       tx,
       this.authority
@@ -369,6 +370,7 @@ export class Vault implements IVault {
     }
     
     // Add authority signature to the user-signed transaction
+    console.log('Executing transaction to merge tokens');
     const result = await this.executionService.executeTx(
       tx,
       this.authority
@@ -558,6 +560,7 @@ export class Vault implements IVault {
    */
   async executeRedeemWinningTokensTx(tx: Transaction): Promise<string> {
     // Add authority signature to the user-signed transaction
+    console.log('Executing transaction to redeem winning tokens');
     const result = await this.executionService.executeTx(
       tx,
       this.authority

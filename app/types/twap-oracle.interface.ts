@@ -17,6 +17,7 @@ export interface ITWAPConfig {
   twapMaxObservationChangePerUpdate: number | null;  // Maximum change allowed per update (null = no limit)
   twapStartDelay: number;                       // Delay in milliseconds before TWAP starts recording
   passThresholdBps: number;                     // Basis points threshold for proposal to pass
+  minUpdateInterval: number;                    // Minimum interval between TWAP updates in milliseconds
 }
 
 /**

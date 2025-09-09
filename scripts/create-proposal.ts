@@ -35,7 +35,8 @@ async function createProposal() {
       initialTwapValue: ammPrice, // Decimal-adjusted price (0.1)
       twapMaxObservationChangePerUpdate: null,
       twapStartDelay: 0, // Changed from 5000
-      passThresholdBps: 300
+      passThresholdBps: 300,
+      minUpdateInterval: 60000 // 1 minute in milliseconds
     },
     amm: {
       initialBaseAmount,

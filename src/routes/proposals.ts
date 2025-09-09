@@ -86,7 +86,8 @@ router.post('/', requireApiKey, async (req, res, next) => {
         initialTwapValue: body.twap.initialTwapValue,
         twapMaxObservationChangePerUpdate: body.twap.twapMaxObservationChangePerUpdate,
         twapStartDelay: body.twap.twapStartDelay,
-        passThresholdBps: body.twap.passThresholdBps
+        passThresholdBps: body.twap.passThresholdBps,
+        minUpdateInterval: body.twap.minUpdateInterval
       },
       amm: {
         initialBaseAmount: new BN(body.amm.initialBaseAmount),

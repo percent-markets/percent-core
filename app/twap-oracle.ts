@@ -2,7 +2,6 @@ import { ITWAPOracle, ITWAPConfig, TWAPStatus } from './types/twap-oracle.interf
 import { IAMM } from './types/amm.interface';
 import { Decimal } from 'decimal.js';
 
-const MIN_UPDATE_INTERVAL = 60 * 1000;
 
 /**
  * TWAP Oracle implementation for tracking time-weighted average prices
@@ -14,6 +13,7 @@ export class TWAPOracle implements ITWAPOracle {
   public readonly twapMaxObservationChangePerUpdate: number | null;
   public readonly twapStartDelay: number;
   public readonly passThresholdBps: number;
+  public readonly minUpdateInterval: number;
   public readonly createdAt: number;
   public readonly finalizedAt: number;
 
@@ -43,6 +43,7 @@ export class TWAPOracle implements ITWAPOracle {
     this.twapMaxObservationChangePerUpdate = config.twapMaxObservationChangePerUpdate;
     this.twapStartDelay = config.twapStartDelay;
     this.passThresholdBps = config.passThresholdBps;
+    this.minUpdateInterval = config.minUpdateInterval;
     this.createdAt = createdAt;
     this.finalizedAt = finalizedAt;
 
@@ -84,8 +85,8 @@ export class TWAPOracle implements ITWAPOracle {
       throw new Error('AMMs not set - call setAMMs first');
     }
 
-    // Minimum time between updates (1 minute in milliseconds)
-    if (currentTime < this._lastUpdateTime + MIN_UPDATE_INTERVAL) {
+    // Minimum time between updates
+    if (currentTime < this._lastUpdateTime + this.minUpdateInterval) {
       return; // Not enough time has passed since last update
     }
 

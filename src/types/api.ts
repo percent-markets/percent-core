@@ -101,6 +101,7 @@ export interface CreateProposalRequest {
     twapMaxObservationChangePerUpdate: number | null;
     twapStartDelay: number;
     passThresholdBps: number;
+    minUpdateInterval: number;
   };
   amm: {
     initialBaseAmount: string;

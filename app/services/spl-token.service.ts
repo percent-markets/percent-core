@@ -84,7 +84,7 @@ export class SPLTokenService implements ISPLTokenService {
         TOKEN_PROGRAM_ID
       )
     );
-
+    console.log('Executing transaction to create mint');
     const result = await this.executionService.executeTx(
       transaction,
       payer,
@@ -143,7 +143,7 @@ export class SPLTokenService implements ISPLTokenService {
       mintAuthority.publicKey
     );
     const transaction = new Transaction().add(ix);
-    
+    console.log('Executing transaction to mint tokens');
     const result = await this.executionService.executeTx(
       transaction,
       mintAuthority
@@ -201,7 +201,7 @@ export class SPLTokenService implements ISPLTokenService {
       owner.publicKey
     );
     const transaction = new Transaction().add(ix);
-    
+    console.log('Executing transaction to burn tokens');
     const result = await this.executionService.executeTx(
       transaction,
       owner
@@ -259,7 +259,7 @@ export class SPLTokenService implements ISPLTokenService {
       owner.publicKey
     );
     const transaction = new Transaction().add(ix);
-    
+    console.log('Executing transaction to transfer tokens');
     const result = await this.executionService.executeTx(
       transaction,
       owner
@@ -311,7 +311,7 @@ export class SPLTokenService implements ISPLTokenService {
       owner.publicKey
     );
     const transaction = new Transaction().add(ix);
-    
+    console.log('Executing transaction to close account');
     const result = await this.executionService.executeTx(
       transaction,
       owner
@@ -359,7 +359,7 @@ export class SPLTokenService implements ISPLTokenService {
           ASSOCIATED_TOKEN_PROGRAM_ID
         )
       );
-
+      console.log('Executing transaction to create associated token account');
       const result = await this.executionService.executeTx(
         transaction,
         payer
@@ -462,7 +462,7 @@ export class SPLTokenService implements ISPLTokenService {
       currentAuthority.publicKey
     );
     const transaction = new Transaction().add(ix);
-
+    console.log('Executing transaction to set authority');
     const result = await this.executionService.executeTx(
       transaction,
       currentAuthority

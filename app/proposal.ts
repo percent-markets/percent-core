@@ -288,6 +288,7 @@ export class Proposal implements IProposal {
       case ProposalStatus.Passed:
         // Execute the Solana transaction
         const executionService = new ExecutionService(executionConfig);
+        console.log('Executing transaction to execute proposal');
         const result = await executionService.executeTx(
           this.transaction,
           signer

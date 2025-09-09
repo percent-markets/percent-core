@@ -142,6 +142,7 @@ export class AMM implements IAMM {
     });
 
     // Execute pool creation transaction
+    console.log('Executing transaction to create custom pool');
     // The positionNftKeypair needs to sign as it's creating a new account
     const result = await this.executionService.executeTx(
       tx,
@@ -243,6 +244,7 @@ export class AMM implements IAMM {
     const tx = await this.cpAmm.removeAllLiquidityAndClosePosition(params);
     
     // Execute the transaction
+    console.log('Executing transaction to remove liquidity and close position');
     const result = await this.executionService.executeTx(
       tx,
       this.authority
@@ -359,6 +361,7 @@ export class AMM implements IAMM {
     }
     
     // Execute without adding authority signature (swaps only need user signature)
+    console.log('Executing transaction to swap tokens');
     const result = await this.executionService.executeTx(tx);
     
     if (result.status === 'failed') {
