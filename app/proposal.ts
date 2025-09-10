@@ -250,6 +250,9 @@ export class Proposal implements IProposal {
         const quoteRedeemTx = await this.__quoteVault.buildRedeemWinningTokensTx(
           this.config.authority.publicKey
         );
+
+        baseRedeemTx.sign(this.config.authority);
+        quoteRedeemTx.sign(this.config.authority);
         
         await this.__baseVault.executeRedeemWinningTokensTx(baseRedeemTx);
         await this.__quoteVault.executeRedeemWinningTokensTx(quoteRedeemTx);
