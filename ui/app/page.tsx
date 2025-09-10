@@ -95,7 +95,7 @@ export default function HomePage() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header - Same height as sidebar header */}
-        <div className="h-14 flex items-center justify-between px-8 bg-[#181818] border-b border-[#3D3D3D]">
+        <div className="h-14 flex items-center justify-between px-8 bg-[#181818] border-b border-[#2A2A2A]">
           <div className="flex items-center gap-6">
             <img 
               src="/percent-logo-big.svg" 
@@ -150,7 +150,7 @@ export default function HomePage() {
         
         {/* Content Area */}
         <div className="flex-1 flex overflow-hidden">
-          <div className="flex-1 max-w-4xl p-8 overflow-y-auto scrollbar-hide border-r border-[#3D3D3D]">
+          <div className="flex-1 max-w-4xl p-8 overflow-y-auto scrollbar-hide border-r border-[#2A2A2A]">
             <div className="mb-8">
               <div className="flex items-center gap-3 mb-2">
                 <span className={`text-xs px-2 py-1 rounded-full inline-flex items-center gap-1 ${
@@ -202,15 +202,15 @@ export default function HomePage() {
                 <div className="flex items-center gap-6">
                   {/* Progress Bar */}
                   <div className="relative flex-1">
-                    <div className="relative h-10 bg-[#2A2A2A] rounded-full overflow-hidden border border-[#3D3D3D] flex items-center">
+                    <div className="relative h-10 bg-[#2A2A2A] rounded-full overflow-hidden border border-[#2A2A2A] flex items-center">
                       {/* Progress Fill */}
                       <div 
                         className={`absolute left-0 top-0 h-full rounded-full transition-all duration-500 flex items-center justify-end pr-3 ${
                           proposal.status === 'Passed' 
-                            ? 'bg-gradient-to-r from-green-500 to-green-400'
+                            ? 'bg-green-500'
                             : proposal.status === 'Failed'
-                            ? 'bg-gradient-to-r from-red-500 to-red-400'
-                            : 'bg-gradient-to-r from-orange-500 to-orange-400'
+                            ? 'bg-red-500'
+                            : 'bg-green-500'
                         }`}
                         style={{ width: `${proposal.status === 'Passed' ? 100 : Math.max(proposal.passPrice * 100, 8)}%` }}
                       >
@@ -252,7 +252,6 @@ export default function HomePage() {
             {/* TradingView Chart */}
             <div>
               <TradingViewChart 
-                symbol={selectedMarket.toUpperCase()} 
                 proposalId={proposal.id} 
               />
             </div>
@@ -260,7 +259,7 @@ export default function HomePage() {
             {/* Trading History Table */}
             <div className="bg-[#0F0F0F] border-b border-l border-r border-[#3D3D3D]">
               {/* Table Header */}
-              <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs text-[#9C9D9E] font-medium border-b border-[#3D3D3D]">
+              <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs text-[#9C9D9E] font-medium border-b border-[#2A2A2A]">
                 <div>Trader</div>
                 <div>Position</div>
                 <div>Type</div>

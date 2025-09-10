@@ -9,11 +9,10 @@ declare global {
 }
 
 interface TradingViewChartProps {
-  symbol?: string;
   proposalId: number;
 }
 
-export default function TradingViewChart({ symbol = "PASS", proposalId }: TradingViewChartProps) {
+export default function TradingViewChart({ proposalId }: TradingViewChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -39,6 +38,16 @@ export default function TradingViewChart({ symbol = "PASS", proposalId }: Tradin
         }
         #tradingview_${proposalId} [class*="chart"] {
           background-color: #181818 !important;
+        }
+        #tradingview_${proposalId} [class*="separator"] {
+          background-color: #181818 !important;
+          border-color: #181818 !important;
+        }
+        #tradingview_${proposalId} [class*="rightend"] {
+          border-left-color: #181818 !important;
+        }
+        #tradingview_${proposalId} [class*="bottomend"] {
+          border-top-color: #181818 !important;
         }
       `;
       document.head.appendChild(styleElement);
@@ -71,14 +80,16 @@ export default function TradingViewChart({ symbol = "PASS", proposalId }: Tradin
           "paneProperties.backgroundGradientStartColor": "#181818",
           "paneProperties.backgroundGradientEndColor": "#181818",
           "scalesProperties.backgroundColor": "#181818",
+          "scalesProperties.borderColor": "#181818",
           "chartProperties.background": "#181818",
           "chartProperties.backgroundType": "solid",
           "paneProperties.vertGridProperties.color": "rgba(255, 255, 255, 0.04)",
           "paneProperties.horzGridProperties.color": "rgba(255, 255, 255, 0.04)",
+          "paneProperties.separatorColor": "#181818",
           "symbolWatermarkProperties.transparency": 98,
           "symbolWatermarkProperties.color": "rgba(255, 255, 255, 0.02)",
           "scalesProperties.textColor": "#9ca3af",
-          "scalesProperties.lineColor": "rgba(255, 255, 255, 0.1)",
+          "scalesProperties.lineColor": "#181818",
           "mainSeriesProperties.candleStyle.upColor": "#22c55e",
           "mainSeriesProperties.candleStyle.downColor": "#ef4444",
           "mainSeriesProperties.candleStyle.borderUpColor": "#22c55e",
@@ -117,6 +128,23 @@ export default function TradingViewChart({ symbol = "PASS", proposalId }: Tradin
                 .chart-container { background: #181818 !important; }
                 [class*="chart-"] { background-color: #181818 !important; }
                 .tv-chart-view { background: #181818 !important; }
+                [class*="separator"] { 
+                  background-color: #181818 !important; 
+                  border-color: #181818 !important;
+                }
+                [class*="rightend"] { 
+                  border-left-color: #181818 !important;
+                  border-left: 1px solid #181818 !important;
+                }
+                [class*="bottomend"] { 
+                  border-top-color: #181818 !important;
+                  border-top: 1px solid #181818 !important;
+                }
+                .pane-legend-minbtn,
+                .pane-legend-title,
+                .pane-legend { 
+                  border-color: #181818 !important;
+                }
               `;
               iframeDoc.head.appendChild(style);
             }
@@ -130,7 +158,7 @@ export default function TradingViewChart({ symbol = "PASS", proposalId }: Tradin
       // If TradingView is not loaded, show a placeholder
       if (containerRef.current) {
         containerRef.current.innerHTML = `
-          <div style="width: 100%; height: 500px; background: #181818; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #666;">
+          <div style="width: 100%; height: 500px; background: #181818; display: flex; align-items: center; justify-content: center; color: #666;">
             <div style="text-align: center;">
               <div style="font-size: 48px; margin-bottom: 16px;">📊</div>
               <div style="font-size: 18px; margin-bottom: 8px;">Chart Loading...</div>
@@ -148,7 +176,7 @@ export default function TradingViewChart({ symbol = "PASS", proposalId }: Tradin
         style.remove();
       }
     };
-  }, [symbol, proposalId]);
+  }, [proposalId]);
 
   return (
     <div 
