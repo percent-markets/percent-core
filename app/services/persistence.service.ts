@@ -1,12 +1,45 @@
 import { getPool } from './database.service';
-import { IPersistenceService, IProposalDB, IModeratorStateDB } from '../types/persistence.interface';
+import { IPersistenceService, IProposalDB, IModeratorStateDB, ITransactionData } from '../types/persistence.interface';
 import { IProposal, IProposalConfig } from '../types/proposal.interface';
 import { IModeratorConfig } from '../types/moderator.interface';
+import { AMMState } from '../types/amm.interface';
+import { VaultState } from '../types/vault.interface';
 import { Proposal } from '../proposal';
 import { PublicKey, Keypair, Connection, Transaction } from '@solana/web3.js';
 import { BN } from '@coral-xyz/anchor';
 import fs from 'fs';
 import path from 'path';
+
+// Type definitions based on database schema and private field access requirements
+type ProposalPrivateAccess = {
+  _status: string;
+  config: {
+    baseDecimals: number;
+    quoteDecimals: number;
+    authority: {
+      publicKey: PublicKey;
+    };
+  };
+};
+
+type TWAPOraclePrivateAccess = {
+  _passObservation: number;
+  _failObservation: number;
+  _passAggregation: number;
+  _failAggregation: number;
+  _lastUpdateTime: number;
+};
+
+type AMMPrivateAccess = {
+  _state: AMMState;
+};
+
+type VaultPrivateAccess = {
+  _state: VaultState;
+  _escrow: PublicKey;
+  _passConditionalMint: PublicKey;
+  _failConditionalMint: PublicKey;
+};
 
 /**
  * Service for persisting and loading state from PostgreSQL database
@@ -83,11 +116,11 @@ export class PersistenceService implements IPersistenceService {
       
       // Serialize TWAP Oracle state
       const twapOracleState = proposal.twapOracle ? {
-        passObservation: (proposal.twapOracle as any)._passObservation,
-        failObservation: (proposal.twapOracle as any)._failObservation,
-        passAggregation: (proposal.twapOracle as any)._passAggregation,
-        failAggregation: (proposal.twapOracle as any)._failAggregation,
-        lastUpdateTime: (proposal.twapOracle as any)._lastUpdateTime,
+        passObservation: (proposal.twapOracle as unknown as TWAPOraclePrivateAccess)._passObservation,
+        failObservation: (proposal.twapOracle as unknown as TWAPOraclePrivateAccess)._failObservation,
+        passAggregation: (proposal.twapOracle as unknown as TWAPOraclePrivateAccess)._passAggregation,
+        failAggregation: (proposal.twapOracle as unknown as TWAPOraclePrivateAccess)._failAggregation,
+        lastUpdateTime: (proposal.twapOracle as unknown as TWAPOraclePrivateAccess)._lastUpdateTime,
         initialTwapValue: proposal.twapOracle.initialTwapValue,
         twapMaxObservationChangePerUpdate: proposal.twapOracle.twapMaxObservationChangePerUpdate,
         twapStartDelay: proposal.twapOracle.twapStartDelay,
@@ -100,10 +133,21 @@ export class PersistenceService implements IPersistenceService {
         initialQuoteAmount: proposal.ammConfig.initialQuoteAmount.toString(),
       } : null;
       
-      // Serialize transaction
-      const transactionData = proposal.transaction ? 
-        Buffer.from(proposal.transaction.serialize({ requireAllSignatures: false })).toString('base64') : 
-        null;
+      // Serialize transaction instructions only (not the full transaction)
+      // We store instructions because blockhashes expire and need to be refreshed at execution time
+      const instructionsData: ITransactionData = {
+        instructions: proposal.transaction.instructions.map(ix => ({
+          programId: ix.programId.toBase58(),
+          keys: ix.keys.map(key => ({
+            pubkey: key.pubkey.toBase58(),
+            isSigner: key.isSigner,
+            isWritable: key.isWritable
+          })),
+          data: Buffer.from(ix.data).toString('base64')
+        })),
+        feePayer: proposal.transaction.feePayer?.toBase58() || null
+      };
+      const transactionData = JSON.stringify(instructionsData);
       
       const query = `
         INSERT INTO proposals (
@@ -130,11 +174,11 @@ export class PersistenceService implements IPersistenceService {
         new Date(proposal.finalizedAt),
         proposal.proposalLength.toString(),
         transactionData,
-        (proposal as any).baseMint.toBase58(),
-        (proposal as any).quoteMint.toBase58(),
-        (proposal as any).baseDecimals,
-        (proposal as any).quoteDecimals,
-        (proposal as any).authority.publicKey.toBase58(),
+        proposal.baseMint.toBase58(),
+        proposal.quoteMint.toBase58(),
+        (proposal as unknown as ProposalPrivateAccess).config.baseDecimals,
+        (proposal as unknown as ProposalPrivateAccess).config.quoteDecimals,
+        (proposal as unknown as ProposalPrivateAccess).config.authority.publicKey.toBase58(),
         JSON.stringify(ammConfig),
         JSON.stringify(passAmmState),
         JSON.stringify(failAmmState),
@@ -315,14 +359,56 @@ export class PersistenceService implements IPersistenceService {
     try {
       // Load authority keypair from environment
       const keypairPath = process.env.SOLANA_KEYPAIR_PATH || './wallet.json';
-      const keypairData = JSON.parse(fs.readFileSync(keypairPath, 'utf-8'));
-      const authority = Keypair.fromSecretKey(new Uint8Array(keypairData));
+      let keypairData;
+      try {
+        const fileContent = fs.readFileSync(keypairPath, 'utf-8');
+        keypairData = JSON.parse(fileContent);
+      } catch (fileError) {
+        throw new Error(`Failed to load authority keypair from ${keypairPath}: ${fileError instanceof Error ? fileError.message : String(fileError)}`);
+      }
+      
+      let authority;
+      try {
+        authority = Keypair.fromSecretKey(new Uint8Array(keypairData));
+      } catch (keypairError) {
+        throw new Error(`Failed to create keypair from data in ${keypairPath}: ${keypairError instanceof Error ? keypairError.message : String(keypairError)}`);
+      }
       
       const rpcUrl = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
       const connection = new Connection(rpcUrl, 'confirmed');
       
-      // Reconstruct transaction from database
-      const transaction = Transaction.from(Buffer.from(row.transaction_data, 'base64'));
+      // Reconstruct transaction from stored instructions
+      // Handle both string and already-parsed object cases
+      let instructionsData: ITransactionData;
+      if (typeof row.transaction_data === 'string') {
+        try {
+          instructionsData = JSON.parse(row.transaction_data);
+        } catch (error) {
+          throw new Error(`Failed to parse transaction data for proposal ${row.id}: ${error instanceof Error ? error.message : String(error)}`);
+        }
+      } else {
+        instructionsData = row.transaction_data as ITransactionData;
+      }
+      
+      const transaction = new Transaction();
+      
+      // Reconstruct instructions
+      for (const ixData of instructionsData.instructions) {
+        transaction.add({
+          programId: new PublicKey(ixData.programId),
+          keys: ixData.keys.map((key) => ({
+            pubkey: new PublicKey(key.pubkey),
+            isSigner: key.isSigner,
+            isWritable: key.isWritable
+          })),
+          data: Buffer.from(ixData.data, 'base64')
+        });
+      }
+      
+      // Set fee payer if it was stored
+      if (instructionsData.feePayer) {
+        transaction.feePayer = new PublicKey(instructionsData.feePayer);
+      }
       
       // Reconstruct proposal config
       const config: IProposalConfig = {
@@ -363,57 +449,133 @@ export class PersistenceService implements IPersistenceService {
       const proposal = new Proposal(config);
       
       // Restore status
-      (proposal as any)._status = row.status;
+      (proposal as unknown as ProposalPrivateAccess)._status = row.status;
       
-      // Restore AMM states if they exist
-      if (row.pass_amm_state && proposal.__pAMM) {
-        if (row.pass_amm_state.pool) {
-          proposal.__pAMM.pool = new PublicKey(row.pass_amm_state.pool);
+      // Only initialize blockchain components if the proposal isn't in Uninitialized state
+      if (row.status !== 'Uninitialized') {
+        // Manually create and restore AMMs since we can't call initialize() on already-persisted proposals
+        const { AMM } = await import('../amm');
+        const { Vault } = await import('../vault');
+        const { VaultType } = await import('../types/vault.interface');
+        
+        // Create execution config for AMMs
+        const executionConfig = {
+          rpcEndpoint: connection.rpcEndpoint,
+          commitment: 'confirmed' as const,
+          maxRetries: 3,
+          skipPreflight: false
+        };
+        
+        // Create base and quote vaults
+        const baseVault = new Vault({
+          proposalId: row.id,
+          vaultType: VaultType.Base,
+          regularMint: new PublicKey(row.base_mint),
+          decimals: row.base_decimals,
+          connection: connection,
+          authority: authority
+        });
+        
+        const quoteVault = new Vault({
+          proposalId: row.id,
+          vaultType: VaultType.Quote,
+          regularMint: new PublicKey(row.quote_mint),
+          decimals: row.quote_decimals,
+          connection: connection,
+          authority: authority
+        });
+        
+        // Set the vaults on the proposal
+        proposal.__baseVault = baseVault;
+        proposal.__quoteVault = quoteVault;
+        
+        // Restore Vault states first so we can access the conditional mints
+        if (row.base_vault_state) {
+          (baseVault as unknown as VaultPrivateAccess)._state = row.base_vault_state.state;
+          (baseVault as unknown as VaultPrivateAccess)._escrow = new PublicKey(row.base_vault_state.escrow);
+          (baseVault as unknown as VaultPrivateAccess)._passConditionalMint = new PublicKey(row.base_vault_state.passConditionalMint);
+          (baseVault as unknown as VaultPrivateAccess)._failConditionalMint = new PublicKey(row.base_vault_state.failConditionalMint);
         }
-        if (row.pass_amm_state.position) {
-          proposal.__pAMM.position = new PublicKey(row.pass_amm_state.position);
+        
+        if (row.quote_vault_state) {
+          (quoteVault as unknown as VaultPrivateAccess)._state = row.quote_vault_state.state;
+          (quoteVault as unknown as VaultPrivateAccess)._escrow = new PublicKey(row.quote_vault_state.escrow);
+          (quoteVault as unknown as VaultPrivateAccess)._passConditionalMint = new PublicKey(row.quote_vault_state.passConditionalMint);
+          (quoteVault as unknown as VaultPrivateAccess)._failConditionalMint = new PublicKey(row.quote_vault_state.failConditionalMint);
         }
-        if (row.pass_amm_state.positionNft) {
-          proposal.__pAMM.positionNft = new PublicKey(row.pass_amm_state.positionNft);
+        
+        // Create AMMs using the conditional token mints from vaults
+        const pAMM = new AMM(
+          baseVault.passConditionalMint,
+          quoteVault.passConditionalMint,
+          row.base_decimals,
+          row.quote_decimals,
+          authority,
+          executionConfig
+        );
+        
+        const fAMM = new AMM(
+          baseVault.failConditionalMint,
+          quoteVault.failConditionalMint,
+          row.base_decimals,
+          row.quote_decimals,
+          authority,
+          executionConfig
+        );
+        
+        // Set the AMMs on the proposal
+        proposal.__pAMM = pAMM;
+        proposal.__fAMM = fAMM;
+        
+        // Set AMMs in TWAP oracle so it can track prices
+        proposal.twapOracle.setAMMs(pAMM, fAMM);
+        
+        // Restore AMM states if they exist
+        if (row.pass_amm_state) {
+          if (row.pass_amm_state.pool) {
+            pAMM.pool = new PublicKey(row.pass_amm_state.pool);
+          }
+          if (row.pass_amm_state.position) {
+            pAMM.position = new PublicKey(row.pass_amm_state.position);
+          }
+          if (row.pass_amm_state.positionNft) {
+            pAMM.positionNft = new PublicKey(row.pass_amm_state.positionNft);
+          }
+          (pAMM as unknown as AMMPrivateAccess)._state = row.pass_amm_state.state;
         }
-        (proposal.__pAMM as any)._state = row.pass_amm_state.state;
-      }
-      
-      if (row.fail_amm_state && proposal.__fAMM) {
-        if (row.fail_amm_state.pool) {
-          proposal.__fAMM.pool = new PublicKey(row.fail_amm_state.pool);
+        
+        if (row.fail_amm_state) {
+          if (row.fail_amm_state.pool) {
+            fAMM.pool = new PublicKey(row.fail_amm_state.pool);
+          }
+          if (row.fail_amm_state.position) {
+            fAMM.position = new PublicKey(row.fail_amm_state.position);
+          }
+          if (row.fail_amm_state.positionNft) {
+            fAMM.positionNft = new PublicKey(row.fail_amm_state.positionNft);
+          }
+          (fAMM as unknown as AMMPrivateAccess)._state = row.fail_amm_state.state;
         }
-        if (row.fail_amm_state.position) {
-          proposal.__fAMM.position = new PublicKey(row.fail_amm_state.position);
-        }
-        if (row.fail_amm_state.positionNft) {
-          proposal.__fAMM.positionNft = new PublicKey(row.fail_amm_state.positionNft);
-        }
-        (proposal.__fAMM as any)._state = row.fail_amm_state.state;
-      }
-      
-      // Restore Vault states if they exist
-      if (row.base_vault_state && proposal.__baseVault) {
-        (proposal.__baseVault as any)._state = row.base_vault_state.state;
-      }
-      
-      if (row.quote_vault_state && proposal.__quoteVault) {
-        (proposal.__quoteVault as any)._state = row.quote_vault_state.state;
       }
       
       // Restore TWAP Oracle state if exists
       if (row.twap_oracle_state && proposal.twapOracle) {
-        (proposal.twapOracle as any)._passObservation = row.twap_oracle_state.passObservation;
-        (proposal.twapOracle as any)._failObservation = row.twap_oracle_state.failObservation;
-        (proposal.twapOracle as any)._passAggregation = row.twap_oracle_state.passAggregation;
-        (proposal.twapOracle as any)._failAggregation = row.twap_oracle_state.failAggregation;
-        (proposal.twapOracle as any)._lastUpdateTime = row.twap_oracle_state.lastUpdateTime;
+        (proposal.twapOracle as unknown as TWAPOraclePrivateAccess)._passObservation = row.twap_oracle_state.passObservation;
+        (proposal.twapOracle as unknown as TWAPOraclePrivateAccess)._failObservation = row.twap_oracle_state.failObservation;
+        (proposal.twapOracle as unknown as TWAPOraclePrivateAccess)._passAggregation = row.twap_oracle_state.passAggregation;
+        (proposal.twapOracle as unknown as TWAPOraclePrivateAccess)._failAggregation = row.twap_oracle_state.failAggregation;
+        (proposal.twapOracle as unknown as TWAPOraclePrivateAccess)._lastUpdateTime = row.twap_oracle_state.lastUpdateTime;
       }
       
       return proposal;
     } catch (error) {
-      console.error('Failed to reconstruct proposal:', error);
-      return null;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`Failed to reconstruct proposal #${row.id}:`, {
+        proposalId: row.id,
+        error: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      throw new Error(`Failed to reconstruct proposal #${row.id}: ${errorMessage}`);
     }
   }
 }

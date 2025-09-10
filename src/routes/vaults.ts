@@ -10,11 +10,10 @@ const router = Router();
 async function getVault(proposalId: number, vaultType: string) {
   const moderator = await getModerator();
   
-  if (proposalId < 0 || proposalId >= moderator.proposals.length) {
+  const proposal = await moderator.getProposal(proposalId);
+  if (!proposal) {
     throw new Error('Proposal not found');
   }
-  
-  const proposal = moderator.proposals[proposalId];
   
   // Use the proposal's getVaults() method which handles initialization checks
   const [baseVault, quoteVault] = proposal.getVaults();
@@ -214,11 +213,10 @@ router.get('/:id/getUserBalances', async (req, res, next) => {
     
     const moderator = await getModerator();
     
-    if (proposalId < 0 || proposalId >= moderator.proposals.length) {
+    const proposal = await moderator.getProposal(proposalId);
+    if (!proposal) {
       return res.status(404).json({ error: 'Proposal not found' });
     }
-    
-    const proposal = moderator.proposals[proposalId];
     const userPubkey = new PublicKey(user as string);
     
     // Use getVaults() to get both vaults with proper initialization checks

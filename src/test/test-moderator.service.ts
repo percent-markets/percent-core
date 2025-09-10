@@ -2,6 +2,7 @@ import { Moderator } from '../../app/moderator';
 import { IModeratorConfig } from '../../app/types/moderator.interface';
 import { TestModeConfig } from './config';
 import { TestTokenMints } from './test-tokens.service';
+import { PersistenceService } from '../../app/services/persistence.service';
 
 /**
  * Test implementation of ModeratorService for devnet testing
@@ -25,7 +26,7 @@ class TestModeratorService {
   /**
    * Get the test moderator instance
    */
-  public static getInstance(): Moderator {
+  public static async getInstance(): Promise<Moderator> {
     if (!TestModeratorService.instance) {
       if (!TestModeratorService.testConfig || !TestModeratorService.testTokenMints) {
         throw new Error('TestModeratorService not initialized. Call initialize() first.');
@@ -41,6 +42,17 @@ class TestModeratorService {
       };
 
       TestModeratorService.instance = new Moderator(config);
+      
+      // Load existing proposals from database
+      const persistenceService = PersistenceService.getInstance();
+      const proposals = await persistenceService.loadAllProposals();
+      TestModeratorService.instance.proposals = proposals;
+      
+      // Load proposal counter from database
+      const savedState = await persistenceService.loadModeratorState();
+      if (savedState) {
+        (TestModeratorService.instance as any).proposalIdCounter = savedState.proposalCounter;
+      }
     }
 
     return TestModeratorService.instance;

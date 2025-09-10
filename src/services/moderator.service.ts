@@ -90,7 +90,7 @@ class ModeratorService {
 export async function getModerator(): Promise<Moderator> {
   // Check if test moderator is initialized (happens in test server)
   try {
-    return TestModeratorService.getInstance();
+    return await TestModeratorService.getInstance();
   } catch {
     // Fall back to production moderator
     return await ModeratorService.getInstance();

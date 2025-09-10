@@ -145,10 +145,23 @@ export class SchedulerService implements ISchedulerService {
       throw new Error('Moderator not set in scheduler');
     }
 
-    const proposal = await this.moderator.getProposal(proposalId);
-    if (!proposal) {
+    let proposal;
+    try {
+      proposal = await this.moderator.getProposal(proposalId);
+    } catch (error) {
+      console.error(`Failed to load proposal #${proposalId} for TWAP cranking:`, error);
       this.cancelTask(`twap-${proposalId}`);
-      throw new Error(`Proposal #${proposalId} not found for TWAP cranking`);
+      this.cancelTask(`price-${proposalId}`);
+      this.cancelTask(`finalize-${proposalId}`);
+      return; // Gracefully exit instead of throwing
+    }
+    
+    if (!proposal) {
+      console.warn(`Proposal #${proposalId} not found, cancelling TWAP cranking tasks`);
+      this.cancelTask(`twap-${proposalId}`);
+      this.cancelTask(`price-${proposalId}`);
+      this.cancelTask(`finalize-${proposalId}`);
+      return; // Gracefully exit instead of throwing
     }
 
     // Check if proposal has ended
@@ -194,10 +207,23 @@ export class SchedulerService implements ISchedulerService {
       throw new Error('Moderator not set in scheduler');
     }
 
-    const proposal = await this.moderator.getProposal(proposalId);
-    if (!proposal) {
+    let proposal;
+    try {
+      proposal = await this.moderator.getProposal(proposalId);
+    } catch (error) {
+      console.error(`Failed to load proposal #${proposalId} for price recording:`, error);
+      this.cancelTask(`twap-${proposalId}`);
       this.cancelTask(`price-${proposalId}`);
-      throw new Error(`Proposal #${proposalId} not found for price recording`);
+      this.cancelTask(`finalize-${proposalId}`);
+      return; // Gracefully exit instead of throwing
+    }
+    
+    if (!proposal) {
+      console.warn(`Proposal #${proposalId} not found, cancelling price recording tasks`);
+      this.cancelTask(`twap-${proposalId}`);
+      this.cancelTask(`price-${proposalId}`);
+      this.cancelTask(`finalize-${proposalId}`);
+      return; // Gracefully exit instead of throwing
     }
 
     // Check if proposal has ended
@@ -244,12 +270,17 @@ export class SchedulerService implements ISchedulerService {
     }
 
     console.log(`Auto-finalizing proposal #${proposalId}`);
-    const status = await this.moderator.finalizeProposal(proposalId);
-    console.log(`Proposal #${proposalId} finalized with status: ${status}`);
+    try {
+      const status = await this.moderator.finalizeProposal(proposalId);
+      console.log(`Proposal #${proposalId} finalized with status: ${status}`);
+    } catch (error) {
+      console.error(`Failed to finalize proposal #${proposalId}:`, error);
+    }
     
-    // Cancel TWAP cranking and price recording for this proposal
+    // Cancel TWAP cranking and price recording for this proposal regardless of finalization success
     this.cancelTask(`twap-${proposalId}`);
     this.cancelTask(`price-${proposalId}`);
+    this.cancelTask(`finalize-${proposalId}`);
   }
 
   /**

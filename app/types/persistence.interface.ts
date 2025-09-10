@@ -4,6 +4,27 @@ import { AMMState } from './amm.interface';
 import { VaultState } from './vault.interface';
 
 /**
+ * Serialized transaction instruction data
+ */
+export interface ITransactionInstructionData {
+  programId: string;
+  keys: {
+    pubkey: string;
+    isSigner: boolean;
+    isWritable: boolean;
+  }[];
+  data: string; // base64 encoded
+}
+
+/**
+ * Serialized transaction data for storage
+ */
+export interface ITransactionData {
+  instructions: ITransactionInstructionData[];
+  feePayer: string | null;
+}
+
+/**
  * Database representation of a proposal
  */
 export interface IProposalDB {
@@ -13,7 +34,7 @@ export interface IProposalDB {
   created_at: Date;
   finalized_at: Date;
   proposal_length: string; // bigint stored as string
-  transaction_data: any; // JSONB
+  transaction_data: string | ITransactionData; // JSON string or parsed object containing ITransactionData
   
   // Token configuration
   base_mint: string;

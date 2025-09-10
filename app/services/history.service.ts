@@ -121,7 +121,7 @@ export class HistoryService implements IHistoryService {
         SELECT * FROM price_history
         WHERE proposal_id = $1
       `;
-      const params: any[] = [proposalId];
+      const params: (number | Date)[] = [proposalId];
       
       if (from) {
         params.push(from);
@@ -214,7 +214,7 @@ export class HistoryService implements IHistoryService {
         SELECT * FROM twap_history
         WHERE proposal_id = $1
       `;
-      const params: any[] = [proposalId];
+      const params: (number | Date)[] = [proposalId];
       
       if (from) {
         params.push(from);
@@ -261,7 +261,7 @@ export class HistoryService implements IHistoryService {
         SELECT * FROM trade_history
         WHERE proposal_id = $1
       `;
-      const params: any[] = [proposalId];
+      const params: (number | Date)[] = [proposalId];
       
       if (from) {
         params.push(from);
@@ -342,7 +342,7 @@ export class HistoryService implements IHistoryService {
         WHERE proposal_id = $1
       `;
       
-      const params: any[] = [proposalId];
+      const params: (number | Date)[] = [proposalId];
       
       if (from) {
         params.push(from);
