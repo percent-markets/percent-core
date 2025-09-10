@@ -147,7 +147,7 @@ export class SchedulerService implements ISchedulerService {
     }
 
     try {
-      const proposal = this.moderator.proposals[proposalId];
+      const proposal = await this.moderator.getProposal(proposalId);
       if (!proposal) {
         console.error(`Proposal #${proposalId} not found`);
         this.cancelTask(`twap-${proposalId}`);
@@ -184,6 +184,11 @@ export class SchedulerService implements ISchedulerService {
         // Save updated proposal state to database
         const persistenceService = PersistenceService.getInstance();
         await persistenceService.saveProposal(proposal);
+        
+        // Invalidate cache so next access gets fresh TWAP state
+        if (this.moderator) {
+          this.moderator.invalidateCache(proposalId);
+        }
       } catch (historyError) {
         console.error(`Error recording TWAP history for proposal #${proposalId}:`, historyError);
       }
@@ -203,7 +208,7 @@ export class SchedulerService implements ISchedulerService {
     }
 
     try {
-      const proposal = this.moderator.proposals[proposalId];
+      const proposal = await this.moderator.getProposal(proposalId);
       if (!proposal) {
         console.error(`Proposal #${proposalId} not found`);
         this.cancelTask(`price-${proposalId}`);

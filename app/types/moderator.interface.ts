@@ -71,4 +71,24 @@ export interface IModerator {
    * @throws Error if proposal cannot be executed
    */
   executeProposal(id: number, signer: Keypair, executionConfig: IExecutionConfig): Promise<IExecutionResult>;
+  
+  /**
+   * Gets a proposal by ID from cache (for internal operations like scheduling)
+   * @param id - Proposal ID
+   * @returns Promise resolving to proposal or null if not found
+   */
+  getProposal(id: number): Promise<IProposal | null>;
+  
+  /**
+   * Gets a proposal by ID directly from database (for API routes - always fresh)
+   * @param id - Proposal ID  
+   * @returns Promise resolving to proposal or null if not found
+   */
+  getProposalFresh(id: number): Promise<IProposal | null>;
+  
+  /**
+   * Invalidate cached proposal (call after external state changes)
+   * @param id - Proposal ID to invalidate
+   */
+  invalidateCache(id: number): void;
 }
