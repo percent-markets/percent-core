@@ -150,7 +150,7 @@ export default function HomePage() {
         
         {/* Content Area */}
         <div className="flex-1 flex overflow-hidden">
-          <div className="flex-1 max-w-4xl p-8 overflow-y-auto scrollbar-hide border-r border-[#2A2A2A]">
+          <div className="flex-1 p-8 overflow-y-auto scrollbar-hide border-r border-[#2A2A2A]">
             <div className="mb-8">
               <div className="flex items-center gap-3 mb-2">
                 <span className={`text-xs px-2 py-1 rounded-full inline-flex items-center gap-1 ${
@@ -178,7 +178,7 @@ export default function HomePage() {
                     </svg>
                   )}
                 </span>
-                <span className="w-px h-4 bg-gray-600"></span>
+                <span className="w-px h-4 bg-[#3D3D3D]"></span>
                 <span className="text-xs text-gray-500">
                   {proposal.endsAt.toLocaleDateString('en-US', { 
                     month: 'long', 
@@ -272,7 +272,7 @@ export default function HomePage() {
               </div>
               
               {/* Table Body - Scrollable */}
-              <div className="max-h-[440px] overflow-y-auto scrollbar-hide">
+              <div className="max-h-[400px] overflow-y-auto scrollbar-hide">
                 {/* Sample trade rows - 10 entries */}
                 <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs hover:bg-[#272A2D]/30 transition-colors">
                   <div className="text-white">0xAb5...3d8</div>
@@ -386,17 +386,6 @@ export default function HomePage() {
                 </div>
                 {/* Additional trades would continue here for scrolling */}
                 <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs hover:bg-[#272A2D]/30 transition-colors">
-                  <div className="text-white">0x6E2...8a9</div>
-                  <div className="text-white">5.1%</div>
-                  <div className="text-green-500">buy</div>
-                  <div className="text-white">Pass</div>
-                  <div className="text-white">275</div>
-                  <div className="flex justify-between">
-                    <span className="text-white">$0.706</span>
-                    <span className="text-[#9C9D9E]">48m</span>
-                  </div>
-                </div>
-                <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs hover:bg-[#272A2D]/30 transition-colors">
                   <div className="text-white">0x9A3...7b4</div>
                   <div className="text-white">1.5%</div>
                   <div className="text-red-500">sell</div>
@@ -412,7 +401,7 @@ export default function HomePage() {
           </div>
 
           {/* Trading Panel - Sticky Position */}
-          <div className="w-96 p-8 overflow-y-auto">
+          <div className="w-[352px] p-8 overflow-y-auto">
             <div className="sticky top-0">
               <TradingInterface 
                 proposalId={proposal.id}
