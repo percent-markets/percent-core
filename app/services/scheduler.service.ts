@@ -142,59 +142,47 @@ export class SchedulerService implements ISchedulerService {
    */
   private async crankTWAPForProposal(proposalId: number): Promise<void> {
     if (!this.moderator) {
-      console.error('Moderator not set in scheduler');
+      throw new Error('Moderator not set in scheduler');
+    }
+
+    const proposal = await this.moderator.getProposal(proposalId);
+    if (!proposal) {
+      this.cancelTask(`twap-${proposalId}`);
+      throw new Error(`Proposal #${proposalId} not found for TWAP cranking`);
+    }
+
+    // Check if proposal has ended
+    const now = Date.now();
+    if (now >= proposal.finalizedAt) {
+      console.log(`Proposal #${proposalId} has ended, stopping TWAP cranking`);
+      this.cancelTask(`twap-${proposalId}`);
+      this.cancelTask(`price-${proposalId}`);
       return;
     }
 
-    try {
-      const proposal = await this.moderator.getProposal(proposalId);
-      if (!proposal) {
-        console.error(`Proposal #${proposalId} not found`);
-        this.cancelTask(`twap-${proposalId}`);
-        return;
-      }
-
-      // Check if proposal has ended
-      const now = Date.now();
-      if (now >= proposal.finalizedAt) {
-        console.log(`Proposal #${proposalId} has ended, stopping TWAP cranking`);
-        this.cancelTask(`twap-${proposalId}`);
-        this.cancelTask(`price-${proposalId}`);
-        return;
-      }
-
-      // Get the TWAP oracle and crank it
-      const twapOracle = proposal.twapOracle;
-      await twapOracle.crankTWAP();
-      console.log(`Cranked TWAP for proposal #${proposalId}`);
-      
-      // Record TWAP data to history
-      try {
-        const historyService = HistoryService.getInstance();
-        const twapData = await twapOracle.fetchTWAP();
-        
-        await historyService.recordTWAP({
-          proposalId,
-          passTwap: new Decimal(twapData.passTwap.toString()),
-          failTwap: new Decimal(twapData.failTwap.toString()),
-          passAggregation: new Decimal(twapData.passAggregation.toString()),
-          failAggregation: new Decimal(twapData.failAggregation.toString()),
-        });
-        
-        // Save updated proposal state to database
-        const persistenceService = PersistenceService.getInstance();
-        await persistenceService.saveProposal(proposal);
-        
-        // Invalidate cache so next access gets fresh TWAP state
-        if (this.moderator) {
-          this.moderator.invalidateCache(proposalId);
-        }
-      } catch (historyError) {
-        console.error(`Error recording TWAP history for proposal #${proposalId}:`, historyError);
-      }
-    } catch (error) {
-      console.error(`Error cranking TWAP for proposal #${proposalId}:`, error);
-    }
+    // Get the TWAP oracle and crank it
+    const twapOracle = proposal.twapOracle;
+    await twapOracle.crankTWAP();
+    console.log(`Cranked TWAP for proposal #${proposalId}`);
+    
+    // Record TWAP data to history
+    const historyService = HistoryService.getInstance();
+    const twapData = await twapOracle.fetchTWAP();
+    
+    await historyService.recordTWAP({
+      proposalId,
+      passTwap: new Decimal(twapData.passTwap.toString()),
+      failTwap: new Decimal(twapData.failTwap.toString()),
+      passAggregation: new Decimal(twapData.passAggregation.toString()),
+      failAggregation: new Decimal(twapData.failAggregation.toString()),
+    });
+    
+    // Save updated proposal state to database
+    const persistenceService = PersistenceService.getInstance();
+    await persistenceService.saveProposal(proposal);
+    
+    // Invalidate cache so next access gets fresh TWAP state
+    this.moderator.invalidateCache(proposalId);
   }
   
   /**
@@ -203,66 +191,47 @@ export class SchedulerService implements ISchedulerService {
    */
   private async recordPricesForProposal(proposalId: number): Promise<void> {
     if (!this.moderator) {
-      console.error('Moderator not set in scheduler');
+      throw new Error('Moderator not set in scheduler');
+    }
+
+    const proposal = await this.moderator.getProposal(proposalId);
+    if (!proposal) {
+      this.cancelTask(`price-${proposalId}`);
+      throw new Error(`Proposal #${proposalId} not found for price recording`);
+    }
+
+    // Check if proposal has ended
+    const now = Date.now();
+    if (now >= proposal.finalizedAt) {
+      console.log(`Proposal #${proposalId} has ended, stopping price recording`);
+      this.cancelTask(`price-${proposalId}`);
       return;
     }
 
-    try {
-      const proposal = await this.moderator.getProposal(proposalId);
-      if (!proposal) {
-        console.error(`Proposal #${proposalId} not found`);
-        this.cancelTask(`price-${proposalId}`);
-        return;
-      }
-
-      // Check if proposal has ended
-      const now = Date.now();
-      if (now >= proposal.finalizedAt) {
-        console.log(`Proposal #${proposalId} has ended, stopping price recording`);
-        this.cancelTask(`price-${proposalId}`);
-        return;
-      }
-
-      const historyService = HistoryService.getInstance();
-      
-      try {
-        const [pAMM, fAMM] = proposal.getAMMs();
-        
-        // Record pass market price if AMM is trading
-        if (pAMM && pAMM.state === AMMState.Trading) {
-          try {
-            const passPrice = await pAMM.fetchPrice();
-            await historyService.recordPrice({
-              proposalId,
-              market: 'pass',
-              price: passPrice,
-            });
-          } catch (priceError) {
-            console.warn(`Failed to fetch pass price for proposal #${proposalId}:`, priceError);
-          }
-        }
-        
-        // Record fail market price if AMM is trading
-        if (fAMM && fAMM.state === AMMState.Trading) {
-          try {
-            const failPrice = await fAMM.fetchPrice();
-            await historyService.recordPrice({
-              proposalId,
-              market: 'fail',
-              price: failPrice,
-            });
-          } catch (priceError) {
-            console.warn(`Failed to fetch fail price for proposal #${proposalId}:`, priceError);
-          }
-        }
-        
-        console.log(`Recorded prices for proposal #${proposalId}`);
-      } catch (ammError) {
-        console.warn(`AMMs not initialized for proposal #${proposalId}, skipping price recording`);
-      }
-    } catch (error) {
-      console.error(`Error recording prices for proposal #${proposalId}:`, error);
+    const historyService = HistoryService.getInstance();
+    const [pAMM, fAMM] = proposal.getAMMs();
+    
+    // Record pass market price if AMM is trading
+    if (pAMM && pAMM.state === AMMState.Trading) {
+      const passPrice = await pAMM.fetchPrice();
+      await historyService.recordPrice({
+        proposalId,
+        market: 'pass',
+        price: passPrice,
+      });
     }
+    
+    // Record fail market price if AMM is trading
+    if (fAMM && fAMM.state === AMMState.Trading) {
+      const failPrice = await fAMM.fetchPrice();
+      await historyService.recordPrice({
+        proposalId,
+        market: 'fail',
+        price: failPrice,
+      });
+    }
+    
+    console.log(`Recorded prices for proposal #${proposalId}`);
   }
 
   /**
@@ -271,21 +240,16 @@ export class SchedulerService implements ISchedulerService {
    */
   private async finalizeProposal(proposalId: number): Promise<void> {
     if (!this.moderator) {
-      console.error('Moderator not set in scheduler');
-      return;
+      throw new Error('Moderator not set in scheduler');
     }
 
-    try {
-      console.log(`Auto-finalizing proposal #${proposalId}`);
-      const status = await this.moderator.finalizeProposal(proposalId);
-      console.log(`Proposal #${proposalId} finalized with status: ${status}`);
-      
-      // Cancel TWAP cranking and price recording for this proposal
-      this.cancelTask(`twap-${proposalId}`);
-      this.cancelTask(`price-${proposalId}`);
-    } catch (error) {
-      console.error(`Error finalizing proposal #${proposalId}:`, error);
-    }
+    console.log(`Auto-finalizing proposal #${proposalId}`);
+    const status = await this.moderator.finalizeProposal(proposalId);
+    console.log(`Proposal #${proposalId} finalized with status: ${status}`);
+    
+    // Cancel TWAP cranking and price recording for this proposal
+    this.cancelTask(`twap-${proposalId}`);
+    this.cancelTask(`price-${proposalId}`);
   }
 
   /**
