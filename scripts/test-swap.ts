@@ -2,7 +2,7 @@
 
 // ONLY WORKS FOR DEVNET
 
-import dotenv from 'dotenv';
+import * as dotenv from 'dotenv';
 import { Keypair, Transaction } from '@solana/web3.js';
 
 dotenv.config();
@@ -59,7 +59,7 @@ async function testSwap() {
       process.exit(1);
     }
     
-    const splitData = await splitResponse.json();
+    const splitData = await splitResponse.json() as { transaction: string };
     console.log('Split transaction built successfully');
     
     // Sign the transaction with Alice's keypair
@@ -84,7 +84,7 @@ async function testSwap() {
       process.exit(1);
     }
     
-    const executeSplitResult = await executeSplitResponse.json();
+    const executeSplitResult = await executeSplitResponse.json() as { signature: string };
     console.log('Split executed:', executeSplitResult.signature);
     
     // Step 2: Build and execute swap on pass market
@@ -112,7 +112,7 @@ async function testSwap() {
       process.exit(1);
     }
     
-    const swapTxData = await buildSwapResponse.json();
+    const swapTxData = await buildSwapResponse.json() as { transaction: string };
     console.log('Swap transaction built successfully');
     
     // Sign the swap transaction with Alice's keypair
@@ -129,7 +129,10 @@ async function testSwap() {
       },
       body: JSON.stringify({
         transaction: Buffer.from(swapTx.serialize({ requireAllSignatures: false })).toString('base64'),
-        market: 'pass'  // Market to execute swap in
+        market: 'pass',  // Market to execute swap in
+        user: alicePublicKey,  // User public key for trade logging
+        isBaseToQuote: false,  // Direction of swap for trade logging
+        amountIn: '500000000000'  // Amount in for trade logging
       })
     });
     
@@ -139,7 +142,7 @@ async function testSwap() {
       process.exit(1);
     }
     
-    const executeSwapResult = await executeSwapResponse.json();
+    const executeSwapResult = await executeSwapResponse.json() as { signature: string };
     console.log('Swap executed:', executeSwapResult.signature);
     
     // Step 3: Check user balances

@@ -2,6 +2,8 @@ import { Moderator } from '../../app/moderator';
 import { IModeratorConfig } from '../../app/types/moderator.interface';
 import { TestModeConfig } from './config';
 import { TestTokenMints } from './test-tokens.service';
+import { PersistenceService } from '../../app/services/persistence.service';
+import { ModeratorService } from '../services/moderator.service';
 
 /**
  * Test implementation of ModeratorService for devnet testing
@@ -25,7 +27,7 @@ class TestModeratorService {
   /**
    * Get the test moderator instance
    */
-  public static getInstance(): Moderator {
+  public static async getInstance(): Promise<Moderator> {
     if (!TestModeratorService.instance) {
       if (!TestModeratorService.testConfig || !TestModeratorService.testTokenMints) {
         throw new Error('TestModeratorService not initialized. Call initialize() first.');
@@ -41,6 +43,16 @@ class TestModeratorService {
       };
 
       TestModeratorService.instance = new Moderator(config);
+      
+      // Load proposal counter from database
+      const persistenceService = PersistenceService.getInstance();
+      const savedState = await persistenceService.loadModeratorState();
+      if (savedState) {
+        TestModeratorService.instance.proposalIdCounter = savedState.proposalCounter;
+      }
+      
+      // Recover any pending proposals after initialization
+      await ModeratorService.recoverPendingProposals(TestModeratorService.instance);
     }
 
     return TestModeratorService.instance;
@@ -75,6 +87,7 @@ class TestModeratorService {
       rpcUrl: TestModeratorService.testConfig.rpcUrl
     };
   }
+
 }
 
 export default TestModeratorService;

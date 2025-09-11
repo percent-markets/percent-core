@@ -7,14 +7,13 @@ import { VaultType } from '../../app/types/vault.interface';
 const router = Router();
 
 // Helper function to get vault from proposal
-function getVault(proposalId: number, vaultType: string) {
-  const moderator = getModerator();
+async function getVault(proposalId: number, vaultType: string) {
+  const moderator = await getModerator();
   
-  if (proposalId < 0 || proposalId >= moderator.proposals.length) {
+  const proposal = await moderator.getProposal(proposalId);
+  if (!proposal) {
     throw new Error('Proposal not found');
   }
-  
-  const proposal = moderator.proposals[proposalId];
   
   // Use the proposal's getVaults() method which handles initialization checks
   const [baseVault, quoteVault] = proposal.getVaults();
@@ -27,6 +26,7 @@ function getVault(proposalId: number, vaultType: string) {
     throw new Error('Invalid vault type. Must be "base" or "quote"');
   }
 }
+
 
 // Build split transaction
 router.post('/:id/:type/buildSplitTx', requireApiKey, async (req, res, next) => {
@@ -43,7 +43,7 @@ router.post('/:id/:type/buildSplitTx', requireApiKey, async (req, res, next) => 
       });
     }
     
-    const vault = getVault(proposalId, vaultType);
+    const vault = await getVault(proposalId, vaultType);
     const userPubkey = new PublicKey(user);
     const amountBigInt = BigInt(amount);
     
@@ -72,10 +72,18 @@ router.post('/:id/:type/executeSplitTx', requireApiKey, async (req, res, next) =
       });
     }
     
-    const vault = getVault(proposalId, vaultType);
+    const vault = await getVault(proposalId, vaultType);
     const tx = Transaction.from(Buffer.from(transaction, 'base64'));
     
     const signature = await vault.executeSplitTx(tx);
+    
+    // Save the updated proposal state to database after the split
+    const moderator = await getModerator();
+    const updatedProposal = await moderator.getProposal(proposalId);
+    if (updatedProposal) {
+      await moderator.saveProposal(updatedProposal);
+      console.log(`Proposal #${proposalId} state saved after split execution`);
+    }
     
     res.json({
       signature,
@@ -101,7 +109,7 @@ router.post('/:id/:type/buildMergeTx', requireApiKey, async (req, res, next) => 
       });
     }
     
-    const vault = getVault(proposalId, vaultType);
+    const vault = await getVault(proposalId, vaultType);
     const userPubkey = new PublicKey(user);
     const amountBigInt = BigInt(amount);
     
@@ -130,10 +138,18 @@ router.post('/:id/:type/executeMergeTx', requireApiKey, async (req, res, next) =
       });
     }
     
-    const vault = getVault(proposalId, vaultType);
+    const vault = await getVault(proposalId, vaultType);
     const tx = Transaction.from(Buffer.from(transaction, 'base64'));
     
     const signature = await vault.executeMergeTx(tx);
+    
+    // Save the updated proposal state to database after the merge
+    const moderator = await getModerator();
+    const updatedProposal = await moderator.getProposal(proposalId);
+    if (updatedProposal) {
+      await moderator.saveProposal(updatedProposal);
+      console.log(`Proposal #${proposalId} state saved after merge execution`);
+    }
     
     res.json({
       signature,
@@ -158,7 +174,7 @@ router.post('/:id/:type/buildRedeemWinningTokensTx', requireApiKey, async (req, 
       });
     }
     
-    const vault = getVault(proposalId, vaultType);
+    const vault = await getVault(proposalId, vaultType);
     const userPubkey = new PublicKey(user);
     
     const transaction = await vault.buildRedeemWinningTokensTx(userPubkey);
@@ -186,10 +202,18 @@ router.post('/:id/:type/executeRedeemWinningTokensTx', requireApiKey, async (req
       });
     }
     
-    const vault = getVault(proposalId, vaultType);
+    const vault = await getVault(proposalId, vaultType);
     const tx = Transaction.from(Buffer.from(transaction, 'base64'));
     
     const signature = await vault.executeRedeemWinningTokensTx(tx);
+    
+    // Save the updated proposal state to database after the redeem
+    const moderator = await getModerator();
+    const updatedProposal = await moderator.getProposal(proposalId);
+    if (updatedProposal) {
+      await moderator.saveProposal(updatedProposal);
+      console.log(`Proposal #${proposalId} state saved after redeem execution`);
+    }
     
     res.json({
       signature,
@@ -212,13 +236,12 @@ router.get('/:id/getUserBalances', async (req, res, next) => {
       });
     }
     
-    const moderator = getModerator();
+    const moderator = await getModerator();
     
-    if (proposalId < 0 || proposalId >= moderator.proposals.length) {
+    const proposal = await moderator.getProposal(proposalId);
+    if (!proposal) {
       return res.status(404).json({ error: 'Proposal not found' });
     }
-    
-    const proposal = moderator.proposals[proposalId];
     const userPubkey = new PublicKey(user as string);
     
     // Use getVaults() to get both vaults with proper initialization checks

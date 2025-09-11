@@ -1,7 +1,7 @@
 #!/usr/bin/env ts-node
 
 import { CreateProposalRequest } from '../src/types/api';
-import dotenv from 'dotenv';
+import * as dotenv from 'dotenv';
 
 dotenv.config();
 

@@ -74,7 +74,7 @@ const startTestServer = async () => {
     const testMints = await initializeTestEnvironment();
     
     // Get test moderator instance
-    const moderator = TestModeratorService.getInstance();
+    const moderator = await TestModeratorService.getInstance();
     
     console.log('\n✅ Test Moderator Service Initialized');
     console.log('═══════════════════════════════════════════');

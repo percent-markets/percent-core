@@ -1,4 +1,5 @@
 import { PublicKey, Keypair, Connection, Transaction } from '@solana/web3.js';
+import * as crypto from 'crypto';
 import { 
   getAssociatedTokenAddress,
   createAssociatedTokenAccountInstruction,
@@ -14,7 +15,7 @@ import {
   IEscrowInfo
 } from './types/vault.interface';
 import { ProposalStatus } from './types/moderator.interface';
-import { SPLTokenService, AuthorityType } from './services/spl-token.service';
+import { SPLTokenService } from './services/spl-token.service';
 import { ISPLTokenService } from './types/spl-token.interface';
 import { ExecutionService } from './services/execution.service';
 import { IExecutionService, IExecutionConfig } from './types/execution.interface';
@@ -67,8 +68,9 @@ export class Vault implements IVault {
     this.connection = config.connection;
     this.authority = config.authority;
     
-    // Always generate a new escrow keypair for security
-    this.escrowKeypair = Keypair.generate();
+    // Generate deterministic escrow keypair based on proposal ID and vault type
+    // This ensures the same keypair is generated when reconstructing from database
+    this.escrowKeypair = this.generateDeterministicEscrowKeypair();
     
     // Initialize services with ExecutionService
     this.tokenService = new SPLTokenService(
@@ -84,6 +86,26 @@ export class Vault implements IVault {
     };
     
     this.executionService = new ExecutionService(executionConfig);
+  }
+
+  /**
+   * Generates a deterministic escrow keypair based on proposal ID, vault type, and authority
+   * This ensures the same keypair is recreated when deserializing from database
+   */
+  private generateDeterministicEscrowKeypair(): Keypair {
+    // Create a deterministic seed based on proposal ID, vault type, and authority secret key
+    // Using authority's secret key ensures only the authority can recreate the escrow keypair
+    const seedData = Buffer.concat([
+      Buffer.from(`proposal-${this.proposalId}`),
+      Buffer.from(`vault-${this.vaultType}`),
+      this.authority.secretKey.slice(0, 32) // Use first 32 bytes of authority's secret key
+    ]);
+    
+    // Hash to get a 32-byte seed
+    const seed = crypto.createHash('sha256').update(seedData).digest();
+    
+    // Create keypair from seed
+    return Keypair.fromSeed(seed);
   }
 
   /**

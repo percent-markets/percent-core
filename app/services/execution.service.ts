@@ -2,7 +2,6 @@ import {
   Connection, 
   Keypair, 
   Transaction, 
-  sendAndConfirmTransaction,
   Commitment
 } from '@solana/web3.js';
 import * as fs from 'fs';
@@ -89,8 +88,8 @@ export class ExecutionService implements IExecutionService {
       const signature = await this.connection.sendRawTransaction(
         transaction.serialize(),
         {
-          skipPreflight: this.config.skipPreflight,
-          maxRetries: this.config.maxRetries
+          skipPreflight: this.config.skipPreflight ?? false,
+          maxRetries: this.config.maxRetries ?? 3
         }
       );
 

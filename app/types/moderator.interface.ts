@@ -46,7 +46,6 @@ export interface IModeratorConfig {
  */
 export interface IModerator {
   config: IModeratorConfig;                    // Configuration parameters
-  proposals: IProposal[];                      // Array of proposals
   
   /**
    * Creates a new proposal
@@ -71,4 +70,13 @@ export interface IModerator {
    * @throws Error if proposal cannot be executed
    */
   executeProposal(id: number, signer: Keypair, executionConfig: IExecutionConfig): Promise<IExecutionResult>;
+  
+  /**
+   * Gets a proposal by ID from cache (for internal operations like scheduling)
+   * @param id - Proposal ID
+   * @returns Promise resolving to proposal or null if not found
+   */
+  getProposal(id: number): Promise<IProposal | null>;
+  
+  
 }

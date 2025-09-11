@@ -3,19 +3,25 @@ import { requireApiKey } from '../middleware/auth';
 import { getModerator } from '../services/moderator.service';
 import { AMMState } from '../../app/types/amm.interface';
 import { VaultState } from '../../app/types/vault.interface';
+import { PersistenceService } from '../../app/services/persistence.service';
 
 const router = Router();
 
 router.get('/:id', requireApiKey, async (req, res, next) => {
   try {
-    const moderator = getModerator();
+    const moderator = await getModerator();
     const id = parseInt(req.params.id);
     
-    if (isNaN(id) || id < 0 || id >= moderator.proposals.length) {
-      return res.status(404).json({ error: 'Proposal not found' });
+    if (isNaN(id) || id < 0) {
+      return res.status(400).json({ error: 'Invalid proposal ID' });
     }
     
-    const proposal = moderator.proposals[id];
+    // Load proposal fresh from database to ensure we have the latest state
+    const proposal = await moderator.getProposal(id);
+    
+    if (!proposal) {
+      return res.status(404).json({ error: 'Proposal not found' });
+    }
     
     // Get AMMs and Vaults directly - they may be null if not initialized
     const pAMM = proposal.__pAMM;

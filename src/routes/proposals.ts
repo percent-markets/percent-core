@@ -5,53 +5,75 @@ import { CreateProposalRequest, CreateProposalResponse } from '../types/api';
 import { Transaction, PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
 import { ExecutionStatus } from '../../app/types/execution.interface';
+import { PersistenceService } from '../../app/services/persistence.service';
 
 const router = Router();
 
-router.get('/', (_req, res) => {
-  const moderator = getModerator();
-  const proposals = moderator.proposals;
-  
-  const publicProposals = proposals.map((p, index) => ({
-    id: index,
-    description: p.description,
-    status: p.status,
-    createdAt: p.createdAt,
-    finalizedAt: p.finalizedAt,
-  }));
-  
-  res.json({
-    proposals: publicProposals,
-  });
+router.get('/', async (_req, res, next) => {
+  try {
+    const persistenceService = PersistenceService.getInstance();
+    const proposals = await persistenceService.getProposalsForFrontend();
+    
+    const publicProposals = proposals.map(p => ({
+      id: p.id,
+      description: p.description,
+      status: p.status,
+      createdAt: new Date(p.created_at).getTime(),
+      finalizedAt: new Date(p.finalized_at).getTime(),
+    }));
+    
+    res.json({
+      proposals: publicProposals,
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
-router.get('/:id', (req, res) => {
-  const moderator = getModerator();
-  const id = parseInt(req.params.id);
-  
-  if (isNaN(id) || id < 0 || id >= moderator.proposals.length) {
-    return res.status(404).json({ error: 'Proposal not found' });
+router.get('/:id', async (req, res, next) => {
+  try {
+    const id = parseInt(req.params.id);
+    
+    if (isNaN(id) || id < 0) {
+      return res.status(400).json({ error: 'Invalid proposal ID' });
+    }
+    
+    const persistenceService = PersistenceService.getInstance();
+    const proposal = await persistenceService.getProposalForFrontend(id);
+    
+    if (!proposal) {
+      return res.status(404).json({ error: 'Proposal not found' });
+    }
+    
+    const response = {
+      id: proposal.id,
+      description: proposal.description,
+      status: proposal.status,
+      createdAt: new Date(proposal.created_at).getTime(),
+      finalizedAt: new Date(proposal.finalized_at).getTime(),
+      proposalStatus: proposal.status,
+      proposalLength: parseInt(proposal.proposal_length),
+      baseMint: proposal.base_mint,
+      quoteMint: proposal.quote_mint,
+      authority: proposal.authority,
+      ammConfig: proposal.amm_config,
+      passAmmState: proposal.pass_amm_state,
+      failAmmState: proposal.fail_amm_state,
+      baseVaultState: proposal.base_vault_state,
+      quoteVaultState: proposal.quote_vault_state,
+      twapOracleState: proposal.twap_oracle_state,
+    };
+    
+    res.json(response);
+  } catch (error) {
+    next(error);
   }
-  
-  const proposal = moderator.proposals[id];
-  
-  const response = {
-    id,
-    description: proposal.description,
-    status: proposal.status,
-    createdAt: proposal.createdAt,
-    finalizedAt: proposal.finalizedAt,
-    proposalStatus: proposal.status,
-    proposalLength: proposal.proposalLength,
-  };
-  
-  res.json(response);
 });
 
 
 router.post('/', requireApiKey, async (req, res, next) => {
   try {
-    const moderator = getModerator();
+    const moderator = await getModerator();
     const body = req.body as CreateProposalRequest;
     
     // Validate required fields
@@ -73,7 +95,7 @@ router.post('/', requireApiKey, async (req, res, next) => {
       transaction = new Transaction().add({
         programId: new PublicKey(MEMO_PROGRAM_ID),
         keys: [],
-        data: Buffer.from(`Proposal #${moderator.proposals.length}: ${body.description}`)
+        data: Buffer.from(`Proposal #${moderator.proposalIdCounter}: ${body.description}`)
       });
     }
     
@@ -111,14 +133,19 @@ router.post('/', requireApiKey, async (req, res, next) => {
 
 router.post('/:id/execute', requireApiKey, async (req, res, next) => {
   try {
-    const moderator = getModerator();
+    const moderator = await getModerator();
     const id = parseInt(req.params.id);
     
-    if (isNaN(id) || id < 0 || id >= moderator.proposals.length) {
-      return res.status(404).json({ error: 'Proposal not found' });
+    if (isNaN(id) || id < 0) {
+      return res.status(400).json({ error: 'Invalid proposal ID' });
     }
     
-    const proposal = moderator.proposals[id];
+    // Get proposal from database (always fresh data)
+    const proposal = await moderator.getProposal(id);
+    
+    if (!proposal) {
+      return res.status(404).json({ error: 'Proposal not found' });
+    }
 
     
     // Execute the proposal using the moderator's authority

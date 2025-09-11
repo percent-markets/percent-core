@@ -255,8 +255,8 @@ export class AMM implements IAMM {
     }
 
     // Clear position references after successful closure
-    this.position = undefined;
-    this.positionNft = undefined;
+    delete this.position;
+    delete this.positionNft;
     
     // Mark AMM as finalized - no further operations allowed
     this._state = AMMState.Finalized;

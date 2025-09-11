@@ -13,10 +13,11 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "moduleResolution": "node"
   },
-  "include": ["src/**/*", "app/**/*"],
+  "include": ["src/**/*", "app/**/*", "scripts/**/*"],
   "exclude": ["node_modules", "dist"]
 }

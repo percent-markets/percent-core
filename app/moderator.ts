@@ -4,6 +4,7 @@ import { IExecutionConfig, IExecutionResult } from './types/execution.interface'
 import { IProposal, IProposalConfig } from './types/proposal.interface';
 import { Proposal } from './proposal';
 import { SchedulerService } from './services/scheduler.service';
+import { PersistenceService } from './services/persistence.service';
 
 /**
  * Moderator class that manages governance proposals for the protocol
@@ -11,9 +12,9 @@ import { SchedulerService } from './services/scheduler.service';
  */
 export class Moderator implements IModerator {
   public config: IModeratorConfig;                         // Configuration parameters for the moderator
-  public proposals: IProposal[] = [];                     // Array storing all proposals
-  private proposalIdCounter: number = 0;                   // Auto-incrementing ID counter for proposals
+  private _proposalIdCounter: number = 0;                  // Auto-incrementing ID counter for proposals
   private scheduler: SchedulerService;                     // Scheduler for automatic tasks
+  private persistenceService: PersistenceService;          // Database persistence service
 
   /**
    * Creates a new Moderator instance
@@ -23,6 +24,38 @@ export class Moderator implements IModerator {
     this.config = config;
     this.scheduler = SchedulerService.getInstance();
     this.scheduler.setModerator(this);
+    this.persistenceService = PersistenceService.getInstance();
+  }
+  
+  /**
+   * Getter for the current proposal ID counter
+   */
+  get proposalIdCounter(): number {
+    return this._proposalIdCounter;
+  }
+  
+  /**
+   * Setter for proposal ID counter (for loading from database)
+   */
+  set proposalIdCounter(value: number) {
+    this._proposalIdCounter = value;
+  }
+  
+  /**
+   * Get a proposal by ID from database (always fresh data)
+   * @param id - Proposal ID
+   * @returns Promise resolving to proposal or null if not found
+   */
+  async getProposal(id: number): Promise<IProposal | null> {
+    return await this.persistenceService.loadProposal(id);
+  }
+  
+  /**
+   * Save a proposal to the database
+   * @param proposal - The proposal to save
+   */
+  async saveProposal(proposal: IProposal): Promise<void> {
+    await this.persistenceService.saveProposal(proposal);
   }
 
   /**
@@ -35,7 +68,7 @@ export class Moderator implements IModerator {
     try {
       // Create proposal config from moderator config and params
       const proposalConfig: IProposalConfig = {
-        id: this.proposalIdCounter,
+        id: this._proposalIdCounter,
         description: params.description,
         transaction: params.transaction,
         createdAt: Date.now(),
@@ -56,9 +89,13 @@ export class Moderator implements IModerator {
       // Initialize the proposal (blockchain interactions)
       await proposal.initialize();
       
-      // Store proposal at index matching its ID
-      this.proposals[this.proposalIdCounter] = proposal;
-      this.proposalIdCounter++;  // Increment counter for next proposal
+      // Save to database FIRST (database is source of truth)
+      await this.persistenceService.saveProposal(proposal);
+      this._proposalIdCounter++;  // Increment counter for next proposal
+      await this.persistenceService.saveModeratorState(this._proposalIdCounter, this.config);
+      
+      
+      console.log(`Proposal #${proposal.id} created and saved to database`);
       
       // Schedule automatic TWAP cranking (every minute)
       this.scheduler.scheduleTWAPCranking(proposal.id, params.twap.minUpdateInterval);
@@ -69,7 +106,7 @@ export class Moderator implements IModerator {
       
       return proposal;
     } catch (error) {
-      console.error(`Failed to create proposal #${this.proposalIdCounter}:`, error);
+      console.error(`Failed to create proposal #${this._proposalIdCounter}:`, error);
       throw error;
     }
   }
@@ -82,11 +119,11 @@ export class Moderator implements IModerator {
    * @throws Error if proposal with given ID doesn't exist
    */
   async finalizeProposal(id: number): Promise<ProposalStatus> {
-    if (id >= this.proposalIdCounter || !this.proposals[id]) {
+    // Get proposal from cache or database
+    const proposal = await this.getProposal(id);
+    if (!proposal) {
       throw new Error(`Proposal with ID ${id} does not exist`);
     }
-
-    const proposal = this.proposals[id];
     
     if (proposal.status === ProposalStatus.Uninitialized) {
       throw new Error(`Proposal #${id} is not initialized - cannot finalize`);
@@ -96,7 +133,14 @@ export class Moderator implements IModerator {
       return proposal.status;
     }
     
-    return await proposal.finalize();
+    const status = await proposal.finalize();
+    
+    // Save updated state to database (database is source of truth)
+    await this.persistenceService.saveProposal(proposal);
+    
+    console.log(`Proposal #${id} finalized with status ${status}, saved to database`);
+    
+    return status;
   }
 
   /**
@@ -113,11 +157,11 @@ export class Moderator implements IModerator {
     signer: Keypair,
     executionConfig: IExecutionConfig
   ): Promise<IExecutionResult> {
-    if (id >= this.proposalIdCounter || !this.proposals[id]) {
+    // Get proposal from cache or database
+    const proposal = await this.getProposal(id);
+    if (!proposal) {
       throw new Error(`Proposal with ID ${id} does not exist`);
     }
-
-    const proposal = this.proposals[id];
     
     switch (proposal.status) {
       case ProposalStatus.Uninitialized:
@@ -135,7 +179,15 @@ export class Moderator implements IModerator {
       case ProposalStatus.Passed:
         // Log proposal being executed
         console.log(`Executing proposal #${id}: "${proposal.description}"`);
-        return await proposal.execute(signer, executionConfig);
+        const result = await proposal.execute(signer, executionConfig);
+        
+        // Save updated state to database (database is source of truth)
+        await this.persistenceService.saveProposal(proposal);
+        
+        
+        console.log(`Proposal #${id} executed, saved to database`);
+        
+        return result;
       
       default:
         throw new Error(`Unknown proposal status: ${proposal.status}`);

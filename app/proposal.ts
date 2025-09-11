@@ -1,5 +1,4 @@
-import { Transaction, PublicKey, Keypair, Connection } from '@solana/web3.js';
-import { BN } from '@coral-xyz/anchor';
+import { Transaction, PublicKey, Keypair } from '@solana/web3.js';
 import { IProposal, IProposalConfig } from './types/proposal.interface';
 import { IAMM } from './types/amm.interface';
 import { IVault, VaultType } from './types/vault.interface';
@@ -291,6 +290,7 @@ export class Proposal implements IProposal {
       case ProposalStatus.Passed:
         // Execute the Solana transaction
         const executionService = new ExecutionService(executionConfig);
+        
         console.log('Executing transaction to execute proposal');
         const result = await executionService.executeTx(
           this.transaction,
