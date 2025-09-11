@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { requireApiKey } from '../middleware/auth';
 import { getModerator } from '../services/moderator.service';
 import { PublicKey, Transaction } from '@solana/web3.js';
 import { BN } from '@coral-xyz/anchor';
@@ -48,7 +47,7 @@ async function getAMM(proposalId: number, market: string): Promise<IAMM> {
  * - amountIn: string - Amount of input tokens to swap (as string to preserve precision)
  * - slippageBps?: number - Optional slippage tolerance in basis points (default: 50 = 0.5%)
  */
-router.post('/:id/buildSwapTx', requireApiKey, async (req, res, next) => {
+router.post('/:id/buildSwapTx', async (req, res, next) => {
   try {
     const proposalId = parseInt(req.params.id);
     
@@ -120,7 +119,7 @@ router.post('/:id/buildSwapTx', requireApiKey, async (req, res, next) => {
  * - amountIn: string - Amount of input tokens
  * - amountOut: string - Amount of output tokens (optional, can be calculated)
  */
-router.post('/:id/executeSwapTx', requireApiKey, async (req, res, next) => {
+router.post('/:id/executeSwapTx', async (req, res, next) => {
   try {
     const proposalId = parseInt(req.params.id);
     

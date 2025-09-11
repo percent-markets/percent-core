@@ -9,12 +9,6 @@ dotenv.config();
 
 async function closePosition() {
   const API_URL = process.env.API_URL || 'http://localhost:3000';
-  const API_KEY = process.env.API_KEY;
-  
-  if (!API_KEY) {
-    console.error('API_KEY environment variable is required');
-    process.exit(1);
-  }
   
   // Get command line arguments
   const proposalId = process.argv[2];
@@ -65,7 +59,6 @@ async function closePosition() {
   try {
     await executePositionClosing({
       API_URL,
-      API_KEY,
       proposalId,
       userKeypair,
       positionType,

@@ -6,12 +6,6 @@ dotenv.config();
 
 async function getAnalytics() {
   const API_URL = process.env.API_URL || 'http://localhost:3000';
-  const API_KEY = process.env.API_KEY;
-  
-  if (!API_KEY) {
-    console.error('API_KEY environment variable is required');
-    process.exit(1);
-  }
   
   const proposalId = process.argv[2];
   
@@ -30,8 +24,7 @@ async function getAnalytics() {
     const response = await fetch(`${API_URL}/api/analytics/${id}`, {
       method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
-        'X-API-KEY': API_KEY
+        'Content-Type': 'application/json'
       }
     });
     

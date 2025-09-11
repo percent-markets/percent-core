@@ -14,19 +14,8 @@ interface FetchOptions {
 
 async function fetchHistoricalData(options: FetchOptions) {
   const API_URL = process.env.API_URL || 'http://localhost:3000';
-  const API_KEY = process.env.API_KEY;
-  
-  if (!API_KEY) {
-    console.error('API_KEY environment variable is required');
-    process.exit(1);
-  }
 
   const { proposalId, from, to, interval, limit } = options;
-  
-  const headers = {
-    'Content-Type': 'application/json',
-    'X-API-KEY': API_KEY
-  };
 
   console.log(`\n🔍 Fetching historical data for proposal ${proposalId}\n`);
   console.log(`API URL: ${API_URL}`);
@@ -41,8 +30,7 @@ async function fetchHistoricalData(options: FetchOptions) {
     console.log('\n📊 Current TWAP Data:');
     try {
       const twapResponse = await fetch(`${API_URL}/api/twap/${proposalId}`, {
-        method: 'GET',
-        headers
+        method: 'GET'
       });
       
       if (twapResponse.ok) {
@@ -65,8 +53,7 @@ async function fetchHistoricalData(options: FetchOptions) {
       if (interval) params.append('interval', interval);
       
       const priceResponse = await fetch(`${API_URL}/api/history/${proposalId}/prices?${params}`, {
-        method: 'GET',
-        headers
+        method: 'GET'
       });
       
       if (priceResponse.ok) {
@@ -96,8 +83,7 @@ async function fetchHistoricalData(options: FetchOptions) {
       if (limit) params.append('limit', limit.toString());
       
       const tradeResponse = await fetch(`${API_URL}/api/history/${proposalId}/trades?${params}`, {
-        method: 'GET',
-        headers
+        method: 'GET'
       });
       
       if (tradeResponse.ok) {
@@ -126,8 +112,7 @@ async function fetchHistoricalData(options: FetchOptions) {
       if (to) params.append('to', to);
       
       const twapHistoryResponse = await fetch(`${API_URL}/api/history/${proposalId}/twap?${params}`, {
-        method: 'GET',
-        headers
+        method: 'GET'
       });
       
       if (twapHistoryResponse.ok) {
@@ -158,8 +143,7 @@ async function fetchHistoricalData(options: FetchOptions) {
         if (to) params.append('to', to);
         
         const chartResponse = await fetch(`${API_URL}/api/history/${proposalId}/chart?${params}`, {
-          method: 'GET',
-          headers
+          method: 'GET'
         });
         
         if (chartResponse.ok) {

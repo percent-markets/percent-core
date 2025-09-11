@@ -131,7 +131,7 @@ router.post('/', requireApiKey, async (req, res, next) => {
   }
 });
 
-router.post('/:id/execute', requireApiKey, async (req, res, next) => {
+router.post('/:id/execute', async (req, res, next) => {
   try {
     const moderator = await getModerator();
     const id = parseInt(req.params.id);

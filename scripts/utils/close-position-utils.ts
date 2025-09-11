@@ -7,7 +7,6 @@ import { Keypair, Transaction } from '@solana/web3.js';
 
 export interface ClosePositionConfig {
   API_URL: string;
-  API_KEY: string;
   proposalId: string;
   userKeypair: Keypair;
   positionType: 'pass' | 'fail';
@@ -19,7 +18,7 @@ export interface ClosePositionConfig {
  * This function handles the complete process of closing a position
  */
 export async function executePositionClosing(config: ClosePositionConfig): Promise<void> {
-  const { API_URL, API_KEY, proposalId, userKeypair, positionType, percentageToClose } = config;
+  const { API_URL, proposalId, userKeypair, positionType, percentageToClose } = config;
   const userPublicKey = userKeypair.publicKey.toBase58();
 
   if (percentageToClose <= 0 || percentageToClose > 100) {
@@ -30,7 +29,7 @@ export async function executePositionClosing(config: ClosePositionConfig): Promi
 
   // Step 1: Get current balances to determine amounts to close
   console.log('\n=== Getting current balances ===');
-  const currentBalances = await checkBalances(API_URL, API_KEY, proposalId, userPublicKey);
+  const currentBalances = await checkBalances(API_URL, proposalId, userPublicKey);
   if (!currentBalances) {
     throw new Error('Failed to get current balances');
   }
@@ -45,7 +44,6 @@ export async function executePositionClosing(config: ClosePositionConfig): Promi
   console.log(`\n=== Executing reverse swaps for ${positionType} position ===`);
   await executeReverseSwaps(
     API_URL,
-    API_KEY,
     proposalId,
     userKeypair,
     positionType,
@@ -54,7 +52,7 @@ export async function executePositionClosing(config: ClosePositionConfig): Promi
 
   // Step 4: Check balances after swaps
   console.log('\n=== Checking balances after reverse swaps ===');
-  const balancesAfterSwaps = await checkBalances(API_URL, API_KEY, proposalId, userPublicKey);
+  const balancesAfterSwaps = await checkBalances(API_URL, proposalId, userPublicKey);
   if (balancesAfterSwaps) {
     console.log('Balances after swaps:', JSON.stringify(balancesAfterSwaps, null, 2));
   }
@@ -63,7 +61,6 @@ export async function executePositionClosing(config: ClosePositionConfig): Promi
   console.log('\n=== Merging conditional tokens ===');
   await mergeConditionalTokens(
     API_URL,
-    API_KEY,
     proposalId,
     userKeypair,
     balancesAfterSwaps
@@ -71,7 +68,7 @@ export async function executePositionClosing(config: ClosePositionConfig): Promi
 
   // Step 6: Check final balances
   console.log('\n=== Final balances after closing position ===');
-  const finalBalances = await checkBalances(API_URL, API_KEY, proposalId, userPublicKey);
+  const finalBalances = await checkBalances(API_URL, proposalId, userPublicKey);
   if (finalBalances) {
     console.log('Final balances:', JSON.stringify(finalBalances, null, 2));
     console.log(`\n✅ ${positionType.toUpperCase()} POSITION CLOSED SUCCESSFULLY!`);
@@ -111,7 +108,6 @@ function calculateCloseAmounts(balances: any, positionType: 'pass' | 'fail', per
  */
 async function executeReverseSwaps(
   API_URL: string,
-  API_KEY: string,
   proposalId: string,
   userKeypair: Keypair,
   positionType: 'pass' | 'fail',
@@ -126,7 +122,6 @@ async function executeReverseSwaps(
       console.log('\n--- Reverse swap on pass market (pBase→pQuote) ---');
       await executeMarketSwap(
         API_URL,
-        API_KEY,
         proposalId,
         'pass',
         userKeypair,
@@ -140,7 +135,6 @@ async function executeReverseSwaps(
       console.log('\n--- Reverse swap on fail market (fQuote→fBase) ---');
       await executeMarketSwap(
         API_URL,
-        API_KEY,
         proposalId,
         'fail',
         userKeypair,
@@ -157,7 +151,6 @@ async function executeReverseSwaps(
       console.log('\n--- Reverse swap on fail market (fBase→fQuote) ---');
       await executeMarketSwap(
         API_URL,
-        API_KEY,
         proposalId,
         'fail',
         userKeypair,
@@ -171,7 +164,6 @@ async function executeReverseSwaps(
       console.log('\n--- Reverse swap on pass market (pQuote→pBase) ---');
       await executeMarketSwap(
         API_URL,
-        API_KEY,
         proposalId,
         'pass',
         userKeypair,
@@ -187,7 +179,6 @@ async function executeReverseSwaps(
  */
 async function mergeConditionalTokens(
   API_URL: string,
-  API_KEY: string,
   proposalId: string,
   userKeypair: Keypair,
   balances: any
@@ -204,7 +195,6 @@ async function mergeConditionalTokens(
     console.log(`Merging ${baseMergeAmount.toString()} base conditional tokens...`);
     await mergeTokens(
       API_URL,
-      API_KEY,
       proposalId,
       'base',
       userKeypair,
@@ -218,7 +208,6 @@ async function mergeConditionalTokens(
     console.log(`Merging ${quoteMergeAmount.toString()} quote conditional tokens...`);
     await mergeTokens(
       API_URL,
-      API_KEY,
       proposalId,
       'quote',
       userKeypair,
@@ -236,7 +225,6 @@ async function mergeConditionalTokens(
  */
 async function mergeTokens(
   API_URL: string,
-  API_KEY: string,
   proposalId: string,
   vaultType: 'base' | 'quote',
   userKeypair: Keypair,
@@ -255,8 +243,7 @@ async function mergeTokens(
   const mergeResponse = await fetch(`${API_URL}/api/vaults/${proposalId}/${vaultType}/buildMergeTx`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'X-API-KEY': API_KEY
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify(mergeRequest)
   });
@@ -277,8 +264,7 @@ async function mergeTokens(
   const executeMergeResponse = await fetch(`${API_URL}/api/vaults/${proposalId}/${vaultType}/executeMergeTx`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'X-API-KEY': API_KEY
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
       transaction: Buffer.from(mergeTx.serialize({ requireAllSignatures: false })).toString('base64')
@@ -299,7 +285,6 @@ async function mergeTokens(
  */
 async function executeMarketSwap(
   API_URL: string,
-  API_KEY: string,
   proposalId: string,
   market: 'pass' | 'fail',
   userKeypair: Keypair,
@@ -322,8 +307,7 @@ async function executeMarketSwap(
   const buildSwapResponse = await fetch(`${API_URL}/api/swap/${proposalId}/buildSwapTx`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'X-API-KEY': API_KEY
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify(swapRequest)
   });
@@ -345,8 +329,7 @@ async function executeMarketSwap(
   const executeSwapResponse = await fetch(`${API_URL}/api/swap/${proposalId}/executeSwapTx`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'X-API-KEY': API_KEY
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
       transaction: Buffer.from(swapTx.serialize({ requireAllSignatures: false })).toString('base64'),
@@ -371,15 +354,10 @@ async function executeMarketSwap(
  */
 async function checkBalances(
   API_URL: string,
-  API_KEY: string,
   proposalId: string,
   userPublicKey: string
 ): Promise<any> {
-  const balancesResponse = await fetch(`${API_URL}/api/vaults/${proposalId}/getUserBalances?user=${userPublicKey}`, {
-    headers: {
-      'X-API-KEY': API_KEY
-    }
-  });
+  const balancesResponse = await fetch(`${API_URL}/api/vaults/${proposalId}/getUserBalances?user=${userPublicKey}`);
   
   if (balancesResponse.ok) {
     return await balancesResponse.json();

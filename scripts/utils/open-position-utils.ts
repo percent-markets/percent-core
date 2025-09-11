@@ -7,7 +7,6 @@ import { Keypair, Transaction } from '@solana/web3.js';
 
 export interface OpenPositionConfig {
   API_URL: string;
-  API_KEY: string;
   proposalId: string;
   userKeypair: Keypair;
   positionType: 'pass' | 'fail';
@@ -20,14 +19,13 @@ export interface OpenPositionConfig {
  * This function handles everything after the initial 50/50 swap
  */
 export async function executePositionOpening(config: OpenPositionConfig): Promise<void> {
-  const { API_URL, API_KEY, proposalId, userKeypair, positionType, baseAmountToSplit, quoteAmountToSplit } = config;
+  const { API_URL, proposalId, userKeypair, positionType, baseAmountToSplit, quoteAmountToSplit } = config;
   const userPublicKey = userKeypair.publicKey.toBase58();
 
   // Step 1: Split base tokens via vault
   console.log('\n=== Splitting base tokens ===');
   await splitTokens(
     API_URL,
-    API_KEY,
     proposalId,
     'base',
     userKeypair,
@@ -38,7 +36,6 @@ export async function executePositionOpening(config: OpenPositionConfig): Promis
   console.log('\n=== Splitting quote tokens ===');
   await splitTokens(
     API_URL,
-    API_KEY,
     proposalId,
     'quote',
     userKeypair,
@@ -47,7 +44,7 @@ export async function executePositionOpening(config: OpenPositionConfig): Promis
 
   // Step 3: Check balances after splits
   console.log('\n=== Checking balances after splits ===');
-  const balancesAfterSplit = await checkBalances(API_URL, API_KEY, proposalId, userPublicKey);
+  const balancesAfterSplit = await checkBalances(API_URL, proposalId, userPublicKey);
   if (balancesAfterSplit) {
     console.log('User balances after splits:', JSON.stringify(balancesAfterSplit, null, 2));
   }
@@ -59,7 +56,6 @@ export async function executePositionOpening(config: OpenPositionConfig): Promis
   console.log('\n--- Swap on pass market ---');
   await executeMarketSwap(
     API_URL,
-    API_KEY,
     proposalId,
     'pass',
     userKeypair,
@@ -71,7 +67,6 @@ export async function executePositionOpening(config: OpenPositionConfig): Promis
   console.log('\n--- Swap on fail market ---');
   await executeMarketSwap(
     API_URL,
-    API_KEY,
     proposalId,
     'fail',
     userKeypair,
@@ -81,7 +76,7 @@ export async function executePositionOpening(config: OpenPositionConfig): Promis
 
   // Step 5: Check final balances
   console.log('\n=== Final balances ===');
-  const finalBalances = await checkBalances(API_URL, API_KEY, proposalId, userPublicKey);
+  const finalBalances = await checkBalances(API_URL, proposalId, userPublicKey);
   if (finalBalances) {
     console.log('Final user balances:', JSON.stringify(finalBalances, null, 2));
     
@@ -102,7 +97,6 @@ export async function executePositionOpening(config: OpenPositionConfig): Promis
  */
 async function splitTokens(
   API_URL: string,
-  API_KEY: string,
   proposalId: string,
   vaultType: 'base' | 'quote',
   userKeypair: Keypair,
@@ -121,8 +115,7 @@ async function splitTokens(
   const splitResponse = await fetch(`${API_URL}/api/vaults/${proposalId}/${vaultType}/buildSplitTx`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'X-API-KEY': API_KEY
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify(splitRequest)
   });
@@ -143,8 +136,7 @@ async function splitTokens(
   const executeSplitResponse = await fetch(`${API_URL}/api/vaults/${proposalId}/${vaultType}/executeSplitTx`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'X-API-KEY': API_KEY
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
       transaction: Buffer.from(splitTx.serialize({ requireAllSignatures: false })).toString('base64')
@@ -165,7 +157,6 @@ async function splitTokens(
  */
 async function executeMarketSwap(
   API_URL: string,
-  API_KEY: string,
   proposalId: string,
   market: 'pass' | 'fail',
   userKeypair: Keypair,
@@ -188,8 +179,7 @@ async function executeMarketSwap(
   const buildSwapResponse = await fetch(`${API_URL}/api/swap/${proposalId}/buildSwapTx`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'X-API-KEY': API_KEY
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify(swapRequest)
   });
@@ -211,8 +201,7 @@ async function executeMarketSwap(
   const executeSwapResponse = await fetch(`${API_URL}/api/swap/${proposalId}/executeSwapTx`, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'X-API-KEY': API_KEY
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
       transaction: Buffer.from(swapTx.serialize({ requireAllSignatures: false })).toString('base64'),
@@ -237,15 +226,10 @@ async function executeMarketSwap(
  */
 async function checkBalances(
   API_URL: string,
-  API_KEY: string,
   proposalId: string,
   userPublicKey: string
 ): Promise<any> {
-  const balancesResponse = await fetch(`${API_URL}/api/vaults/${proposalId}/getUserBalances?user=${userPublicKey}`, {
-    headers: {
-      'X-API-KEY': API_KEY
-    }
-  });
+  const balancesResponse = await fetch(`${API_URL}/api/vaults/${proposalId}/getUserBalances?user=${userPublicKey}`);
   
   if (balancesResponse.ok) {
     return await balancesResponse.json();

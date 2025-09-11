@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { getModerator } from '../services/moderator.service';
 import { ProposalStatus } from '../../app/types/moderator.interface';
 import { SchedulerService } from '../../app/services/scheduler.service';
-import { requireApiKey, optionalApiKey } from '../middleware/auth';
+import { optionalApiKey } from '../middleware/auth';
 import { PersistenceService } from '../../app/services/persistence.service';
 
 const router = Router();
@@ -47,7 +47,7 @@ router.get('/:proposalId', optionalApiKey, async (req, res) => {
   }
 });
 
-router.post('/:proposalId/crank', requireApiKey, async (req, res) => {
+router.post('/:proposalId/crank', async (req, res) => {
   try {
     const proposalId = parseInt(req.params.proposalId);
     
@@ -87,7 +87,7 @@ router.post('/:proposalId/crank', requireApiKey, async (req, res) => {
   }
 });
 
-router.get('/scheduler/active-tasks', requireApiKey, async (_req, res) => {
+router.get('/scheduler/active-tasks', async (_req, res) => {
   try {
     const scheduler = SchedulerService.getInstance();
     const activeTasks = scheduler.getActiveTasks();

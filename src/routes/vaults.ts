@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { requireApiKey } from '../middleware/auth';
 import { getModerator } from '../services/moderator.service';
 import { PublicKey, Transaction } from '@solana/web3.js';
 
@@ -28,7 +27,7 @@ async function getVault(proposalId: number, vaultType: string) {
 
 
 // Build split transaction
-router.post('/:id/:type/buildSplitTx', requireApiKey, async (req, res, next) => {
+router.post('/:id/:type/buildSplitTx', async (req, res, next) => {
   try {
     const proposalId = parseInt(req.params.id);
     const vaultType = req.params.type;
@@ -58,7 +57,7 @@ router.post('/:id/:type/buildSplitTx', requireApiKey, async (req, res, next) => 
 });
 
 // Execute split transaction
-router.post('/:id/:type/executeSplitTx', requireApiKey, async (req, res, next) => {
+router.post('/:id/:type/executeSplitTx', async (req, res, next) => {
   try {
     const proposalId = parseInt(req.params.id);
     const vaultType = req.params.type;
@@ -94,7 +93,7 @@ router.post('/:id/:type/executeSplitTx', requireApiKey, async (req, res, next) =
 });
 
 // Build merge transaction
-router.post('/:id/:type/buildMergeTx', requireApiKey, async (req, res, next) => {
+router.post('/:id/:type/buildMergeTx', async (req, res, next) => {
   try {
     const proposalId = parseInt(req.params.id);
     const vaultType = req.params.type;
@@ -124,7 +123,7 @@ router.post('/:id/:type/buildMergeTx', requireApiKey, async (req, res, next) => 
 });
 
 // Execute merge transaction
-router.post('/:id/:type/executeMergeTx', requireApiKey, async (req, res, next) => {
+router.post('/:id/:type/executeMergeTx', async (req, res, next) => {
   try {
     const proposalId = parseInt(req.params.id);
     const vaultType = req.params.type;
@@ -160,7 +159,7 @@ router.post('/:id/:type/executeMergeTx', requireApiKey, async (req, res, next) =
 });
 
 // Build redeem winning tokens transaction
-router.post('/:id/:type/buildRedeemWinningTokensTx', requireApiKey, async (req, res, next) => {
+router.post('/:id/:type/buildRedeemWinningTokensTx', async (req, res, next) => {
   try {
     const proposalId = parseInt(req.params.id);
     const vaultType = req.params.type;
@@ -188,7 +187,7 @@ router.post('/:id/:type/buildRedeemWinningTokensTx', requireApiKey, async (req, 
 });
 
 // Execute redeem winning tokens transaction
-router.post('/:id/:type/executeRedeemWinningTokensTx', requireApiKey, async (req, res, next) => {
+router.post('/:id/:type/executeRedeemWinningTokensTx', async (req, res, next) => {
   try {
     const proposalId = parseInt(req.params.id);
     const vaultType = req.params.type;

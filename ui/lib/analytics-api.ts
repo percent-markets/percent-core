@@ -6,11 +6,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 class AnalyticsAPI {
   async getAnalytics(id: number): Promise<any> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/analytics/${id}`, {
-        headers: {
-          'X-API-Key': process.env.NEXT_PUBLIC_API_KEY || 'test-api-key'
-        }
-      });
+      const response = await fetch(`${API_BASE_URL}/api/analytics/${id}`);
       if (!response.ok) throw new Error('Failed to fetch analytics');
       return await response.json();
     } catch (error) {

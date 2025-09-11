@@ -20,12 +20,6 @@ function loadTestWallet(): Keypair {
 
 async function testSwap() {
   const API_URL = process.env.API_URL || 'http://localhost:3000';
-  const API_KEY = process.env.API_KEY;
-  
-  if (!API_KEY) {
-    console.error('API_KEY environment variable is required');
-    process.exit(1);
-  }
   
   // Get proposal ID from command line or use default
   const proposalId = process.argv[2] || '0';
@@ -47,8 +41,7 @@ async function testSwap() {
     const splitResponse = await fetch(`${API_URL}/api/vaults/${proposalId}/quote/buildSplitTx`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'X-API-KEY': API_KEY
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(splitRequest)
     });
@@ -70,8 +63,7 @@ async function testSwap() {
     const executeSplitResponse = await fetch(`${API_URL}/api/vaults/${proposalId}/quote/executeSplitTx`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'X-API-KEY': API_KEY
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         transaction: Buffer.from(splitTx.serialize({ requireAllSignatures: false })).toString('base64')
@@ -100,8 +92,7 @@ async function testSwap() {
     const buildSwapResponse = await fetch(`${API_URL}/api/swap/${proposalId}/buildSwapTx`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'X-API-KEY': API_KEY
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(swapRequest)
     });
@@ -124,8 +115,7 @@ async function testSwap() {
     const executeSwapResponse = await fetch(`${API_URL}/api/swap/${proposalId}/executeSwapTx`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'X-API-KEY': API_KEY
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         transaction: Buffer.from(swapTx.serialize({ requireAllSignatures: false })).toString('base64'),
@@ -147,11 +137,7 @@ async function testSwap() {
     
     // Step 3: Check user balances
     console.log('\n3. Checking user balances...');
-    const balancesResponse = await fetch(`${API_URL}/api/vaults/${proposalId}/getUserBalances?user=${alicePublicKey}`, {
-      headers: {
-        'X-API-KEY': API_KEY
-      }
-    });
+    const balancesResponse = await fetch(`${API_URL}/api/vaults/${proposalId}/getUserBalances?user=${alicePublicKey}`);
     
     if (balancesResponse.ok) {
       const balances = await balancesResponse.json();

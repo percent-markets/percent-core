@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { requireApiKey } from '../middleware/auth';
 import { HistoryService } from '../../app/services/history.service';
 
 const router = Router();

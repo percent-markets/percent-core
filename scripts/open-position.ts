@@ -30,13 +30,7 @@ function loadKeypair(path: string): Keypair {
 
 async function openPosition() {
   const API_URL = process.env.API_URL || 'http://localhost:3000';
-  const API_KEY = process.env.API_KEY;
   const RPC_URL = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
-  
-  if (!API_KEY) {
-    console.error('API_KEY environment variable is required');
-    process.exit(1);
-  }
   
   // Get proposal ID from command line or use default
   const proposalId = process.argv[2] || '0';
@@ -53,11 +47,7 @@ async function openPosition() {
   try {
     // Step 1: Get proposal info to determine token mints
     console.log('\n=== Getting proposal info ===');
-    const proposalResponse = await fetch(`${API_URL}/api/proposals/${proposalId}`, {
-      headers: {
-        'X-API-KEY': API_KEY
-      }
-    });
+    const proposalResponse = await fetch(`${API_URL}/api/proposals/${proposalId}`);
     
     if (!proposalResponse.ok) {
       throw new Error('Failed to get proposal info');
@@ -127,7 +117,6 @@ async function openPosition() {
     // Step 6: Execute position opening with 1 token each
     await executePositionOpening({
       API_URL,
-      API_KEY,
       proposalId,
       userKeypair,
       positionType: POSITION_TYPE,
