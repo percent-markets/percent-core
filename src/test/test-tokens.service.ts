@@ -64,7 +64,8 @@ export class TestTokenSetupService {
     const walletList = [
       { name: 'Authority', keypair: this.wallets.authority, baseAmount: 1000000n, quoteAmount: 1000n },
       { name: 'Alice', keypair: this.wallets.alice, baseAmount: 500000n, quoteAmount: 500n },
-      { name: 'Bob', keypair: this.wallets.bob, baseAmount: 500000n, quoteAmount: 500n }
+      { name: 'Bob', keypair: this.wallets.bob, baseAmount: 500000n, quoteAmount: 500n },
+      { name: 'Charlie', keypair: this.wallets.charlie, baseAmount: 500000n, quoteAmount: 500n }
     ];
 
     for (const wallet of walletList) {

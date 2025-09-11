@@ -4,11 +4,9 @@
 
 import dotenv from 'dotenv';
 import { Keypair } from '@solana/web3.js';
-import { executePositionOpening } from './utils/open-position-utils';
+import { executePositionClosing } from './utils/close-position-utils';
 
 dotenv.config();
-
-// Position type will be set from command line args
 
 // Load test wallet based on position type
 function loadTestWallet(positionType: 'pass' | 'fail'): Keypair {
@@ -23,7 +21,7 @@ function loadTestWallet(positionType: 'pass' | 'fail'): Keypair {
   return Keypair.fromSeed(seed);
 }
 
-async function testOpenPosition() {
+async function testClosePosition() {
   const API_URL = process.env.API_URL || 'http://localhost:3000';
   const API_KEY = process.env.API_KEY;
   
@@ -34,12 +32,20 @@ async function testOpenPosition() {
   
   // Get command line arguments
   const proposalId = process.argv[2] || '0';
-  const positionType = (process.argv[3] || 'fail') as 'pass' | 'fail';
+  const positionType = (process.argv[3] || 'pass') as 'pass' | 'fail';
+  const percentageToClose = parseFloat(process.argv[4] || '50'); // Default to 50%
   
   // Validate position type
   if (positionType !== 'pass' && positionType !== 'fail') {
     console.error('Position type must be "pass" or "fail"');
-    console.error('Usage: npx tsx scripts/test-open-position.ts [proposalId] [pass|fail]');
+    console.error('Usage: npx tsx scripts/test-close-position.ts [proposalId] [pass|fail] [percentageToClose]');
+    console.error('Example: npx tsx scripts/test-close-position.ts 0 pass 50');
+    process.exit(1);
+  }
+
+  // Validate percentage
+  if (percentageToClose <= 0 || percentageToClose > 100) {
+    console.error('Percentage to close must be between 1 and 100');
     process.exit(1);
   }
   
@@ -47,30 +53,17 @@ async function testOpenPosition() {
   const testWallet = loadTestWallet(positionType);
   const walletPublicKey = testWallet.publicKey.toBase58();
   
-  console.log(`Testing open ${positionType} position for proposal ${proposalId} with wallet: ${walletPublicKey}`);
+  console.log(`Testing close ${percentageToClose}% of ${positionType} position for proposal ${proposalId} with wallet: ${walletPublicKey}`);
   
   try {
-    // For devnet testing, we simulate a 50/50 split
-    // In production, this would be a real Jupiter swap
-    console.log('\n=== Mock 50/50 split for devnet ===');
-    console.log('Using pre-existing base and quote token balances...');
-    
-    // Define amounts to split (typical test amounts)
-    const baseAmountToSplit = '250000000000';  // 250 base tokens (9 decimals)
-    const quoteAmountToSplit = '250000000000'; // 250 quote tokens (9 decimals)
-    
-    console.log(`Will split ${baseAmountToSplit} base tokens`);
-    console.log(`Will split ${quoteAmountToSplit} quote tokens`);
-    
-    // Execute the position opening using shared utils
-    await executePositionOpening({
+    // Execute the position closing using shared utils
+    await executePositionClosing({
       API_URL,
       API_KEY,
       proposalId,
       userKeypair: testWallet,
-      positionType: positionType,
-      baseAmountToSplit,
-      quoteAmountToSplit
+      positionType,
+      percentageToClose
     });
     
   } catch (error: any) {
@@ -81,7 +74,7 @@ async function testOpenPosition() {
 
 // Run if called directly
 if (require.main === module) {
-  testOpenPosition();
+  testClosePosition();
 }
 
-export { testOpenPosition };
+export { testClosePosition };

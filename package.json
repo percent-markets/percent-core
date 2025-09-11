@@ -14,7 +14,8 @@
     "execute-proposal": "tsx scripts/execute-proposal.ts",
     "get-analytics": "tsx scripts/get-analytics.ts",
     "test-swap": "tsx scripts/test-swap.ts",
-    "fetch-historical-data": "tsx scripts/fetch-historical-data.ts"
+    "fetch-historical-data": "tsx scripts/fetch-historical-data.ts",
+    "test-close-position": "tsx scripts/test-close-position.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1",
