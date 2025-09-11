@@ -145,7 +145,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           title="Copy address"
                         >
                           {copied ? (
-                            <span className="text-xs text-green-500">Copied!</span>
+                            <span className="text-xs text-emerald-400">Copied!</span>
                           ) : (
                             <Copy size={16} className="text-[#AFAFAF]" />
                           )}
@@ -163,7 +163,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     </div>
                     <button
                       onClick={() => disconnect()}
-                      className="w-full mt-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 border border-red-500/20 rounded transition-colors cursor-pointer"
+                      className="w-full mt-2 px-3 py-2 text-sm text-rose-400 hover:bg-rose-400/10 border border-rose-400/20 rounded transition-colors cursor-pointer"
                     >
                       Disconnect Wallet
                     </button>
@@ -175,7 +175,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     <div className="bg-[#121212] border border-[#2A2A2A] rounded-lg p-4">
                       <div className="flex items-center justify-between mb-4">
                         <span className="text-2xl font-bold text-white">$142.50</span>
-                        <span className="text-xs text-green-500 bg-green-500/10 px-2 py-1 rounded">+12.5%</span>
+                        <span className="text-xs text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded">+12.5%</span>
                       </div>
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
@@ -207,15 +207,15 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                     <div className="bg-[#121212] border border-[#2A2A2A] rounded-lg p-3 space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-[#AFAFAF]">Pass Tokens</span>
-                        <span className="text-xs text-green-500">2 positions</span>
+                        <span className="text-xs text-emerald-400">2 positions</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-[#AFAFAF]">Fail Tokens</span>
-                        <span className="text-xs text-red-500">1 position</span>
+                        <span className="text-xs text-rose-400">1 position</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-xs text-[#AFAFAF]">Total P&L</span>
-                        <span className="text-xs text-green-500">+$24.50</span>
+                        <span className="text-xs text-emerald-400">+$24.50</span>
                       </div>
                     </div>
                   </div>

@@ -110,12 +110,12 @@ export default function TradingViewChart({ proposalId }: TradingViewChartProps) 
           "symbolWatermarkProperties.color": "rgba(255, 255, 255, 0.02)",
           "scalesProperties.textColor": "#9ca3af",
           "scalesProperties.lineColor": "#181818",
-          "mainSeriesProperties.candleStyle.upColor": "#22c55e",
-          "mainSeriesProperties.candleStyle.downColor": "#ef4444",
-          "mainSeriesProperties.candleStyle.borderUpColor": "#22c55e",
-          "mainSeriesProperties.candleStyle.borderDownColor": "#ef4444",
-          "mainSeriesProperties.candleStyle.wickUpColor": "#22c55e",
-          "mainSeriesProperties.candleStyle.wickDownColor": "#ef4444",
+          "mainSeriesProperties.candleStyle.upColor": "#10b981",
+          "mainSeriesProperties.candleStyle.downColor": "#f87171",
+          "mainSeriesProperties.candleStyle.borderUpColor": "#10b981",
+          "mainSeriesProperties.candleStyle.borderDownColor": "#f87171",
+          "mainSeriesProperties.candleStyle.wickUpColor": "#10b981",
+          "mainSeriesProperties.candleStyle.wickDownColor": "#f87171",
           "mainSeriesProperties.style": 1
         },
         disabled_features: [

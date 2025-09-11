@@ -95,16 +95,16 @@ const Sidebar = memo(({ selectedProposal, onSelectProposal }: SidebarProps) => {
                 <div className="flex items-center gap-2 mt-1">
                   <span className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 ${
                     proposal.status === 'Pending'
-                      ? 'bg-orange-500/20 text-orange-500 animate-pulse'
+                      ? 'bg-orange-400/20 text-orange-400 animate-pulse'
                       : proposal.status === 'Passed'
-                      ? 'bg-green-500/20 text-green-500'
-                      : 'bg-red-500/20 text-red-500'
+                      ? 'bg-emerald-400/20 text-emerald-400'
+                      : 'bg-rose-400/20 text-rose-400'
                   }`}>
                     {proposal.status === 'Pending' ? 'Live' : proposal.status}
                     {proposal.status === 'Pending' && (
                       <span className="relative w-3 h-3 flex items-center justify-center">
-                        <span className="absolute w-3 h-3 bg-orange-500 rounded-full animate-ping opacity-75"></span>
-                        <span className="relative w-2 h-2 bg-orange-500 rounded-full"></span>
+                        <span className="absolute w-3 h-3 bg-orange-400 rounded-full animate-ping opacity-75"></span>
+                        <span className="relative w-2 h-2 bg-orange-400 rounded-full"></span>
                       </span>
                     )}
                     {proposal.status === 'Passed' && (

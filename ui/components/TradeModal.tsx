@@ -80,7 +80,7 @@ export default function TradeModal({
             onClick={() => setSelectedMarket('pass')}
             className={`py-2 px-4 rounded-lg font-medium transition ${
               selectedMarket === 'pass'
-                ? 'bg-green-500/20 text-green-500 border border-green-500/30'
+                ? 'bg-emerald-400/20 text-emerald-400 border border-emerald-400/30'
                 : 'bg-gray-900 text-gray-400 hover:bg-gray-800 border border-gray-800'
             }`}
           >
@@ -90,7 +90,7 @@ export default function TradeModal({
             onClick={() => setSelectedMarket('fail')}
             className={`py-2 px-4 rounded-lg font-medium transition ${
               selectedMarket === 'fail'
-                ? 'bg-red-500/20 text-red-500 border border-red-500/30'
+                ? 'bg-rose-400/20 text-rose-400 border border-rose-400/30'
                 : 'bg-gray-900 text-gray-400 hover:bg-gray-800 border border-gray-800'
             }`}
           >

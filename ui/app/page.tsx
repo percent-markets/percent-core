@@ -178,16 +178,16 @@ export default function HomePage() {
               <div className="flex items-center gap-3 mb-2">
                 <span className={`text-xs px-2 py-1 rounded-full inline-flex items-center gap-1 ${
                   proposal.status === 'Pending'
-                    ? 'bg-orange-500/20 text-orange-500 animate-pulse'
+                    ? 'bg-orange-400/20 text-orange-400 animate-pulse'
                     : proposal.status === 'Passed'
-                    ? 'bg-green-500/20 text-green-500'
-                    : 'bg-red-500/20 text-red-500'
+                    ? 'bg-emerald-400/20 text-emerald-400'
+                    : 'bg-rose-400/20 text-rose-400'
                 }`}>
                   {proposal.status === 'Pending' ? 'Live' : proposal.status}
                   {proposal.status === 'Pending' && (
                     <span className="relative w-3 h-3 flex items-center justify-center">
-                      <span className="absolute w-3 h-3 bg-orange-500 rounded-full animate-ping opacity-75"></span>
-                      <span className="relative w-2 h-2 bg-orange-500 rounded-full"></span>
+                      <span className="absolute w-3 h-3 bg-orange-400 rounded-full animate-ping opacity-75"></span>
+                      <span className="relative w-2 h-2 bg-orange-400 rounded-full"></span>
                     </span>
                   )}
                   {proposal.status === 'Passed' && (
@@ -230,10 +230,10 @@ export default function HomePage() {
                       <div 
                         className={`absolute left-0 top-0 h-full rounded-full transition-all duration-500 flex items-center justify-end pr-3 ${
                           proposal.status === 'Passed' 
-                            ? 'bg-green-500'
+                            ? 'bg-emerald-500'
                             : proposal.status === 'Failed'
-                            ? 'bg-red-500'
-                            : 'bg-green-500'
+                            ? 'bg-rose-500'
+                            : 'bg-emerald-500'
                         }`}
                         style={{ width: `${proposal.status === 'Passed' ? 100 : Math.max(proposal.passPrice * 100, 8)}%` }}
                       >
@@ -248,7 +248,7 @@ export default function HomePage() {
                       <span 
                         className={`absolute right-4 text-sm font-medium ${
                           proposal.status === 'Failed' 
-                            ? 'text-red-500'
+                            ? 'text-rose-400'
                             : proposal.status === 'Passed'
                             ? 'text-white'
                             : 'text-gray-500'
@@ -300,7 +300,7 @@ export default function HomePage() {
                 <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs hover:bg-[#272A2D]/30 transition-colors">
                   <div className="text-white">0xAb5...3d8</div>
                   <div className="text-white">2.5%</div>
-                  <div className="text-green-500">buy</div>
+                  <div className="text-emerald-400">buy</div>
                   <div className="text-white">Pass</div>
                   <div className="text-white">100</div>
                   <div className="flex justify-between">
@@ -311,7 +311,7 @@ export default function HomePage() {
                 <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs hover:bg-[#272A2D]/30 transition-colors">
                   <div className="text-white">0x7F2...9e4</div>
                   <div className="text-white">0.0%</div>
-                  <div className="text-red-500">sell</div>
+                  <div className="text-rose-400">sell</div>
                   <div className="text-white">Fail</div>
                   <div className="text-white">50</div>
                   <div className="flex justify-between">
@@ -322,7 +322,7 @@ export default function HomePage() {
                 <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs hover:bg-[#272A2D]/30 transition-colors">
                   <div className="text-white">0x3C9...1a7</div>
                   <div className="text-white">5.2%</div>
-                  <div className="text-green-500">buy</div>
+                  <div className="text-emerald-400">buy</div>
                   <div className="text-white">Pass</div>
                   <div className="text-white">250</div>
                   <div className="flex justify-between">
@@ -333,7 +333,7 @@ export default function HomePage() {
                 <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs hover:bg-[#272A2D]/30 transition-colors">
                   <div className="text-white">0x9D1...8f2</div>
                   <div className="text-white">1.8%</div>
-                  <div className="text-green-500">buy</div>
+                  <div className="text-emerald-400">buy</div>
                   <div className="text-white">Fail</div>
                   <div className="text-white">75</div>
                   <div className="flex justify-between">
@@ -344,7 +344,7 @@ export default function HomePage() {
                 <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs hover:bg-[#272A2D]/30 transition-colors">
                   <div className="text-white">0x2E4...5c9</div>
                   <div className="text-white">3.1%</div>
-                  <div className="text-red-500">sell</div>
+                  <div className="text-rose-400">sell</div>
                   <div className="text-white">Pass</div>
                   <div className="text-white">150</div>
                   <div className="flex justify-between">
@@ -355,7 +355,7 @@ export default function HomePage() {
                 <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs hover:bg-[#272A2D]/30 transition-colors">
                   <div className="text-white">0x8F3...2b1</div>
                   <div className="text-white">4.0%</div>
-                  <div className="text-green-500">buy</div>
+                  <div className="text-emerald-400">buy</div>
                   <div className="text-white">Pass</div>
                   <div className="text-white">180</div>
                   <div className="flex justify-between">
@@ -366,7 +366,7 @@ export default function HomePage() {
                 <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs hover:bg-[#272A2D]/30 transition-colors">
                   <div className="text-white">0x5A2...7c6</div>
                   <div className="text-white">1.2%</div>
-                  <div className="text-red-500">sell</div>
+                  <div className="text-rose-400">sell</div>
                   <div className="text-white">Fail</div>
                   <div className="text-white">90</div>
                   <div className="flex justify-between">
@@ -377,7 +377,7 @@ export default function HomePage() {
                 <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs hover:bg-[#272A2D]/30 transition-colors">
                   <div className="text-white">0x1B7...4d3</div>
                   <div className="text-white">6.5%</div>
-                  <div className="text-green-500">buy</div>
+                  <div className="text-emerald-400">buy</div>
                   <div className="text-white">Pass</div>
                   <div className="text-white">320</div>
                   <div className="flex justify-between">
@@ -388,7 +388,7 @@ export default function HomePage() {
                 <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs hover:bg-[#272A2D]/30 transition-colors">
                   <div className="text-white">0x7C8...9e2</div>
                   <div className="text-white">2.3%</div>
-                  <div className="text-green-500">buy</div>
+                  <div className="text-emerald-400">buy</div>
                   <div className="text-white">Fail</div>
                   <div className="text-white">110</div>
                   <div className="flex justify-between">
@@ -399,7 +399,7 @@ export default function HomePage() {
                 <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs hover:bg-[#272A2D]/30 transition-colors">
                   <div className="text-white">0x4D9...1f5</div>
                   <div className="text-white">3.7%</div>
-                  <div className="text-red-500">sell</div>
+                  <div className="text-rose-400">sell</div>
                   <div className="text-white">Pass</div>
                   <div className="text-white">200</div>
                   <div className="flex justify-between">
@@ -411,7 +411,7 @@ export default function HomePage() {
                 <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs hover:bg-[#272A2D]/30 transition-colors">
                   <div className="text-white">0x9A3...7b4</div>
                   <div className="text-white">1.5%</div>
-                  <div className="text-red-500">sell</div>
+                  <div className="text-rose-400">sell</div>
                   <div className="text-white">Fail</div>
                   <div className="text-white">65</div>
                   <div className="flex justify-between">

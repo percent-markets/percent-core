@@ -128,8 +128,8 @@ const TradingInterface = memo(({
             onMouseLeave={() => setHoveredPayout(null)}
           >
             <div className="flex items-center gap-1">
-              <span className="text-xs text-green-500">If Pass</span>
-              <svg className="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+              <span className="text-xs text-emerald-400">If Pass</span>
+              <svg className="w-3 h-3 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
             </div>
@@ -150,8 +150,8 @@ const TradingInterface = memo(({
             onMouseLeave={() => setHoveredPayout(null)}
           >
             <div className="flex items-center gap-1">
-              <span className="text-xs text-red-500">If Fail</span>
-              <svg className="w-3 h-3 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+              <span className="text-xs text-rose-400">If Fail</span>
+              <svg className="w-3 h-3 text-rose-400" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
             </div>
@@ -187,7 +187,7 @@ const TradingInterface = memo(({
           onClick={() => onMarketChange('pass')}
           className={`flex flex-row flex-1 min-h-[32px] max-h-[32px] p-[4px] justify-center items-center rounded-[8px] transition cursor-pointer ${
             selectedMarket === 'pass'
-              ? 'bg-green-500 text-[#181818] font-bold'
+              ? 'bg-emerald-500 text-[#181818] font-bold'
               : 'bg-transparent text-gray-400 font-medium hover:bg-[#303030]'
           }`}
         >
@@ -197,7 +197,7 @@ const TradingInterface = memo(({
           onClick={() => onMarketChange('fail')}
           className={`flex flex-row flex-1 min-h-[32px] max-h-[32px] p-[4px] justify-center items-center rounded-[8px] transition cursor-pointer ${
             selectedMarket === 'fail'
-              ? 'bg-red-500 text-[#181818] font-bold'
+              ? 'bg-rose-500 text-[#181818] font-bold'
               : 'bg-transparent text-gray-400 font-medium hover:bg-[#303030]'
           }`}
         >
@@ -298,10 +298,10 @@ const TradingInterface = memo(({
         className={`w-full py-3 rounded-full font-semibold transition cursor-pointer flex items-center justify-center gap-1 ${
           selectedMarket === 'pass'
             ? amount && parseFloat(amount) > 0
-              ? 'bg-green-500 hover:bg-green-600 text-[#181818]'
+              ? 'bg-emerald-500 hover:bg-emerald-600 text-[#181818]'
               : 'bg-[#2a2a2a] text-gray-600 cursor-not-allowed'
             : amount && parseFloat(amount) > 0
-              ? 'bg-red-500 hover:bg-red-600 text-[#181818]'
+              ? 'bg-rose-500 hover:bg-rose-600 text-[#181818]'
               : 'bg-[#2a2a2a] text-gray-600 cursor-not-allowed'
         }`}
       >
@@ -383,9 +383,9 @@ const TradingInterface = memo(({
             console.log('Reducing position by', reducePercent, '%');
           }}
           disabled={!reducePercent || parseFloat(reducePercent) <= 0}
-          className={`w-full py-3 rounded-full font-semibold transition cursor-pointer flex items-center justify-center gap-1 ${
+          className={`w-full py-3 rounded-lg font-semibold transition cursor-pointer flex items-center justify-center gap-1 ${
             reducePercent && parseFloat(reducePercent) > 0
-              ? 'bg-blue-500 hover:bg-blue-600 text-[#181818]'
+              ? 'bg-sky-500 hover:bg-sky-600 text-[#181818]'
               : 'bg-[#2a2a2a] text-gray-600 cursor-not-allowed'
           }`}
         >

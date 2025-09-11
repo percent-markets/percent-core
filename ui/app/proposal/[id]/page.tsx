@@ -24,7 +24,7 @@ export default function ProposalDetailPage() {
                 <div className="flex items-center gap-4 text-sm text-gray-400">
                   <span className={`px-2 py-1 rounded text-xs font-medium ${
                     proposal.status === 'Pending' 
-                      ? 'bg-green-500/20 text-green-500' 
+                      ? 'bg-emerald-400/20 text-emerald-400' 
                       : 'bg-gray-800 text-gray-400'
                   }`}>
                     {proposal.status}
@@ -43,17 +43,17 @@ export default function ProposalDetailPage() {
               <div className="bg-gray-800/50 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-gray-400">Pass Market</span>
-                  <TrendingUp className="h-4 w-4 text-green-500" />
+                  <TrendingUp className="h-4 w-4 text-emerald-400" />
                 </div>
-                <p className="text-2xl font-bold text-green-500">${proposal.passPrice.toFixed(3)}</p>
+                <p className="text-2xl font-bold text-emerald-400">${proposal.passPrice.toFixed(3)}</p>
                 <p className="text-xs text-gray-500 mt-1">Implied probability: {(proposal.passPrice * 100).toFixed(1)}%</p>
               </div>
               <div className="bg-gray-800/50 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-gray-400">Fail Market</span>
-                  <TrendingDown className="h-4 w-4 text-red-500" />
+                  <TrendingDown className="h-4 w-4 text-rose-400" />
                 </div>
-                <p className="text-2xl font-bold text-red-500">${proposal.failPrice.toFixed(3)}</p>
+                <p className="text-2xl font-bold text-rose-400">${proposal.failPrice.toFixed(3)}</p>
                 <p className="text-xs text-gray-500 mt-1">Implied probability: {(proposal.failPrice * 100).toFixed(1)}%</p>
               </div>
             </div>

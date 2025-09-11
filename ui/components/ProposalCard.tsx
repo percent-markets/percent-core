@@ -27,7 +27,7 @@ export default function ProposalCard({ proposal }: ProposalCardProps) {
           <h3 className="text-lg font-semibold line-clamp-2">{proposal.title}</h3>
           <span className={`px-2 py-1 rounded text-xs font-medium ${
             isActive 
-              ? 'bg-green-500/20 text-green-500' 
+              ? 'bg-emerald-400/20 text-emerald-400' 
               : 'bg-gray-800 text-gray-400'
           }`}>
             {proposal.status}
@@ -42,16 +42,16 @@ export default function ProposalCard({ proposal }: ProposalCardProps) {
           <div className="bg-gray-800/50 rounded p-3">
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs text-gray-500">PASS</span>
-              <TrendingUp className="h-3 w-3 text-green-500" />
+              <TrendingUp className="h-3 w-3 text-emerald-400" />
             </div>
-            <p className="text-lg font-bold text-green-500">${proposal.passPrice.toFixed(3)}</p>
+            <p className="text-lg font-bold text-emerald-400">${proposal.passPrice.toFixed(3)}</p>
           </div>
           <div className="bg-gray-800/50 rounded p-3">
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs text-gray-500">FAIL</span>
-              <TrendingDown className="h-3 w-3 text-red-500" />
+              <TrendingDown className="h-3 w-3 text-rose-400" />
             </div>
-            <p className="text-lg font-bold text-red-500">${proposal.failPrice.toFixed(3)}</p>
+            <p className="text-lg font-bold text-rose-400">${proposal.failPrice.toFixed(3)}</p>
           </div>
         </div>
 
