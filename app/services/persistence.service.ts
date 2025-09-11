@@ -328,10 +328,28 @@ export class PersistenceService implements IPersistenceService {
       
       const row = result.rows[0];
       
-      // Load authority keypair from environment
-      const keypairPath = process.env.SOLANA_KEYPAIR_PATH || './wallet.json';
-      const keypairData = JSON.parse(fs.readFileSync(keypairPath, 'utf-8'));
-      const authority = Keypair.fromSecretKey(new Uint8Array(keypairData));
+      // Load authority keypair - use test authority if in test mode
+      let authority: Keypair;
+      
+      // Check if we're in test mode by checking if test moderator service is available
+      try {
+        const TestModeratorService = (await import('../../src/test/test-moderator.service')).default;
+        const testInfo = TestModeratorService.getTestInfo();
+        
+        if (testInfo) {
+          // We're in test mode - use the test authority that was used to create the mints
+          const { getTestModeConfig } = await import('../../src/test/config');
+          const testConfig = getTestModeConfig();
+          authority = testConfig.wallets.authority;
+        } else {
+          throw new Error('Not in test mode');
+        }
+      } catch {
+        // We're in production mode - load from filesystem
+        const keypairPath = process.env.SOLANA_KEYPAIR_PATH || './wallet.json';
+        const keypairData = JSON.parse(fs.readFileSync(keypairPath, 'utf-8'));
+        authority = Keypair.fromSecretKey(new Uint8Array(keypairData));
+      }
       
       const config: IModeratorConfig = {
         baseMint: new PublicKey(row.config.baseMint),
@@ -357,21 +375,39 @@ export class PersistenceService implements IPersistenceService {
    */
   private async reconstructProposal(row: IProposalDB): Promise<IProposal | null> {
     try {
-      // Load authority keypair from environment
-      const keypairPath = process.env.SOLANA_KEYPAIR_PATH || './wallet.json';
-      let keypairData;
-      try {
-        const fileContent = fs.readFileSync(keypairPath, 'utf-8');
-        keypairData = JSON.parse(fileContent);
-      } catch (fileError) {
-        throw new Error(`Failed to load authority keypair from ${keypairPath}: ${fileError instanceof Error ? fileError.message : String(fileError)}`);
-      }
+      // Load authority keypair - use test authority if in test mode
+      let authority: Keypair;
       
-      let authority;
+      // Check if we're in test mode by checking if test moderator service is available
       try {
-        authority = Keypair.fromSecretKey(new Uint8Array(keypairData));
-      } catch (keypairError) {
-        throw new Error(`Failed to create keypair from data in ${keypairPath}: ${keypairError instanceof Error ? keypairError.message : String(keypairError)}`);
+        const TestModeratorService = (await import('../../src/test/test-moderator.service')).default;
+        const testInfo = TestModeratorService.getTestInfo();
+        
+        if (testInfo) {
+          // We're in test mode - use the test authority that was used to create the mints
+          const { getTestModeConfig } = await import('../../src/test/config');
+          const testConfig = getTestModeConfig();
+          authority = testConfig.wallets.authority;
+          console.log(`Using test authority for proposal reconstruction: ${authority.publicKey.toBase58()}`);
+        } else {
+          throw new Error('Not in test mode');
+        }
+      } catch {
+        // We're in production mode - load from filesystem
+        const keypairPath = process.env.SOLANA_KEYPAIR_PATH || './wallet.json';
+        let keypairData;
+        try {
+          const fileContent = fs.readFileSync(keypairPath, 'utf-8');
+          keypairData = JSON.parse(fileContent);
+        } catch (fileError) {
+          throw new Error(`Failed to load authority keypair from ${keypairPath}: ${fileError instanceof Error ? fileError.message : String(fileError)}`);
+        }
+        
+        try {
+          authority = Keypair.fromSecretKey(new Uint8Array(keypairData));
+        } catch (keypairError) {
+          throw new Error(`Failed to create keypair from data in ${keypairPath}: ${keypairError instanceof Error ? keypairError.message : String(keypairError)}`);
+        }
       }
       
       const rpcUrl = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
