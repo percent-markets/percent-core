@@ -65,14 +65,32 @@ const Sidebar = memo(({ selectedProposal, onSelectProposal }: SidebarProps) => {
               <button
                 key={proposal.id}
                 onClick={() => onSelectProposal(proposal.id)}
-                className={`w-full text-left p-3 rounded-lg transition cursor-pointer ${
+                className={`group w-full text-left p-3 rounded-lg transition cursor-pointer ${
                   selectedProposal === proposal.id
                     ? 'bg-[#1F1F1F]'
                     : 'hover:bg-[#2A2A2A]'
                 }`}
               >
-                <div className="text-sm font-medium text-gray-200 line-clamp-1">
-                  {proposal.title}
+                <div className="relative overflow-hidden">
+                  <div className="text-sm font-medium text-gray-200 whitespace-nowrap pr-6">
+                    {proposal.title}
+                  </div>
+                  <div 
+                    className="absolute top-0 right-0 h-full w-10 pointer-events-none"
+                    style={{
+                      background: selectedProposal === proposal.id 
+                        ? 'linear-gradient(to left, #1F1F1F 0%, #1F1F1F 20%, transparent 100%)' 
+                        : 'linear-gradient(to left, #121212 0%, #121212 20%, transparent 100%)'
+                    }}
+                  />
+                  <div 
+                    className="absolute top-0 right-0 h-full w-10 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity"
+                    style={{
+                      background: selectedProposal !== proposal.id 
+                        ? 'linear-gradient(to left, #2A2A2A 0%, #2A2A2A 20%, transparent 100%)' 
+                        : ''
+                    }}
+                  />
                 </div>
                 <div className="flex items-center gap-2 mt-1">
                   <span className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 ${

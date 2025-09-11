@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 declare global {
   interface Window {
@@ -14,6 +14,32 @@ interface TradingViewChartProps {
 
 export default function TradingViewChart({ proposalId }: TradingViewChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [chartHeight, setChartHeight] = useState(600);
+  
+  // Calculate dynamic height based on screen size
+  useEffect(() => {
+    const calculateHeight = () => {
+      // Base height is 600px for 982px screen height
+      const baseScreenHeight = 982;
+      const baseChartHeight = 600;
+      const screenHeight = window.innerHeight;
+      
+      // Calculate proportional height
+      const scaleFactor = screenHeight / baseScreenHeight;
+      const newHeight = Math.round(baseChartHeight * scaleFactor);
+      
+      // Set min and max bounds
+      const minHeight = 400;
+      const maxHeight = 900;
+      
+      setChartHeight(Math.min(Math.max(newHeight, minHeight), maxHeight));
+    };
+    
+    calculateHeight();
+    window.addEventListener('resize', calculateHeight);
+    
+    return () => window.removeEventListener('resize', calculateHeight);
+  }, []);
 
   useEffect(() => {
     // Add custom CSS to override TradingView backgrounds
@@ -59,7 +85,7 @@ export default function TradingViewChart({ proposalId }: TradingViewChartProps) 
       containerRef.current.innerHTML = '';
       
       // Create new widget
-      new window.TradingView.widget({
+      const widget = new window.TradingView.widget({
         autosize: true,
         symbol: 'NASDAQ:AAPL',
         interval: 'D',
@@ -77,12 +103,6 @@ export default function TradingViewChart({ proposalId }: TradingViewChartProps) 
         overrides: {
           "paneProperties.background": "#181818",
           "paneProperties.backgroundType": "solid",
-          "paneProperties.backgroundGradientStartColor": "#181818",
-          "paneProperties.backgroundGradientEndColor": "#181818",
-          "scalesProperties.backgroundColor": "#181818",
-          "scalesProperties.borderColor": "#181818",
-          "chartProperties.background": "#181818",
-          "chartProperties.backgroundType": "solid",
           "paneProperties.vertGridProperties.color": "rgba(255, 255, 255, 0.04)",
           "paneProperties.horzGridProperties.color": "rgba(255, 255, 255, 0.04)",
           "paneProperties.separatorColor": "#181818",
@@ -96,9 +116,7 @@ export default function TradingViewChart({ proposalId }: TradingViewChartProps) 
           "mainSeriesProperties.candleStyle.borderDownColor": "#ef4444",
           "mainSeriesProperties.candleStyle.wickUpColor": "#22c55e",
           "mainSeriesProperties.candleStyle.wickDownColor": "#ef4444",
-          "mainSeriesProperties.style": 1,
-          "mainSeriesProperties.showVolume": false,
-          "volumePaneSize": "tiny"
+          "mainSeriesProperties.style": 1
         },
         disabled_features: [
           "header_widget",
@@ -111,54 +129,36 @@ export default function TradingViewChart({ proposalId }: TradingViewChartProps) 
           "header_symbol_search",
           "header_indicators"
         ],
-        enabled_features: []
+        enabled_features: [],
+        studies_overrides: {
+          "compare.plot.color": "#FFD700",
+          "compare.source": "close"
+        }
       });
       
-      // Try to inject styles into the iframe after widget loads
-      setTimeout(() => {
-        const iframe = containerRef.current?.querySelector('iframe');
-        if (iframe) {
+      // Add comparison lines after widget is ready
+      if (widget && widget.onChartReady) {
+        widget.onChartReady(() => {
           try {
-            const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-            if (iframeDoc) {
-              const style = iframeDoc.createElement('style');
-              style.innerHTML = `
-                body, html { background: #181818 !important; }
-                .chart-page { background: #181818 !important; }
-                .chart-container { background: #181818 !important; }
-                [class*="chart-"] { background-color: #181818 !important; }
-                .tv-chart-view { background: #181818 !important; }
-                [class*="separator"] { 
-                  background-color: #181818 !important; 
-                  border-color: #181818 !important;
-                }
-                [class*="rightend"] { 
-                  border-left-color: #181818 !important;
-                  border-left: 1px solid #181818 !important;
-                }
-                [class*="bottomend"] { 
-                  border-top-color: #181818 !important;
-                  border-top: 1px solid #181818 !important;
-                }
-                .pane-legend-minbtn,
-                .pane-legend-title,
-                .pane-legend { 
-                  border-color: #181818 !important;
-                }
-              `;
-              iframeDoc.head.appendChild(style);
-            }
+            const chart = widget.chart();
+            // Add Microsoft comparison
+            chart.createStudy('Compare', false, false, {
+              symbol: 'NASDAQ:MSFT'
+            });
+            // Add Google comparison
+            chart.createStudy('Compare', false, false, {
+              symbol: 'NASDAQ:GOOGL'
+            });
           } catch (e) {
-            // Cross-origin restrictions might prevent this
-            console.log('Could not inject styles into TradingView iframe');
+            console.log('Could not add comparison studies:', e);
           }
-        }
-      }, 1000);
+        });
+      }
     } else {
       // If TradingView is not loaded, show a placeholder
       if (containerRef.current) {
         containerRef.current.innerHTML = `
-          <div style="width: 100%; height: 500px; background: #181818; display: flex; align-items: center; justify-content: center; color: #666;">
+          <div style="width: 100%; height: ${chartHeight}px; background: #181818; display: flex; align-items: center; justify-content: center; color: #666;">
             <div style="text-align: center;">
               <div style="font-size: 48px; margin-bottom: 16px;">📊</div>
               <div style="font-size: 18px; margin-bottom: 8px;">Chart Loading...</div>
@@ -176,16 +176,17 @@ export default function TradingViewChart({ proposalId }: TradingViewChartProps) 
         style.remove();
       }
     };
-  }, [proposalId]);
+  }, [proposalId, chartHeight]);
 
   return (
     <div 
       id={`tradingview_${proposalId}`} 
       ref={containerRef} 
       style={{ 
-        height: '500px', 
-        minHeight: '500px',
-        background: '#181818'
+        height: `${chartHeight}px`, 
+        minHeight: `${chartHeight}px`,
+        background: '#181818',
+        transition: 'height 0.3s ease'
       }}
     />
   );

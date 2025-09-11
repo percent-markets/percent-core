@@ -173,7 +173,7 @@ export default function HomePage() {
         
         {/* Content Area */}
         <div className="flex-1 flex overflow-hidden">
-          <div className="flex-1 p-8 overflow-y-auto scrollbar-hide border-r border-[#2A2A2A]">
+          <div className="flex-1 p-8 pr-10 overflow-y-auto border-r border-[#2A2A2A]">
             <div className="mb-8">
               <div className="flex items-center gap-3 mb-2">
                 <span className={`text-xs px-2 py-1 rounded-full inline-flex items-center gap-1 ${
