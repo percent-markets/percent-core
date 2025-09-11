@@ -150,9 +150,4 @@ export interface IPersistenceService {
    * Load moderator state from the database
    */
   loadModeratorState(): Promise<{ proposalCounter: number; config: IModeratorConfig } | null>;
-  
-  /**
-   * Run database migrations
-   */
-  runMigrations(): Promise<void>;
 }

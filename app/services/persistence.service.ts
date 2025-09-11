@@ -57,27 +57,6 @@ export class PersistenceService implements IPersistenceService {
   }
   
   /**
-   * Run database migrations
-   */
-  async runMigrations(): Promise<void> {
-    try {
-      const pool = getPool();
-      const migrationPath = path.join(process.cwd(), 'migrations', '001_initial_schema.sql');
-      
-      if (fs.existsSync(migrationPath)) {
-        const migrationSQL = fs.readFileSync(migrationPath, 'utf-8');
-        await pool.query(migrationSQL);
-        console.log('Database migrations completed successfully');
-      } else {
-        console.warn('Migration file not found, skipping migrations');
-      }
-    } catch (error) {
-      console.error('Failed to run migrations:', error);
-      throw error;
-    }
-  }
-  
-  /**
    * Save a proposal to the database
    */
   async saveProposal(proposal: IProposal): Promise<void> {
