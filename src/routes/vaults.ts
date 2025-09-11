@@ -77,6 +77,14 @@ router.post('/:id/:type/executeSplitTx', requireApiKey, async (req, res, next) =
     
     const signature = await vault.executeSplitTx(tx);
     
+    // Save the updated proposal state to database after the split
+    const moderator = await getModerator();
+    const updatedProposal = await moderator.getProposal(proposalId);
+    if (updatedProposal) {
+      await moderator.saveProposal(updatedProposal);
+      console.log(`Proposal #${proposalId} state saved after split execution`);
+    }
+    
     res.json({
       signature,
       status: 'success'
@@ -135,6 +143,14 @@ router.post('/:id/:type/executeMergeTx', requireApiKey, async (req, res, next) =
     
     const signature = await vault.executeMergeTx(tx);
     
+    // Save the updated proposal state to database after the merge
+    const moderator = await getModerator();
+    const updatedProposal = await moderator.getProposal(proposalId);
+    if (updatedProposal) {
+      await moderator.saveProposal(updatedProposal);
+      console.log(`Proposal #${proposalId} state saved after merge execution`);
+    }
+    
     res.json({
       signature,
       status: 'success'
@@ -190,6 +206,14 @@ router.post('/:id/:type/executeRedeemWinningTokensTx', requireApiKey, async (req
     const tx = Transaction.from(Buffer.from(transaction, 'base64'));
     
     const signature = await vault.executeRedeemWinningTokensTx(tx);
+    
+    // Save the updated proposal state to database after the redeem
+    const moderator = await getModerator();
+    const updatedProposal = await moderator.getProposal(proposalId);
+    if (updatedProposal) {
+      await moderator.saveProposal(updatedProposal);
+      console.log(`Proposal #${proposalId} state saved after redeem execution`);
+    }
     
     res.json({
       signature,

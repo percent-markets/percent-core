@@ -149,6 +149,14 @@ router.post('/:id/executeSwapTx', requireApiKey, async (req, res, next) => {
     // Execute the swap
     const signature = await amm.executeSwapTx(tx);
     
+    // Save the updated proposal state to database after the swap
+    const moderator = await getModerator();
+    const updatedProposal = await moderator.getProposal(proposalId);
+    if (updatedProposal) {
+      await moderator.saveProposal(updatedProposal);
+      console.log(`Proposal #${proposalId} state saved after swap execution`);
+    }
+    
     // Log trade to history if we have the required data
     if (user && isBaseToQuote !== undefined && amountIn) {
       try {

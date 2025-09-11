@@ -50,6 +50,13 @@ export class Moderator implements IModerator {
     return await this.persistenceService.loadProposal(id);
   }
   
+  /**
+   * Save a proposal to the database
+   * @param proposal - The proposal to save
+   */
+  async saveProposal(proposal: IProposal): Promise<void> {
+    await this.persistenceService.saveProposal(proposal);
+  }
 
   /**
    * Creates a new governance proposal
