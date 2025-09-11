@@ -239,7 +239,7 @@ export default function HomePage() {
                       >
                         {/* Percentage Text inside progress - hidden for Passed status */}
                         {proposal.status !== 'Passed' && (
-                          <span className="text-base font-bold text-white" style={{ fontFamily: 'IBM Plex Mono, monospace' }}>
+                          <span className="text-base font-bold text-white">
                             {(proposal.passPrice * 100).toFixed(0)}%
                           </span>
                         )}
@@ -253,7 +253,6 @@ export default function HomePage() {
                             ? 'text-white'
                             : 'text-gray-500'
                         }`}
-                        style={{ fontFamily: 'IBM Plex Mono, monospace' }}
                       >
                         {proposal.status === 'Failed' ? 'Failed' : proposal.status === 'Passed' ? 'Passed' : 'In Progress'}
                       </span>
