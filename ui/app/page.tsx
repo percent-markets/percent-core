@@ -131,7 +131,7 @@ export default function HomePage() {
                 rel="noopener noreferrer"
                 className="px-2 h-7 bg-[#272727] hover:bg-[#303030] rounded-md transition-colors mb-0.5 flex items-center justify-center"
               >
-                <span className="text-xs text-[#AFAFAF]">$oogway</span>
+                <span className="text-xs text-[#AFAFAF] font-bold">$oogway</span>
               </a>
             </div>
           </div>
