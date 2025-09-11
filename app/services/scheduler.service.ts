@@ -63,9 +63,6 @@ export class SchedulerService implements ISchedulerService {
 
     this.tasks.set(taskId, task);
     console.log(`Scheduled TWAP cranking for proposal #${proposalId} every ${intervalMs}ms`);
-    
-    // Also schedule price recording for this proposal
-    this.schedulePriceRecording(proposalId, intervalMs);
   }
   
   /**
