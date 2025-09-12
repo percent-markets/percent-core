@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "dev:test": "tsx watch src/test/server.test.ts",
+    "ws:price": "tsx server/price-websocket-server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
     "test": "NODE_ENV=test vitest",
@@ -39,6 +40,7 @@
     "@types/decimal.js": "^7.4.3",
     "@types/express": "^4.17.20",
     "@types/node": "^20.9.0",
+    "@types/ws": "^8.18.1",
     "@vitest/ui": "^3.2.4",
     "happy-dom": "^18.0.1",
     "tsx": "^4.0.0",

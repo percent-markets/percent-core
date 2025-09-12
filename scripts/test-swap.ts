@@ -35,7 +35,7 @@ async function testSwap() {
     console.log('\n1. Splitting quote tokens...');
     const splitRequest = {
       user: alicePublicKey,
-      amount: '500000000000' // 1000 quote tokens (9 decimals) - 100% of pool liquidity
+      amount: '10000000000' // 10 quote tokens (9 decimals) - smaller amount
     };
     
     const splitResponse = await fetch(`${API_URL}/api/vaults/${proposalId}/quote/buildSplitTx`, {

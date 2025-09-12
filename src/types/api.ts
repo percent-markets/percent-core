@@ -8,6 +8,7 @@ export interface ProposalListItem {
   status: ProposalStatus;
   createdAt: number; // Unix timestamp in milliseconds
   finalizedAt: number; // Unix timestamp in milliseconds
+  passThresholdBps: number; // Basis points for pass threshold
 }
 
 export interface ProposalListResponse {

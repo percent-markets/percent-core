@@ -8,6 +8,7 @@ interface TokenPrices {
 }
 
 const OOGWAY_ADDRESS = 'C7MGcMnN8cXUkj8JQuMhkJZh6WqY2r8QnT3AUfKTkrix';
+const SOL_ADDRESS = 'So11111111111111111111111111111111111111112';
 
 export function useTokenPrices(): TokenPrices {
   const [prices, setPrices] = useState<TokenPrices>({
@@ -20,9 +21,9 @@ export function useTokenPrices(): TokenPrices {
   useEffect(() => {
     const fetchPrices = async () => {
       try {
-        // Fetch both SOL and $oogway prices
+        // Fetch both SOL and $oogway prices from DexScreener
         const [solResponse, oogwayResponse] = await Promise.all([
-          fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd'),
+          fetch(`https://api.dexscreener.com/latest/dex/tokens/${SOL_ADDRESS}`),
           fetch(`https://api.dexscreener.com/latest/dex/tokens/${OOGWAY_ADDRESS}`)
         ]);
 
@@ -33,8 +34,19 @@ export function useTokenPrices(): TokenPrices {
         const solData = await solResponse.json();
         const oogwayData = await oogwayResponse.json();
 
-        // Extract SOL price from CoinGecko
-        const solPrice = solData.solana?.usd || 0;
+        // Extract SOL price from DexScreener
+        const solPairs = solData.pairs || [];
+        let solPrice = 0;
+        
+        if (solPairs.length > 0) {
+          // Sort by liquidity and take the highest
+          const sortedSolPairs = solPairs.sort((a: any, b: any) => 
+            (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0)
+          );
+          solPrice = parseFloat(sortedSolPairs[0]?.priceUsd || '0') || 180;
+        } else {
+          solPrice = 180; // Fallback price
+        }
 
         // Extract $oogway price from DexScreener
         // DexScreener returns pairs, we need to find the most liquid one
@@ -68,10 +80,9 @@ export function useTokenPrices(): TokenPrices {
     };
 
     fetchPrices();
-    // Refresh prices every 30 seconds
-    const interval = setInterval(fetchPrices, 30000);
-
-    return () => clearInterval(interval);
+    // Disabled polling - using WebSocket for real-time prices
+    // const interval = setInterval(fetchPrices, 30000);
+    // return () => clearInterval(interval);
   }, []);
 
   return prices;

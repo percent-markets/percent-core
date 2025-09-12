@@ -130,7 +130,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               onClick={() => setSelectedTab('claims')}
               className={`flex-1 px-4 py-3 text-sm font-medium transition-colors cursor-pointer ${
                 selectedTab === 'claims' 
-                  ? 'text-sky-500 border-b-2 border-sky-500' 
+                  ? 'text-[#4CBBF4] border-b-2 border-[#4CBBF4]' 
                   : 'text-[#AFAFAF] hover:text-white'
               }`}
             >
@@ -363,7 +363,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         </div>
                       </td>
                       <td className="p-3 text-right whitespace-nowrap">
-                        <button className="px-3 py-1.5 bg-sky-500 hover:bg-sky-600 text-[#181818] text-xs font-semibold rounded transition-colors cursor-pointer">
+                        <button className="px-3 py-1.5 bg-[#4CBBF4] hover:bg-[#3CA5D8] text-[#181818] text-xs font-semibold rounded transition-colors cursor-pointer">
                           Claim
                         </button>
                       </td>
@@ -392,7 +392,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         </div>
                       </td>
                       <td className="p-3 text-right whitespace-nowrap">
-                        <button className="px-3 py-1.5 bg-sky-500 hover:bg-sky-600 text-[#181818] text-xs font-semibold rounded transition-colors cursor-pointer">
+                        <button className="px-3 py-1.5 bg-[#4CBBF4] hover:bg-[#3CA5D8] text-[#181818] text-xs font-semibold rounded transition-colors cursor-pointer">
                           Claim
                         </button>
                       </td>
@@ -419,7 +419,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         </div>
                       </td>
                       <td className="p-3 text-right whitespace-nowrap">
-                        <button className="px-3 py-1.5 bg-sky-500 hover:bg-sky-600 text-[#181818] text-xs font-semibold rounded transition-colors cursor-pointer">
+                        <button className="px-3 py-1.5 bg-[#4CBBF4] hover:bg-[#3CA5D8] text-[#181818] text-xs font-semibold rounded transition-colors cursor-pointer">
                           Claim
                         </button>
                       </td>
@@ -429,7 +429,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
               </div>
               
               {/* Total */}
-              <div className="bg-gradient-to-r from-sky-500/10 to-sky-600/10 border border-sky-500/20 rounded-lg p-4">
+              <div className="bg-gradient-to-r from-[#4CBBF4]/10 to-[#3CA5D8]/10 border border-[#4CBBF4]/20 rounded-lg p-4">
                 <div>
                   <p className="text-xs text-[#AFAFAF] mb-3">Total</p>
                   <div className="space-y-2">
@@ -438,7 +438,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                         <span className="text-lg font-bold text-white">185.7</span>
                         <span className="text-sm text-[#AFAFAF] font-bold">$oogway</span>
                       </div>
-                      <button className="px-4 py-1.5 bg-sky-500 hover:bg-sky-600 text-[#181818] text-sm font-semibold rounded transition-colors cursor-pointer flex items-center justify-center gap-1">
+                      <button className="px-4 py-1.5 bg-[#4CBBF4] hover:bg-[#3CA5D8] text-[#181818] text-sm font-semibold rounded transition-colors cursor-pointer flex items-center justify-center gap-1">
                         Claim
                         <span className="font-bold">$oogway</span>
                       </button>
@@ -450,7 +450,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                           <path d="M100.48 69.3817L83.8068 86.8015C83.4444 87.1799 83.0058 87.4816 82.5185 87.6878C82.0312 87.894 81.5055 88.0003 80.9743 88H1.93563C1.55849 88 1.18957 87.8926 0.874202 87.6912C0.558829 87.4897 0.31074 87.2029 0.160416 86.8659C0.0100923 86.529 -0.0359181 86.1566 0.0280382 85.7945C0.0919944 85.4324 0.263131 85.0964 0.520422 84.8278L17.2061 67.408C17.5676 67.0306 18.0047 66.7295 18.4904 66.5234C18.9762 66.3172 19.5002 66.2104 20.0301 66.2095H99.0644C99.4415 66.2095 99.8104 66.3169 100.126 66.5183C100.441 66.7198 100.689 67.0065 100.84 67.3435C100.99 67.6804 101.036 68.0529 100.972 68.415C100.908 68.7771 100.737 69.1131 100.48 69.3817ZM83.8068 36.3032C83.4444 35.9248 83.0058 35.6231 82.5185 35.4169C82.0312 35.2108 81.5055 35.1045 80.9743 35.1048H1.93563C1.55849 35.1048 1.18957 35.2121 0.874202 35.4136C0.558829 35.6151 0.31074 35.9019 0.160416 36.2388C0.0100923 36.5758 -0.0359181 36.9482 0.0280382 37.3103C0.0919944 37.6723 0.263131 38.0083 0.520422 38.277L17.2061 55.6968C17.5676 56.0742 18.0047 56.3752 18.4904 56.5814C18.9762 56.7875 19.5002 56.8944 20.0301 56.8952H99.0644C99.4415 56.8952 99.8104 56.7879 100.126 56.5864C100.441 56.3849 100.689 56.0981 100.84 55.7612C100.99 55.4242 101.036 55.0518 100.972 54.6897C100.908 54.3277 100.737 53.9917 100.48 53.723L83.8068 36.3032ZM1.93563 21.7905H80.9743C81.5055 21.7898 82.0312 21.6835 82.5185 21.4773C83.0058 21.2712 83.4444 20.9695 83.8068 20.5911L100.48 3.17133C100.737 2.90265 100.908 2.56667 100.972 2.2046C101.036 1.84253 100.99 1.47008 100.84 1.13314C100.689 0.796193 100.441 0.509443 100.126 0.307961C99.8104 0.106479 99.4415 -0.000854492 99.0644 -0.000854492H20.0301C19.5002 -0.00013126 18.9762 0.106791 18.4904 0.312929C18.0047 0.519068 17.5676 0.820087 17.2061 1.19754L0.524723 18.6173C0.267481 18.8859 0.0963642 19.2219 0.0323936 19.584C -0.0315771 19.946 0.0144792 20.3184 0.164862 20.6554C0.315245 20.9923 0.563347 21.2791 0.878727 21.4806C1.19411 21.682 1.56303 21.7894 1.94013 21.7896L1.93563 21.7905Z" fill="currentColor"/>
                         </svg>
                       </div>
-                      <button className="px-4 py-1.5 bg-sky-500 hover:bg-sky-600 text-[#181818] text-sm font-semibold rounded transition-colors cursor-pointer flex items-center justify-center gap-1">
+                      <button className="px-4 py-1.5 bg-[#4CBBF4] hover:bg-[#3CA5D8] text-[#181818] text-sm font-semibold rounded transition-colors cursor-pointer flex items-center justify-center gap-1">
                         Claim
                         <svg className="h-3.5 w-3.5" viewBox="0 0 101 88" fill="none">
                           <path d="M100.48 69.3817L83.8068 86.8015C83.4444 87.1799 83.0058 87.4816 82.5185 87.6878C82.0312 87.894 81.5055 88.0003 80.9743 88H1.93563C1.55849 88 1.18957 87.8926 0.874202 87.6912C0.558829 87.4897 0.31074 87.2029 0.160416 86.8659C0.0100923 86.529 -0.0359181 86.1566 0.0280382 85.7945C0.0919944 85.4324 0.263131 85.0964 0.520422 84.8278L17.2061 67.408C17.5676 67.0306 18.0047 66.7295 18.4904 66.5234C18.9762 66.3172 19.5002 66.2104 20.0301 66.2095H99.0644C99.4415 66.2095 99.8104 66.3169 100.126 66.5183C100.441 66.7198 100.689 67.0065 100.84 67.3435C100.99 67.6804 101.036 68.0529 100.972 68.415C100.908 68.7771 100.737 69.1131 100.48 69.3817ZM83.8068 36.3032C83.4444 35.9248 83.0058 35.6231 82.5185 35.4169C82.0312 35.2108 81.5055 35.1045 80.9743 35.1048H1.93563C1.55849 35.1048 1.18957 35.2121 0.874202 35.4136C0.558829 35.6151 0.31074 35.9019 0.160416 36.2388C0.0100923 36.5758 -0.0359181 36.9482 0.0280382 37.3103C0.0919944 37.6723 0.263131 38.0083 0.520422 38.277L17.2061 55.6968C17.5676 56.0742 18.0047 56.3752 18.4904 56.5814C18.9762 56.7875 19.5002 56.8944 20.0301 56.8952H99.0644C99.4415 56.8952 99.8104 56.7879 100.126 56.5864C100.441 56.3849 100.689 56.0981 100.84 55.7612C100.99 55.4242 101.036 55.0518 100.972 54.6897C100.908 54.3277 100.737 53.9917 100.48 53.723L83.8068 36.3032ZM1.93563 21.7905H80.9743C81.5055 21.7898 82.0312 21.6835 82.5185 21.4773C83.0058 21.2712 83.4444 20.9695 83.8068 20.5911L100.48 3.17133C100.737 2.90265 100.908 2.56667 100.972 2.2046C101.036 1.84253 100.99 1.47008 100.84 1.13314C100.689 0.796193 100.441 0.509443 100.126 0.307961C99.8104 0.106479 99.4415 -0.000854492 99.0644 -0.000854492H20.0301C19.5002 -0.00013126 18.9762 0.106791 18.4904 0.312929C18.0047 0.519068 17.5676 0.820087 17.2061 1.19754L0.524723 18.6173C0.267481 18.8859 0.0963642 19.2219 0.0323936 19.584C -0.0315771 19.946 0.0144792 20.3184 0.164862 20.6554C0.315245 20.9923 0.563347 21.2791 0.878727 21.4806C1.19411 21.682 1.56303 21.7894 1.94013 21.7896L1.93563 21.7905Z" fill="currentColor"/>

@@ -12,11 +12,17 @@ import { useProposals } from '@/hooks/useProposals';
 import { IoMdStopwatch } from 'react-icons/io';
 import { formatNumber, formatCurrency } from '@/lib/formatters';
 
-const TradingViewChart = dynamic(() => import('@/components/TradingViewChart'), {
+const LivePriceDisplay = dynamic(() => import('@/components/LivePriceDisplay').then(mod => mod.LivePriceDisplay), {
   ssr: false,
   loading: () => (
-    <div className="h-[500px] bg-[#181818] rounded-lg flex items-center justify-center">
-      <div className="text-gray-500">Loading chart...</div>
+    <div className="bg-[#181818] rounded-lg p-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="animate-pulse">
+            <div className="h-24 bg-gray-700 rounded"></div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 });
@@ -63,6 +69,7 @@ export default function HomePage() {
   const { ready, authenticated, user, login, logout } = usePrivy();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const { proposals, loading, refetch } = useProposals();
+  const [livePrices, setLivePrices] = useState<{ pass: number | null; fail: number | null }>({ pass: null, fail: null });
   
   // Wallet info - prioritize Privy user's wallet, fallback to Solana adapter
   const privyWalletAddress = useMemo(() => {
@@ -126,6 +133,18 @@ export default function HomePage() {
       refetch();
     }, 5000);
   }, [refetch]);
+
+  const handlePricesUpdate = useCallback((prices: { pass: number | null; fail: number | null }) => {
+    setLivePrices(prices);
+  }, []);
+
+  // Calculate PFG percentage from live prices
+  const pfgPercentage = useMemo(() => {
+    if (livePrices.pass !== null && livePrices.fail !== null && livePrices.fail > 0) {
+      return ((livePrices.pass - livePrices.fail) / livePrices.fail) * 100;
+    }
+    return null;
+  }, [livePrices.pass, livePrices.fail]);
 
   if (loading) {
     return (
@@ -325,12 +344,23 @@ export default function HomePage() {
                             ? 'bg-rose-500'
                             : 'bg-emerald-500'
                         }`}
-                        style={{ width: `${(proposal.status === 'Passed' || proposal.status === 'Executed') ? 100 : proposal.status === 'Failed' ? 0 : 50}%` }}
+                        style={{ 
+                          width: `${
+                            (proposal.status === 'Passed' || proposal.status === 'Executed') ? 100 
+                            : proposal.status === 'Failed' ? 0 
+                            : pfgPercentage !== null 
+                              ? Math.min(100, Math.max(0, (pfgPercentage / (proposal.passThresholdBps / 100)) * 100))
+                              : 0
+                          }%` 
+                        }}
                       >
-                        {/* Percentage Text inside progress - hidden for Passed/Failed status */}
-                        {proposal.status === 'Pending' && (
+                        {/* Percentage Text inside progress - show actual PFG for Pending status */}
+                        {proposal.status === 'Pending' && pfgPercentage !== null && (
                           <span className="text-base font-bold text-white">
-                            50%
+                            {pfgPercentage >= (proposal.passThresholdBps / 100) 
+                              ? `${pfgPercentage.toFixed(1)}% (Target: ${(proposal.passThresholdBps / 100).toFixed(1)}%)`
+                              : `${pfgPercentage.toFixed(1)}%`
+                            }
                           </span>
                         )}
                       </div>
@@ -344,7 +374,7 @@ export default function HomePage() {
                             : 'text-gray-500'
                         }`}
                       >
-                        {proposal.status === 'Failed' ? 'Failed' : (proposal.status === 'Passed' || proposal.status === 'Executed') ? 'Passed' : 'In Progress'}
+                        {proposal.status === 'Failed' ? 'Failed' : (proposal.status === 'Passed' || proposal.status === 'Executed') ? 'Passed' : `Target PFG: ${(proposal.passThresholdBps / 100).toFixed(2)}%`}
                       </span>
                     </div>
                   </div>
@@ -353,7 +383,7 @@ export default function HomePage() {
                   <div className="flex items-center justify-center gap-2 w-36">
                     {/* Stopwatch Icon */}
                     <IoMdStopwatch className="w-6 h-6 text-gray-400 flex-shrink-0" />
-                    <div className="text-2xl font-mono text-white">
+                    <div className="text-2xl font-mono font-bold text-white">
                       <CountdownTimer 
                       endsAt={proposal.finalizedAt} 
                       onTimerEnd={handleTimerEnd}
@@ -365,10 +395,11 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* TradingView Chart */}
+            {/* Live Price Display */}
             <div>
-              <TradingViewChart 
+              <LivePriceDisplay 
                 proposalId={proposal.id} 
+                onPricesUpdate={handlePricesUpdate}
               />
             </div>
 

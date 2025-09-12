@@ -20,6 +20,7 @@ router.get('/', async (_req, res, next) => {
       status: p.status,
       createdAt: new Date(p.created_at).getTime(),
       finalizedAt: new Date(p.finalized_at).getTime(),
+      passThresholdBps: p.twap_oracle_state?.passThresholdBps ?? 5000, // Default to 50% if not set
     }));
     
     res.json({

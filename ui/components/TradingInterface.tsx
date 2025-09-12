@@ -264,7 +264,7 @@ const TradingInterface = memo(({
               disabled={!reducePercent || parseFloat(reducePercent) <= 0}
               className={`w-full py-3 rounded-lg font-semibold transition cursor-pointer flex items-center justify-center gap-1 ${
                 reducePercent && parseFloat(reducePercent) > 0
-                  ? 'bg-sky-500 hover:bg-sky-600 text-[#181818]'
+                  ? 'bg-[#4CBBF4] hover:bg-[#3CA5D8] text-[#181818]'
                   : 'bg-[#2a2a2a] text-gray-600 cursor-not-allowed'
               }`}
             >
@@ -497,7 +497,7 @@ const TradingInterface = memo(({
           disabled={!reducePercent || parseFloat(reducePercent) <= 0}
           className={`w-full py-3 rounded-lg font-semibold transition cursor-pointer flex items-center justify-center gap-1 ${
             reducePercent && parseFloat(reducePercent) > 0
-              ? 'bg-sky-500 hover:bg-sky-600 text-[#181818]'
+              ? 'bg-[#4CBBF4] hover:bg-[#3CA5D8] text-[#181818]'
               : 'bg-[#2a2a2a] text-gray-600 cursor-not-allowed'
           }`}
         >

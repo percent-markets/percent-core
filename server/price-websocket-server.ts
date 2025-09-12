@@ -1,0 +1,332 @@
+import WebSocket from 'ws';
+import { Connection, PublicKey } from '@solana/web3.js';
+import { getDevnetPriceService } from './devnet-price-service';
+
+interface PriceData {
+  tokenAddress: string;
+  price: number;
+  timestamp: number;
+  source?: 'dexscreener' | 'devnet-amm';
+}
+
+interface ClientSubscription {
+  tokens: Set<string>;
+  poolAddresses?: Map<string, string>; // token -> pool mapping
+}
+
+class PriceWebSocketServer {
+  private wss: WebSocket.Server;
+  private clients: Map<WebSocket, ClientSubscription> = new Map();
+  private prices: Map<string, PriceData> = new Map();
+  private priceUpdateInterval: NodeJS.Timeout | null = null;
+  private subscribedTokens: Set<string> = new Set();
+  private devnetService = getDevnetPriceService();
+  private devnetTokens: Set<string> = new Set(); // Track which tokens are on devnet
+  private poolMonitors: Map<string, number> = new Map(); // poolAddress -> subscriptionId
+
+  constructor(port: number = 9091) {
+    this.wss = new WebSocket.Server({ port });
+    console.log(`Price WebSocket server started on port ${port}`);
+    this.setupServer();
+    this.startPriceUpdates();
+  }
+
+  private setupServer() {
+    this.wss.on('connection', (ws: WebSocket) => {
+      console.log('New client connected');
+      
+      // Initialize client subscription
+      this.clients.set(ws, { tokens: new Set() });
+
+      ws.on('message', (message: string) => {
+        try {
+          const data = JSON.parse(message.toString());
+          this.handleClientMessage(ws, data);
+        } catch (error) {
+          console.error('Error parsing client message:', error);
+        }
+      });
+
+      ws.on('close', () => {
+        console.log('Client disconnected');
+        this.clients.delete(ws);
+        this.updateSubscribedTokens();
+      });
+
+      ws.on('error', (error) => {
+        console.error('Client WebSocket error:', error);
+      });
+
+      // Send initial prices for any cached data
+      this.sendCachedPrices(ws);
+    });
+  }
+
+  private handleClientMessage(ws: WebSocket, data: any) {
+    const client = this.clients.get(ws);
+    if (!client) return;
+
+    switch (data.type) {
+      case 'SUBSCRIBE':
+        if (data.tokens && Array.isArray(data.tokens)) {
+          console.log('Client subscribing to tokens:', data.tokens.length);
+          // Handle simple token array or token objects with pool info
+          data.tokens.forEach((tokenOrConfig: string | { address: string, poolAddress?: string }) => {
+            let token: string;
+            let pool: string | undefined;
+            
+            if (typeof tokenOrConfig === 'string') {
+              token = tokenOrConfig;
+            } else {
+              token = tokenOrConfig.address;
+              pool = tokenOrConfig.poolAddress;
+              
+              // Store pool address for this token
+              if (pool) {
+                if (!client.poolAddresses) {
+                  client.poolAddresses = new Map();
+                }
+                client.poolAddresses.set(token, pool);
+                this.devnetTokens.add(token); // Mark as devnet token
+              }
+            }
+            
+            client.tokens.add(token);
+            this.subscribedTokens.add(token);
+            console.log(`Client subscribed to ${token}${pool ? ` with pool ${pool}` : ''}`);
+            
+            // If this is a devnet token with a pool, set up real-time monitoring
+            if (pool && !this.poolMonitors.has(pool)) {
+              this.startPoolMonitoring(token, pool);
+            }
+            
+            // Fetch price immediately for new subscription
+            this.fetchTokenPrice(token, pool);
+            
+            // Send current price if available
+            const priceData = this.prices.get(token);
+            if (priceData) {
+              ws.send(JSON.stringify({
+                type: 'PRICE_UPDATE',
+                data: priceData
+              }));
+            }
+          });
+        }
+        break;
+
+      case 'UNSUBSCRIBE':
+        if (data.tokens && Array.isArray(data.tokens)) {
+          data.tokens.forEach((token: string) => {
+            client.tokens.delete(token);
+            // Client unsubscribed
+          });
+          this.updateSubscribedTokens();
+        }
+        break;
+
+      case 'PING':
+        ws.send(JSON.stringify({ type: 'PONG' }));
+        break;
+    }
+  }
+
+  private updateSubscribedTokens() {
+    // Update the set of all subscribed tokens across all clients
+    this.subscribedTokens.clear();
+    this.clients.forEach(client => {
+      client.tokens.forEach(token => {
+        this.subscribedTokens.add(token);
+      });
+    });
+  }
+
+  private startPriceUpdates() {
+    // Initial fetch for OOGWAY
+    const OOGWAY_ADDRESS = 'C7MGcMnN8cXUkj8JQuMhkJZh6WqY2r8QnT3AUfKTkrix';
+    this.fetchTokenPrice(OOGWAY_ADDRESS);
+
+    // For mainnet tokens (like OOGWAY), poll DexScreener every 10 seconds
+    // This is acceptable since DexScreener itself aggregates data
+    this.priceUpdateInterval = setInterval(() => {
+      // Only poll for mainnet tokens (OOGWAY)
+      if (this.subscribedTokens.has(OOGWAY_ADDRESS)) {
+        this.fetchTokenPrice(OOGWAY_ADDRESS);
+      }
+    }, 10000); // 10 seconds for mainnet tokens
+
+    // For devnet tokens, we'll set up real-time monitoring when they subscribe
+  }
+
+  private async fetchTokenPrice(tokenAddress: string, poolAddress?: string) {
+    try {
+      // Check if this is a devnet token (pass/fail tokens)
+      const isDevnetToken = this.devnetTokens.has(tokenAddress) || poolAddress;
+      
+      if (isDevnetToken && poolAddress) {
+        // Fetch from devnet AMM
+        const ammPrice = await this.devnetService.getTokenPrice(tokenAddress, poolAddress);
+        if (ammPrice && !isNaN(ammPrice.price) && isFinite(ammPrice.price)) {
+          this.updatePrice({
+            tokenAddress,
+            price: ammPrice.price,
+            timestamp: Date.now(),
+            source: 'devnet-amm'
+          });
+          return;
+        }
+      }
+      
+      // Try DexScreener for mainnet tokens
+      const response = await fetch(
+        `https://api.dexscreener.com/latest/dex/tokens/${tokenAddress}`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        const pairs = data.pairs || [];
+        
+        // Find the pair with highest liquidity
+        const sortedPairs = pairs.sort((a: any, b: any) => 
+          (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0)
+        );
+        
+        if (sortedPairs.length > 0) {
+          const price = parseFloat(sortedPairs[0].priceUsd || '0');
+          const priceChange24h = parseFloat(sortedPairs[0].priceChange?.h24 || '0');
+          
+          // Only update if price changed significantly (> 0.01%)
+          const existingPrice = this.prices.get(tokenAddress);
+          const priceChanged = !existingPrice || 
+            Math.abs(existingPrice.price - price) / existingPrice.price > 0.0001;
+          
+          if (priceChanged) {
+            this.updatePrice({
+              tokenAddress,
+              price,
+              timestamp: Date.now(),
+              source: 'dexscreener'
+            });
+          }
+        }
+      } else if (response.status === 404) {
+        // Token not found on mainnet, mark as devnet token
+        this.devnetTokens.add(tokenAddress);
+        
+        // Try to fetch from devnet if we have a pool address
+        if (poolAddress) {
+          const ammPrice = await this.devnetService.getTokenPrice(tokenAddress, poolAddress);
+          if (ammPrice && !isNaN(ammPrice.price) && isFinite(ammPrice.price)) {
+            this.updatePrice({
+              tokenAddress,
+              price: ammPrice.price,
+              timestamp: Date.now(),
+              source: 'devnet-amm'
+            });
+          }
+        }
+      }
+    } catch (error) {
+      // Silently handle errors for non-existent tokens
+      if (!error.message?.includes('404')) {
+        console.error(`Error fetching price for ${tokenAddress}:`, error.message);
+      }
+    }
+  }
+
+  private updatePrice(priceData: PriceData) {
+    // Update stored price
+    this.prices.set(priceData.tokenAddress, priceData);
+    console.log(`Price updated: ${priceData.tokenAddress.substring(0, 8)}... = ${priceData.price} (${priceData.source})`);
+    
+    // Broadcast to all subscribed clients
+    this.broadcast(priceData.tokenAddress, priceData);
+  }
+
+  private broadcast(tokenAddress: string, priceData: PriceData) {
+    this.clients.forEach((subscription, ws) => {
+      if (subscription.tokens.has(tokenAddress) && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'PRICE_UPDATE',
+          data: priceData
+        }));
+      }
+    });
+  }
+
+  private sendCachedPrices(ws: WebSocket) {
+    const client = this.clients.get(ws);
+    if (!client) return;
+
+    client.tokens.forEach(token => {
+      const priceData = this.prices.get(token);
+      if (priceData && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'PRICE_UPDATE',
+          data: priceData
+        }));
+      }
+    });
+  }
+
+  private async startPoolMonitoring(tokenAddress: string, poolAddress: string) {
+    try {
+      // Set up real-time monitoring for this pool
+      const subscriptionId = await this.devnetService.monitorPool(
+        poolAddress,
+        (priceData) => {
+          // When pool state changes, update price
+          if (priceData && priceData.price) {
+            this.updatePrice({
+              tokenAddress,
+              price: priceData.price,
+              timestamp: Date.now(),
+              source: 'devnet-amm'
+            });
+            console.log(`Real-time update: ${tokenAddress.substring(0, 8)}... = ${priceData.price}`);
+          }
+        },
+        tokenAddress // Pass the token mint so we get the right price
+      );
+      
+      this.poolMonitors.set(poolAddress, subscriptionId);
+      console.log(`Started real-time monitoring for pool ${poolAddress.substring(0, 8)}...`);
+    } catch (error) {
+      console.error(`Failed to start pool monitoring for ${poolAddress}:`, error);
+    }
+  }
+
+  private async stopPoolMonitoring(poolAddress: string) {
+    const subscriptionId = this.poolMonitors.get(poolAddress);
+    if (subscriptionId !== undefined) {
+      await this.devnetService.unmonitor(subscriptionId);
+      this.poolMonitors.delete(poolAddress);
+      console.log(`Stopped monitoring pool ${poolAddress.substring(0, 8)}...`);
+    }
+  }
+
+  public async shutdown() {
+    // Stop all pool monitors
+    for (const [poolAddress, subscriptionId] of this.poolMonitors) {
+      await this.devnetService.unmonitor(subscriptionId);
+    }
+    this.poolMonitors.clear();
+    
+    if (this.priceUpdateInterval) {
+      clearInterval(this.priceUpdateInterval);
+    }
+    this.wss.close();
+  }
+}
+
+// Start the server
+const server = new PriceWebSocketServer(9091);
+
+// Handle graceful shutdown
+process.on('SIGINT', () => {
+  console.log('\nShutting down price WebSocket server...');
+  server.shutdown();
+  process.exit(0);
+});
+
+export default server;

@@ -66,6 +66,9 @@ importers:
       '@types/node':
         specifier: ^20.9.0
         version: 20.19.13
+      '@types/ws':
+        specifier: ^8.18.1
+        version: 8.18.1
       '@vitest/ui':
         specifier: ^3.2.4
         version: 3.2.4(vitest@3.2.4)
