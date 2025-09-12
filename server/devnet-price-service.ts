@@ -81,7 +81,7 @@ export class DevnetPriceService {
       // Get price from the sqrt price stored in the pool
       // The price represents tokenB/tokenA (quote/base)
       // Default to 9 decimals if not provided (standard for Solana tokens)
-      const tokenADecimal = poolState.tokenADecimal ?? 9;
+      const tokenADecimal = poolState.tokenADecimal ?? 6;
       const tokenBDecimal = poolState.tokenBDecimal ?? 9;
       
       const priceDecimal = getPriceFromSqrtPrice(
