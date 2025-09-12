@@ -104,38 +104,42 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         </div>
         
         {/* Tabs */}
-        <div className="flex border-b border-[#2A2A2A]">
-          <button
-            onClick={() => setSelectedTab('wallet')}
-            className={`flex-1 px-4 py-3 text-sm font-medium transition-colors cursor-pointer ${
-              selectedTab === 'wallet' 
-                ? 'text-orange-500 border-b-2 border-orange-500' 
-                : 'text-[#AFAFAF] hover:text-white'
-            }`}
-          >
-            Wallet
-          </button>
-          <button
-            onClick={() => setSelectedTab('trading')}
-            className={`flex-1 px-4 py-3 text-sm font-medium transition-colors cursor-pointer ${
-              selectedTab === 'trading' 
-                ? 'text-orange-500 border-b-2 border-orange-500' 
-                : 'text-[#AFAFAF] hover:text-white'
-            }`}
-          >
-            Trading
-          </button>
-          <button
-            onClick={() => setSelectedTab('claims')}
-            className={`flex-1 px-4 py-3 text-sm font-medium transition-colors cursor-pointer ${
-              selectedTab === 'claims' 
-                ? 'text-sky-500 border-b-2 border-sky-500' 
-                : 'text-[#AFAFAF] hover:text-white'
-            }`}
-          >
-            Claims
-          </button>
-        </div>
+        {isConnected ? (
+          <div className="flex border-b border-[#2A2A2A]">
+            <button
+              onClick={() => setSelectedTab('wallet')}
+              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors cursor-pointer ${
+                selectedTab === 'wallet' 
+                  ? 'text-orange-500 border-b-2 border-orange-500' 
+                  : 'text-[#AFAFAF] hover:text-white'
+              }`}
+            >
+              Wallet
+            </button>
+            <button
+              onClick={() => setSelectedTab('trading')}
+              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors cursor-pointer ${
+                selectedTab === 'trading' 
+                  ? 'text-orange-500 border-b-2 border-orange-500' 
+                  : 'text-[#AFAFAF] hover:text-white'
+              }`}
+            >
+              Trading
+            </button>
+            <button
+              onClick={() => setSelectedTab('claims')}
+              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors cursor-pointer ${
+                selectedTab === 'claims' 
+                  ? 'text-sky-500 border-b-2 border-sky-500' 
+                  : 'text-[#AFAFAF] hover:text-white'
+              }`}
+            >
+              Claims
+            </button>
+          </div>
+        ) : (
+          <div className="border-b border-[#2A2A2A]"></div>
+        )}
         
         {/* Content */}
         <div className="p-6 max-h-[500px] overflow-y-auto">
@@ -260,13 +264,13 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   <div className="w-16 h-16 bg-orange-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Shield className="w-8 h-8 text-orange-500" />
                   </div>
-                  <h3 className="text-lg font-medium text-white mb-2">Connect Your Wallet</h3>
+                  <h3 className="text-lg font-medium text-white mb-2">Log in to access your wallet</h3>
                   <p className="text-sm text-[#AFAFAF] mb-4">Connect your Solana wallet to start trading prediction markets</p>
                   <button
                     onClick={() => login()}
                     className="w-full h-10 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded transition-colors cursor-pointer"
                   >
-                    Connect Wallet
+                    Log In
                   </button>
                 </div>
               )}
