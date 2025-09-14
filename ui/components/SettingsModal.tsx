@@ -98,16 +98,16 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             >
               Wallet
             </button>
-            <button
+            {/* <button
               onClick={() => setSelectedTab('trading')}
               className={`flex-1 px-4 py-3 text-sm font-medium transition-colors cursor-pointer ${
-                selectedTab === 'trading' 
-                  ? 'text-orange-500 border-b-2 border-orange-500' 
+                selectedTab === 'trading'
+                  ? 'text-orange-500 border-b-2 border-orange-500'
                   : 'text-[#AFAFAF] hover:text-white'
               }`}
             >
               Trading
-            </button>
+            </button> */}
             <button
               onClick={() => setSelectedTab('claims')}
               className={`flex-1 px-4 py-3 text-sm font-medium transition-colors cursor-pointer ${
@@ -166,7 +166,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                   {/* Portfolio Overview */}
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-medium text-[#AFAFAF]">Portfolio</h3>
+                      <h3 className="text-sm font-medium text-[#AFAFAF]">Liquid Portfolio</h3>
                       <div className="w-px h-4 bg-[#3D3D3D]"></div>
                       <span className="text-sm font-medium text-white">$142.50</span>
                     </div>
@@ -269,7 +269,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             </div>
           )}
           
-          {selectedTab === 'trading' && (
+          {/* {selectedTab === 'trading' && (
             <div className="space-y-4">
               <div className="bg-[#121212] border border-[#2A2A2A] rounded-lg p-4">
                 <h3 className="text-sm font-medium text-white mb-3">Trading Preferences</h3>
@@ -291,15 +291,15 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                       <DollarSign size={16} className="text-orange-500" />
                       <span className="text-sm text-[#AFAFAF]">Default Amount</span>
                     </div>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       className="bg-[#181818] border border-[#2A2A2A] rounded px-2 py-1 text-sm text-white w-20 text-right"
                       defaultValue="1"
                     />
                   </div>
                 </div>
               </div>
-              
+
               <div className="bg-[#121212] border border-[#2A2A2A] rounded-lg p-4">
                 <h3 className="text-sm font-medium text-white mb-3">Transaction Settings</h3>
                 <div className="space-y-3">
@@ -314,7 +314,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
                 </div>
               </div>
             </div>
-          )}
+          )} */}
           
           {selectedTab === 'claims' && (
             <div className="space-y-4">
