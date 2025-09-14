@@ -85,9 +85,9 @@ export default function Header({ walletAddress, authenticated, solBalance, oogwa
               onClick={() => setIsSettingsOpen(true)}
               className="group flex items-center gap-2 transition cursor-pointer"
             >
-              <span className="text-sm text-[#AFAFAF] group-hover:text-orange-500 transition-colors">{shortAddress}</span>
+              <span className="text-sm text-[#AFAFAF] group-hover:text-orange-400 transition-colors">{shortAddress}</span>
               <div className="w-8 h-8 bg-[#272727] group-hover:bg-[#303030] rounded-full flex items-center justify-center transition-colors">
-                <span className="text-xs font-medium text-[#AFAFAF] group-hover:text-orange-500 transition-colors">{avatarText}</span>
+                <span className="text-xs font-medium text-[#AFAFAF] group-hover:text-orange-400 transition-colors">{avatarText}</span>
               </div>
             </button>
           </div>
