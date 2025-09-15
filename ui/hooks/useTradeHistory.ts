@@ -174,11 +174,11 @@ export function useTradeHistory(proposalId: number | null) {
     return 'now';
   };
 
-  // Helper function to format address
+  // Helper function to format address - show first 6 characters
   const formatAddress = (address: string) => {
     if (!address) return '';
-    if (address.length <= 11) return address;
-    return `${address.slice(0, 4)}...${address.slice(-3)}`;
+    if (address.length <= 6) return address;
+    return address.slice(0, 6);
   };
 
   // Helper function to determine token used
@@ -186,9 +186,9 @@ export function useTradeHistory(proposalId: number | null) {
     // For pass market: base is oogway, quote is SOL
     // For fail market: base is SOL, quote is oogway
     if (market === 'pass') {
-      return isBaseToQuote ? 'OOGWAY' : 'SOL';
+      return isBaseToQuote ? '$oogway' : 'SOL';
     } else {
-      return isBaseToQuote ? 'SOL' : 'OOGWAY';
+      return isBaseToQuote ? 'SOL' : '$oogway';
     }
   };
 

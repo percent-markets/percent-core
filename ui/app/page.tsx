@@ -10,7 +10,7 @@ import Header from '@/components/Header';
 import { useProposals } from '@/hooks/useProposals';
 import { useTradeHistory } from '@/hooks/useTradeHistory';
 import { IoMdStopwatch } from 'react-icons/io';
-import { formatNumber, formatCurrency } from '@/lib/formatters';
+import { formatNumber, formatCurrency, formatVolume } from '@/lib/formatters';
 
 const LivePriceDisplay = dynamic(() => import('@/components/LivePriceDisplay').then(mod => mod.LivePriceDisplay), {
   ssr: false,
@@ -357,16 +357,15 @@ export default function HomePage() {
             {/* Trading History Table */}
             <div className="bg-[#0F0F0F] border-b border-l border-r border-[#3D3D3D]">
               {/* Table Header */}
-              <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs text-[#9C9D9E] font-medium border-b border-[#2A2A2A]">
+              <div className="grid gap-4 px-4 py-3 text-xs text-[#9C9D9E] font-medium border-b border-[#2A2A2A]" style={{ gridTemplateColumns: '1.5fr 0.7fr 0.7fr 0.7fr 1.5fr 1.5fr 1.5fr 0.7fr' }}>
                 <div>Trader</div>
                 <div>Bet</div>
                 <div>Type</div>
                 <div>Price</div>
                 <div>Amount</div>
-                <div className="flex justify-between">
-                  <span>Volume</span>
-                  <span>Age</span>
-                </div>
+                <div>Volume</div>
+                <div>Tx</div>
+                <div className="text-right">Age</div>
               </div>
               
               {/* Table Body - Scrollable */}
@@ -386,22 +385,89 @@ export default function HomePage() {
                     const isBuy = trade.isBaseToQuote;
 
                     return (
-                      <div key={trade.id} className="grid grid-cols-6 gap-4 px-4 py-3 text-xs hover:bg-[#272A2D]/30 transition-colors">
-                        <div className="text-white">{formatAddress(trade.userAddress)}</div>
+                      <div key={trade.id} className="grid gap-4 px-4 py-3 text-xs hover:bg-[#272A2D]/30 transition-colors" style={{ gridTemplateColumns: '1.5fr 0.7fr 0.7fr 0.7fr 1.5fr 1.5fr 1.5fr 0.7fr' }}>
+                        <div className="text-white flex items-center gap-1">
+                          <span>{formatAddress(trade.userAddress)}</span>
+                          <button
+                            onClick={() => navigator.clipboard.writeText(trade.userAddress)}
+                            className="text-[#9C9D9E] hover:text-white transition-colors"
+                            title="Copy address"
+                          >
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                          </button>
+                          <a
+                            href={`https://solscan.io/account/${trade.userAddress}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[#9C9D9E] hover:text-white transition-colors"
+                            title="View on Solscan"
+                          >
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                              <polyline points="15 3 21 3 21 9"></polyline>
+                              <line x1="10" y1="14" x2="21" y2="3"></line>
+                            </svg>
+                          </a>
+                        </div>
                         <div className={trade.market === 'pass' ? 'text-emerald-400' : 'text-rose-400'}>
                           {trade.market === 'pass' ? 'Pass' : 'Fail'}
                         </div>
                         <div className={isBuy ? 'text-emerald-400' : 'text-rose-400'}>
-                          {isBuy ? 'buy' : 'sell'}
+                          {isBuy ? 'Buy' : 'Sell'}
                         </div>
                         <div className="text-white">{formatCurrency(parseFloat(trade.price), 3)}</div>
                         <div className="text-white">
                           {formatNumber(parseFloat(trade.amountIn), 2)} {tokenUsed}
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-white">{formatCurrency(volume, 2)}</span>
-                          <span className="text-[#9C9D9E]">{getTimeAgo(trade.timestamp)}</span>
+                        <div className="text-white">{formatVolume(volume)}</div>
+                        <div className="text-white flex items-center gap-1">
+                          <span>{trade.txSignature ? `${trade.txSignature.slice(0, 4)}...${trade.txSignature.slice(-4)}` : '—'}</span>
+                          {trade.txSignature && (
+                            <a
+                              href={`https://solscan.io/tx/${trade.txSignature}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[#9C9D9E] hover:text-white transition-colors"
+                            >
+                              <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                <polyline points="15 3 21 3 21 9"></polyline>
+                                <line x1="10" y1="14" x2="21" y2="3"></line>
+                              </svg>
+                            </a>
+                          )}
                         </div>
+                        <div className="text-[#9C9D9E] text-right">{getTimeAgo(trade.timestamp)}</div>
                       </div>
                     );
                   })
