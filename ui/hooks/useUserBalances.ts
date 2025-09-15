@@ -6,10 +6,11 @@ interface UserBalances {
   data: UserBalancesResponse | null;
   loading: boolean;
   error: string | null;
+  refetch: () => void;
 }
 
 export function useUserBalances(proposalId: number | null, walletAddress: string | null): UserBalances {
-  const [balances, setBalances] = useState<UserBalances>({
+  const [balances, setBalances] = useState<Omit<UserBalances, 'refetch'>>({
     data: null,
     loading: false,
     error: null,
@@ -46,7 +47,7 @@ export function useUserBalances(proposalId: number | null, walletAddress: string
 
   useEffect(() => {
     // Only fetch if both proposalId and walletAddress are available
-    if (!proposalId || !walletAddress) {
+    if (proposalId === null || !walletAddress) {
       setBalances({
         data: null,
         loading: false,
@@ -69,5 +70,14 @@ export function useUserBalances(proposalId: number | null, walletAddress: string
     };
   }, [proposalId, walletAddress, fetchBalances]);
 
-  return balances;
+  const refetch = useCallback(() => {
+    if (proposalId !== null && walletAddress) {
+      fetchBalances(proposalId, walletAddress);
+    }
+  }, [proposalId, walletAddress, fetchBalances]);
+
+  return {
+    ...balances,
+    refetch,
+  };
 }
