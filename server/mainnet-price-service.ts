@@ -19,7 +19,6 @@ export class MainnetPriceService {
   constructor(rpcUrl: string = 'https://api.mainnet-beta.solana.com') {
     this.connection = new Connection(rpcUrl, 'confirmed');
     this.cpAmm = new CpAmm(this.connection);
-    console.log('MainnetPriceService initialized with RPC:', rpcUrl);
   }
 
   /**
@@ -37,7 +36,6 @@ export class MainnetPriceService {
       // If no pool address provided, try to find it
       if (!poolAddress) {
         // For now, we'll need the pool address from the proposal data
-        console.log(`No pool address provided for token ${tokenMint}`);
         return null;
       }
 
@@ -71,8 +69,7 @@ export class MainnetPriceService {
         poolState = await this.cpAmm.fetchPoolState(poolPubkey);
       } catch (poolError: any) {
         // Handle pool not found error gracefully
-        if (poolError.message?.includes('not found') || poolError.message?.includes('Invariant Violation')) {
-          console.log(`Pool ${poolAddress} not found on mainnet`);
+        if (poolError.message?.includes('not found') || poolError.message?.includes('Invariant Violation') || poolError.message?.includes('Account does not exist')) {
           return null;
         }
         throw poolError;

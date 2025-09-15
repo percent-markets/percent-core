@@ -1,6 +1,7 @@
 export interface PriceUpdate {
   tokenAddress: string;
   price: number;
+  priceUsd?: number;
   timestamp: number;
 }
 
@@ -9,6 +10,7 @@ type PriceUpdateCallback = (update: PriceUpdate) => void;
 export class PriceStreamService {
   private ws: WebSocket | null = null;
   private subscriptions: Map<string, PriceUpdateCallback[]> = new Map();
+  private poolAddresses: Map<string, string> = new Map(); // Store pool addresses for reconnection
   private reconnectTimeout: NodeJS.Timeout | null = null;
   private pingInterval: NodeJS.Timeout | null = null;
   private isConnecting = false;
@@ -45,12 +47,18 @@ export class PriceStreamService {
           this.reconnectAttempts = 0;
           this.setupPingInterval();
           
-          // Resubscribe to all tokens
-          // Note: This won't include pool addresses on reconnect
-          // The component will need to resubscribe with pool addresses
+          // Resubscribe to all tokens with their pool addresses if available
           if (this.subscriptions.size > 0) {
-            const tokens = Array.from(this.subscriptions.keys());
-            this.sendSubscription(tokens);
+            const subscriptionData: Array<string | { address: string; poolAddress?: string }> = [];
+            for (const [token, _] of this.subscriptions) {
+              const poolAddress = this.poolAddresses.get(token);
+              if (poolAddress) {
+                subscriptionData.push({ address: token, poolAddress });
+              } else {
+                subscriptionData.push(token);
+              }
+            }
+            this.sendSubscription(subscriptionData);
           }
           
           resolve();
@@ -86,13 +94,13 @@ export class PriceStreamService {
 
   private handleMessage(message: any) {
     if (message.type === 'PRICE_UPDATE' && message.data) {
-      const { tokenAddress, price, timestamp } = message.data;
-      
+      const { tokenAddress, price, priceUsd, timestamp } = message.data;
+
       // Notify all callbacks for this token
       const callbacks = this.subscriptions.get(tokenAddress) || [];
       callbacks.forEach(callback => {
         try {
-          callback({ tokenAddress, price, timestamp });
+          callback({ tokenAddress, price, priceUsd, timestamp });
         } catch (error) {
           console.error('Error in price callback:', error);
         }
@@ -165,6 +173,11 @@ export class PriceStreamService {
     callbacks.push(callback);
     this.subscriptions.set(tokenAddress, callbacks);
 
+    // Store pool address for reconnection
+    if (poolAddress) {
+      this.poolAddresses.set(tokenAddress, poolAddress);
+    }
+
     // Send subscription message with pool address if provided
     const subscriptionData = poolAddress 
       ? [{ address: tokenAddress, poolAddress }]
@@ -182,6 +195,7 @@ export class PriceStreamService {
       
       if (callbacks.length === 0) {
         this.subscriptions.delete(tokenAddress);
+        this.poolAddresses.delete(tokenAddress); // Clean up pool address
         this.sendUnsubscription([tokenAddress]);
         console.log(`Unsubscribed from price updates for ${tokenAddress}`);
       } else {
@@ -204,6 +218,7 @@ export class PriceStreamService {
     }
 
     this.subscriptions.clear();
+    this.poolAddresses.clear();
   }
 }
 

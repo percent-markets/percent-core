@@ -1,10 +1,8 @@
 import { WebSocketServer } from 'ws';
 import type { WebSocket } from 'ws';
-import { Connection, PublicKey } from '@solana/web3.js';
 import { getDevnetPriceService } from './devnet-price-service';
 import { getMainnetPriceService } from './mainnet-price-service';
 import { Client } from 'pg';
-import { Pool } from 'pg';
 
 interface PriceData {
   tokenAddress: string;
@@ -45,6 +43,8 @@ class PriceWebSocketServer {
   private poolMonitors: Map<string, number> = new Map(); // poolAddress -> subscriptionId
   private pgClient: Client | null = null;
   private subscribedProposals: Set<number> = new Set();
+  private solPrice: number = 180; // Default SOL price in USD
+  private SOL_ADDRESS = 'So11111111111111111111111111111111111111112';
 
   constructor(port: number = 9091) {
     this.wss = new WebSocketServer({ port });
@@ -55,6 +55,10 @@ class PriceWebSocketServer {
   }
 
   private setupServer() {
+    // Start fetching SOL price
+    this.fetchSolPrice();
+    setInterval(() => this.fetchSolPrice(), 30000); // Update every 30 seconds
+
     this.wss.on('connection', (ws: WebSocket) => {
       console.log('New client connected');
       
@@ -113,11 +117,10 @@ class PriceWebSocketServer {
                 this.devnetTokens.add(token); // Mark as devnet token
               }
             }
-            
+
             client.tokens.add(token);
             this.subscribedTokens.add(token);
-            console.log(`Client subscribed to ${token}${pool ? ` with pool ${pool}` : ''}`);
-            
+
             // If this is a devnet token with a pool, set up real-time monitoring
             if (pool && !this.poolMonitors.has(pool)) {
               this.startPoolMonitoring(token, pool);
@@ -232,11 +235,40 @@ class PriceWebSocketServer {
         }
       }
       
+      // If we have a pool address but don't know which network it's on, try to detect
+      if (poolAddress && !this.mainnetPools.has(poolAddress)) {
+        // First try mainnet (most common)
+        const mainnetPrice = await this.mainnetService.getTokenPrice(tokenAddress, poolAddress);
+        if (mainnetPrice && !isNaN(mainnetPrice.price) && isFinite(mainnetPrice.price)) {
+          this.mainnetPools.add(poolAddress);
+          this.updatePrice({
+            tokenAddress,
+            price: mainnetPrice.price,
+            timestamp: Date.now(),
+            source: 'mainnet-amm'
+          });
+          return; // Exit early if found on mainnet
+        }
+
+        // If not on mainnet, try devnet
+        const devnetPrice = await this.devnetService.getTokenPrice(tokenAddress, poolAddress);
+        if (devnetPrice && !isNaN(devnetPrice.price) && isFinite(devnetPrice.price)) {
+          this.devnetTokens.add(tokenAddress);
+          this.updatePrice({
+            tokenAddress,
+            price: devnetPrice.price,
+            timestamp: Date.now(),
+            source: 'devnet-amm'
+          });
+          return;
+        }
+      }
+
       // Try DexScreener for mainnet tokens
       const response = await fetch(
         `https://api.dexscreener.com/latest/dex/tokens/${tokenAddress}`
       );
-      
+
       if (response.ok) {
         const data = await response.json();
         const pairs = data.pairs || [];
@@ -248,7 +280,6 @@ class PriceWebSocketServer {
         
         if (sortedPairs.length > 0) {
           const price = parseFloat(sortedPairs[0].priceUsd || '0');
-          const priceChange24h = parseFloat(sortedPairs[0].priceChange?.h24 || '0');
           
           // Only update if price changed significantly (> 0.01%)
           const existingPrice = this.prices.get(tokenAddress);
@@ -302,20 +333,40 @@ class PriceWebSocketServer {
   }
 
   private updatePrice(priceData: PriceData) {
+    // Calculate USD price based on source
+    let priceUsd: number;
+
+    if (priceData.source === 'dexscreener') {
+      // DexScreener already provides USD price
+      priceUsd = priceData.price;
+    } else {
+      // AMM prices are in SOL, need to convert to USD
+      priceUsd = priceData.price * this.solPrice;
+    }
+
+    // Create extended price data with USD value
+    const extendedPriceData = {
+      ...priceData,
+      priceUsd
+    };
+
     // Update stored price
-    this.prices.set(priceData.tokenAddress, priceData);
-    console.log(`Price updated: ${priceData.tokenAddress.substring(0, 8)}... = ${priceData.price} (${priceData.source})`);
-    
+    this.prices.set(priceData.tokenAddress, extendedPriceData);
+
     // Broadcast to all subscribed clients
     this.broadcast(priceData.tokenAddress, priceData);
   }
 
   private broadcast(tokenAddress: string, priceData: PriceData) {
+    // Get the stored price data which already has the correct priceUsd
+    const storedData = this.prices.get(tokenAddress);
+    const broadcastData = storedData || priceData;
+
     this.clients.forEach((subscription, ws) => {
       if (subscription.tokens.has(tokenAddress) && ws.readyState === 1) {
         ws.send(JSON.stringify({
           type: 'PRICE_UPDATE',
-          data: priceData
+          data: broadcastData
         }));
       }
     });
@@ -363,14 +414,6 @@ class PriceWebSocketServer {
     }
   }
 
-  private async stopPoolMonitoring(poolAddress: string) {
-    const subscriptionId = this.poolMonitors.get(poolAddress);
-    if (subscriptionId !== undefined) {
-      await this.devnetService.unmonitor(subscriptionId);
-      this.poolMonitors.delete(poolAddress);
-      console.log(`Stopped monitoring pool ${poolAddress.substring(0, 8)}...`);
-    }
-  }
 
   private updateSubscribedProposals() {
     // Update the set of all subscribed proposals across all clients
@@ -479,13 +522,41 @@ class PriceWebSocketServer {
     console.log(`Trade broadcast for proposal ${trade.proposalId}: ${trade.market} ${trade.isBaseToQuote ? 'buy' : 'sell'}`);
   }
 
+  private async fetchSolPrice() {
+    try {
+      const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${this.SOL_ADDRESS}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch SOL price');
+      }
+
+      const data = await response.json();
+      const solPairs = data.pairs || [];
+
+      if (solPairs.length > 0) {
+        // Sort by liquidity and take the highest
+        const sortedSolPairs = solPairs.sort((a: any, b: any) =>
+          (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0)
+        );
+        this.solPrice = parseFloat(sortedSolPairs[0]?.priceUsd || '0') || 180;
+      } else {
+        this.solPrice = 180; // Fallback price
+      }
+
+      console.log(`SOL price updated: $${this.solPrice}`);
+    } catch (error) {
+      console.error('Error fetching SOL price:', error);
+      this.solPrice = 180; // Fallback price
+    }
+  }
+
   public async shutdown() {
     // Stop all pool monitors
-    for (const [poolAddress, subscriptionId] of this.poolMonitors) {
+    for (const [, subscriptionId] of this.poolMonitors) {
       await this.devnetService.unmonitor(subscriptionId);
     }
     this.poolMonitors.clear();
-    
+
     if (this.priceUpdateInterval) {
       clearInterval(this.priceUpdateInterval);
     }

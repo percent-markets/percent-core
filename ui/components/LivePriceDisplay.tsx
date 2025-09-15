@@ -15,6 +15,9 @@ interface TokenPrices {
   oogway: number | null;
   pass: number | null;
   fail: number | null;
+  oogwayUsd?: number | null;
+  passUsd?: number | null;
+  failUsd?: number | null;
 }
 
 interface TwapData {
@@ -34,7 +37,10 @@ export const LivePriceDisplay: React.FC<LivePriceDisplayProps> = ({ proposalId, 
   const [prices, setPrices] = useState<TokenPrices>({
     oogway: null,
     pass: null,
-    fail: null
+    fail: null,
+    oogwayUsd: null,
+    passUsd: null,
+    failUsd: null
   });
   
   const [twapData, setTwapData] = useState<TwapData>({
@@ -129,7 +135,8 @@ export const LivePriceDisplay: React.FC<LivePriceDisplayProps> = ({ proposalId, 
     return (update: PriceUpdate) => {
       setPrices(prev => ({
         ...prev,
-        [tokenType]: update.price
+        [tokenType]: update.price,
+        [`${tokenType}Usd`]: update.priceUsd || null
       }));
     };
   }, []); // Empty dependency array for stable reference
@@ -213,7 +220,7 @@ export const LivePriceDisplay: React.FC<LivePriceDisplayProps> = ({ proposalId, 
         tokenName="Pass"
         tokenSymbol={`PASS-${proposalId}`}
         tokenAddress={tokenAddresses.pass || ''}
-        price={prices.pass}
+        price={prices.passUsd || prices.pass}
         isLoading={prices.pass === null}
         tokenType="pass"
       />
@@ -222,7 +229,7 @@ export const LivePriceDisplay: React.FC<LivePriceDisplayProps> = ({ proposalId, 
         tokenName="Fail"
         tokenSymbol={`FAIL-${proposalId}`}
         tokenAddress={tokenAddresses.fail || ''}
-        price={prices.fail}
+        price={prices.failUsd || prices.fail}
         isLoading={prices.fail === null}
         tokenType="fail"
       />
