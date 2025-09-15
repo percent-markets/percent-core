@@ -1,4 +1,5 @@
-import WebSocket, { WebSocketServer } from 'ws';
+import { WebSocketServer } from 'ws';
+import type { WebSocket } from 'ws';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { getDevnetPriceService } from './devnet-price-service';
 import { Client } from 'pg';
@@ -285,7 +286,7 @@ class PriceWebSocketServer {
 
   private broadcast(tokenAddress: string, priceData: PriceData) {
     this.clients.forEach((subscription, ws) => {
-      if (subscription.tokens.has(tokenAddress) && ws.readyState === WebSocket.OPEN) {
+      if (subscription.tokens.has(tokenAddress) && ws.readyState === 1) {
         ws.send(JSON.stringify({
           type: 'PRICE_UPDATE',
           data: priceData
@@ -300,7 +301,7 @@ class PriceWebSocketServer {
 
     client.tokens.forEach(token => {
       const priceData = this.prices.get(token);
-      if (priceData && ws.readyState === WebSocket.OPEN) {
+      if (priceData && ws.readyState === 1) {
         ws.send(JSON.stringify({
           type: 'PRICE_UPDATE',
           data: priceData
@@ -445,7 +446,7 @@ class PriceWebSocketServer {
 
   private broadcastTrade(trade: TradeEvent) {
     this.clients.forEach((subscription, ws) => {
-      if (subscription.proposals.has(trade.proposalId) && ws.readyState === WebSocket.OPEN) {
+      if (subscription.proposals.has(trade.proposalId) && ws.readyState === 1) {
         ws.send(JSON.stringify(trade));
       }
     });
