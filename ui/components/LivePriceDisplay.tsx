@@ -8,6 +8,7 @@ import { api } from '../lib/api';
 interface LivePriceDisplayProps {
   proposalId: number;
   onPricesUpdate?: (prices: { pass: number | null; fail: number | null }) => void;
+  onTwapUpdate?: (twap: { passTwap: number | null; failTwap: number | null }) => void;
 }
 
 interface TokenPrices {
@@ -29,7 +30,7 @@ const OOGWAY_CONFIG = {
   symbol: '$oogway'
 };
 
-export const LivePriceDisplay: React.FC<LivePriceDisplayProps> = ({ proposalId, onPricesUpdate }) => {
+export const LivePriceDisplay: React.FC<LivePriceDisplayProps> = ({ proposalId, onPricesUpdate, onTwapUpdate }) => {
   const [prices, setPrices] = useState<TokenPrices>({
     oogway: null,
     pass: null,
@@ -99,10 +100,15 @@ export const LivePriceDisplay: React.FC<LivePriceDisplayProps> = ({ proposalId, 
           const data = await response.json();
           if (data.data && data.data.length > 0) {
             const latest = data.data[0];
-            setTwapData({
+            const twap = {
               passTwap: parseFloat(latest.passTwap),
               failTwap: parseFloat(latest.failTwap)
-            });
+            };
+            setTwapData(twap);
+            // Notify parent component of TWAP update
+            if (onTwapUpdate) {
+              onTwapUpdate(twap);
+            }
           }
         }
       } catch (error) {

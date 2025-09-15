@@ -11,7 +11,6 @@ import { useProposals } from '@/hooks/useProposals';
 import { useTradeHistory } from '@/hooks/useTradeHistory';
 import { IoMdStopwatch } from 'react-icons/io';
 import { formatNumber, formatCurrency } from '@/lib/formatters';
-import { api } from '@/lib/api';
 
 const LivePriceDisplay = dynamic(() => import('@/components/LivePriceDisplay').then(mod => mod.LivePriceDisplay), {
   ssr: false,
@@ -124,27 +123,10 @@ export default function HomePage() {
     setLivePrices(prices);
   }, []);
 
-  // Fetch TWAP data when proposal changes
-  useEffect(() => {
-    if (proposal?.id) {
-      api.getTWAP(proposal.id).then(data => {
-        if (data) {
-          setTwapData({ passTwap: data.passTwap, failTwap: data.failTwap });
-        }
-      });
-      
-      // Poll for TWAP updates every 30 seconds
-      const interval = setInterval(() => {
-        api.getTWAP(proposal.id).then(data => {
-          if (data) {
-            setTwapData({ passTwap: data.passTwap, failTwap: data.failTwap });
-          }
-        });
-      }, 30000);
-      
-      return () => clearInterval(interval);
-    }
-  }, [proposal?.id]);
+  const handleTwapUpdate = useCallback((twap: { passTwap: number | null; failTwap: number | null }) => {
+    console.log('TWAP update from LivePriceDisplay:', twap);
+    setTwapData(twap);
+  }, []);
 
   // Calculate PFG percentage and passing status to match backend logic
   const { pfgPercentage, isPassing } = useMemo(() => {
@@ -310,14 +292,26 @@ export default function HomePage() {
                             ? 'bg-rose-500'
                             : 'bg-emerald-500'
                         }`}
-                        style={{ 
+                        style={{
                           width: `${
-                            (proposal.status === 'Passed' || proposal.status === 'Executed') ? 100 
-                            : proposal.status === 'Failed' ? 0 
-                            : pfgPercentage !== null 
-                              ? Math.min(100, Math.max(0, (pfgPercentage / (proposal.passThresholdBps / 100)) * 100))
-                              : 0
-                          }%` 
+                            (() => {
+                              if (proposal.status === 'Passed' || proposal.status === 'Executed') return 100;
+                              if (proposal.status === 'Failed') return 0;
+                              if (pfgPercentage !== null) {
+                                const thresholdPercentage = proposal.passThresholdBps / 100;
+                                const progressPercentage = (pfgPercentage / thresholdPercentage) * 100;
+                                console.log('Progress Bar Debug:', {
+                                  pfgPercentage,
+                                  passThresholdBps: proposal.passThresholdBps,
+                                  thresholdPercentage,
+                                  progressPercentage,
+                                  finalWidth: Math.min(100, Math.max(0, progressPercentage))
+                                });
+                                return Math.min(100, Math.max(0, progressPercentage));
+                              }
+                              return 0;
+                            })()
+                          }%`
                         }}
                       >
                         {/* Percentage Text inside progress - show TWAP-based PFG for Pending status */}
@@ -325,8 +319,8 @@ export default function HomePage() {
                           <span className="text-base font-bold text-white">
                             {pfgPercentage !== null
                               ? isPassing
-                                ? `${pfgPercentage.toFixed(1)}% (Passing)`
-                                : `${pfgPercentage.toFixed(1)}%`
+                                ? `${pfgPercentage.toFixed(2)}% (Passing)`
+                                : `${pfgPercentage.toFixed(2)}%`
                               : 'Loading TWAP...'
                             }
                           </span>
@@ -353,9 +347,10 @@ export default function HomePage() {
 
             {/* Live Price Display */}
             <div>
-              <LivePriceDisplay 
-                proposalId={proposal.id} 
+              <LivePriceDisplay
+                proposalId={proposal.id}
                 onPricesUpdate={handlePricesUpdate}
+                onTwapUpdate={handleTwapUpdate}
               />
             </div>
 

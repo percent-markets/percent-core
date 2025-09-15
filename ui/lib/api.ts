@@ -53,9 +53,9 @@ class GovernanceAPI {
       }
       const data = await response.json();
       
-      // Get the most recent TWAP data
+      // Get the most recent TWAP data (first element, matching LivePriceDisplay)
       if (data.data && data.data.length > 0) {
-        const latest = data.data[data.data.length - 1];
+        const latest = data.data[0];
         return {
           passTwap: parseFloat(latest.passTwap),
           failTwap: parseFloat(latest.failTwap)
