@@ -387,7 +387,7 @@ router.post('/:id/jupiter/buildSwapTx', async (req, res, next) => {
     // Get swap service and build transaction
     const swapService = getSwapService();
     
-    const transaction = await swapService.buildSwapTx(
+    const { transaction, quote } = await swapService.buildSwapTx(
       proposalId,
       userPubkey,
       inputMintPubkey,
@@ -398,6 +398,11 @@ router.post('/:id/jupiter/buildSwapTx', async (req, res, next) => {
     
     res.json({
       transaction: transaction.serialize({ requireAllSignatures: false }).toString('base64'),
+      quote: {
+        inAmount: quote.inAmount,
+        outAmount: quote.outAmount,
+        priceImpactPct: quote.priceImpactPct
+      },
       message: 'Jupiter swap transaction built successfully. User must sign before execution.'
     });
   } catch (error) {

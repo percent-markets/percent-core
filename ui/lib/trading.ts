@@ -3,6 +3,10 @@ import toast from 'react-hot-toast';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
+// SOL and OOGWAY mint addresses
+const SOL_MINT = 'So11111111111111111111111111111111111111112';
+const OOGWAY_MINT = 'C7MGcMnN8cXUkj8JQuMhkJZh6WqY2r8QnT3AUfKTkrix';
+
 export interface OpenPositionConfig {
   proposalId: number;
   positionType: 'pass' | 'fail';
@@ -29,11 +33,13 @@ export async function openPosition(config: OpenPositionConfig): Promise<void> {
   const toastId = toast.loading('Opening position...');
   
   try {
-    // Step 1: Calculate the 50/50 split amounts (simulate initial swap for testnet)
+    // Step 1: Calculate the 50/50 split amounts (simulate on devnet, real swap on mainnet)
     const { baseAmount, quoteAmount } = await simulateInitialSwap(
       inputAmount,
       inputCurrency,
-      proposalId
+      proposalId,
+      userAddress,
+      signTransaction
     );
     
     // Step 2: Split base tokens via vault
@@ -188,7 +194,6 @@ function calculateCloseAmounts(balances: any, positionType: 'pass' | 'fail', per
   
   if (positionType === 'pass') {
     // Pass position has pBase + fQuote, we want to swap back
-    const pBaseAmount = parseFloat(balances.base.passConditional || '0');
     const fQuoteAmount = parseFloat(balances.quote.failConditional || '0');
     
     return {
@@ -197,7 +202,6 @@ function calculateCloseAmounts(balances: any, positionType: 'pass' | 'fail', per
     };
   } else {
     // Fail position has fBase + pQuote, we want to swap back
-    const fBaseAmount = parseFloat(balances.base.failConditional || '0');
     const pQuoteAmount = parseFloat(balances.quote.passConditional || '0');
     
     return {
@@ -384,17 +388,35 @@ async function getUserBalances(proposalId: number, userAddress: string): Promise
 }
 
 /**
- * Simulate the initial 50/50 swap for testnet
- * Returns the amounts of base and quote tokens after the simulated swap
+ * Get the current network (devnet or mainnet)
+ */
+async function getNetwork(): Promise<'devnet' | 'mainnet'> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/network`);
+    if (!response.ok) {
+      console.error('Failed to get network info, defaulting to mainnet');
+      return 'mainnet';
+    }
+    const data = await response.json();
+    return data.network;
+  } catch (error) {
+    console.error('Failed to get network info, defaulting to mainnet:', error);
+    return 'mainnet';
+  }
+}
+
+/**
+ * Perform the initial 50/50 swap
+ * On devnet: simulates the swap
+ * On mainnet: executes real swap via Jupiter
  */
 async function simulateInitialSwap(
   inputAmount: string,
   inputCurrency: 'sol' | 'oogway',
-  proposalId: number
+  proposalId: number,
+  userAddress?: string,
+  signTransaction?: (transaction: Transaction) => Promise<Transaction>
 ): Promise<{ baseAmount: string; quoteAmount: string }> {
-  
-  // For testnet, we'll simulate a 1:1 exchange rate
-  // In production, this would call an actual swap API
   
   const amount = parseFloat(inputAmount);
   if (isNaN(amount) || amount <= 0) {
@@ -405,34 +427,143 @@ async function simulateInitialSwap(
   const OOGWAY_DECIMALS = 6;
   const SOL_DECIMALS = 9;
   
-  if (inputCurrency === 'sol') {
-    // User inputs SOL, split 50/50 into base (OOGWAY) and quote (SOL)
-    // For testnet: assume 1 SOL = 1 OOGWAY in value
-    const solAmountInSmallestUnits = Math.floor(amount * Math.pow(10, SOL_DECIMALS));
-    const halfSolAmount = Math.floor(solAmountInSmallestUnits / 2);
-    
-    // Convert half SOL to OOGWAY (1:1 rate for testnet, but different decimals)
-    // 0.5 SOL = 0.5 OOGWAY in value
-    const halfInOogway = Math.floor((amount / 2) * Math.pow(10, OOGWAY_DECIMALS));
-    
-    return {
-      baseAmount: halfInOogway.toString(),     // OOGWAY (6 decimals)
-      quoteAmount: halfSolAmount.toString()    // SOL (9 decimals)
-    };
+  // Check if we're on devnet
+  const network = await getNetwork();
+  
+  if (network === 'devnet') {
+    // For devnet, simulate a 1:1 exchange rate
+    if (inputCurrency === 'sol') {
+      // User inputs SOL, split 50/50 into base (OOGWAY) and quote (SOL)
+      const solAmountInSmallestUnits = Math.floor(amount * Math.pow(10, SOL_DECIMALS));
+      const halfSolAmount = Math.floor(solAmountInSmallestUnits / 2);
+      const halfInOogway = Math.floor((amount / 2) * Math.pow(10, OOGWAY_DECIMALS));
+      
+      return {
+        baseAmount: halfInOogway.toString(),     // OOGWAY (6 decimals)
+        quoteAmount: halfSolAmount.toString()    // SOL (9 decimals)
+      };
+    } else {
+      // User inputs OOGWAY, split 50/50 into base (OOGWAY) and quote (SOL)
+      const oogwayAmountInSmallestUnits = Math.floor(amount * Math.pow(10, OOGWAY_DECIMALS));
+      const halfOogwayAmount = Math.floor(oogwayAmountInSmallestUnits / 2);
+      const halfInSol = Math.floor((amount / 2) * Math.pow(10, SOL_DECIMALS));
+      
+      return {
+        baseAmount: halfOogwayAmount.toString(),  // OOGWAY (6 decimals)
+        quoteAmount: halfInSol.toString()         // SOL (9 decimals)
+      };
+    }
   } else {
-    // User inputs OOGWAY, split 50/50 into base (OOGWAY) and quote (SOL)
-    // For testnet: assume 1 OOGWAY = 1 SOL in value
-    const oogwayAmountInSmallestUnits = Math.floor(amount * Math.pow(10, OOGWAY_DECIMALS));
-    const halfOogwayAmount = Math.floor(oogwayAmountInSmallestUnits / 2);
+    // On mainnet, perform real swap via Jupiter
+    if (!userAddress || !signTransaction) {
+      throw new Error('User address and signTransaction are required for mainnet swaps');
+    }
     
-    // Convert half OOGWAY to SOL (1:1 rate for testnet, but different decimals)
-    // 0.5 OOGWAY = 0.5 SOL in value
-    const halfInSol = Math.floor((amount / 2) * Math.pow(10, SOL_DECIMALS));
+    // Calculate the amount to swap (half of input)
+    let inputMint: string;
+    let outputMint: string;
+    let swapAmount: string;
     
-    return {
-      baseAmount: halfOogwayAmount.toString(),  // OOGWAY (6 decimals)
-      quoteAmount: halfInSol.toString()         // SOL (9 decimals)
-    };
+    if (inputCurrency === 'sol') {
+      // User has SOL, swap half to OOGWAY
+      inputMint = SOL_MINT;
+      outputMint = OOGWAY_MINT;
+      const solAmountInSmallestUnits = Math.floor(amount * Math.pow(10, SOL_DECIMALS));
+      const halfSolAmount = Math.floor(solAmountInSmallestUnits / 2);
+      swapAmount = halfSolAmount.toString();
+      
+      // Build swap transaction
+      const buildResponse = await fetch(`${API_BASE_URL}/api/swap/${proposalId}/jupiter/buildSwapTx`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user: userAddress,
+          inputMint,
+          outputMint,
+          amount: swapAmount,
+          slippageBps: 100
+        })
+      });
+      
+      if (!buildResponse.ok) {
+        throw new Error('Failed to build swap transaction');
+      }
+      
+      const buildData = await buildResponse.json();
+      
+      // Sign the transaction
+      const swapTx = Transaction.from(Buffer.from(buildData.transaction, 'base64'));
+      const signedTx = await signTransaction(swapTx);
+      
+      // Execute the swap
+      const executeResponse = await fetch(`${API_BASE_URL}/api/swap/${proposalId}/jupiter/executeSwapTx`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transaction: Buffer.from(signedTx.serialize({ requireAllSignatures: false })).toString('base64')
+        })
+      });
+      
+      if (!executeResponse.ok) {
+        throw new Error('Failed to execute swap');
+      }
+      
+      // Use the actual quote amounts from Jupiter
+      return {
+        baseAmount: buildData.quote.outAmount,      // OOGWAY received from swap (actual)
+        quoteAmount: halfSolAmount.toString()       // Remaining SOL
+      };
+      
+    } else {
+      // User has OOGWAY, swap half to SOL
+      inputMint = OOGWAY_MINT;
+      outputMint = SOL_MINT;
+      const oogwayAmountInSmallestUnits = Math.floor(amount * Math.pow(10, OOGWAY_DECIMALS));
+      const halfOogwayAmount = Math.floor(oogwayAmountInSmallestUnits / 2);
+      swapAmount = halfOogwayAmount.toString();
+      
+      // Build swap transaction
+      const buildResponse = await fetch(`${API_BASE_URL}/api/swap/${proposalId}/jupiter/buildSwapTx`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user: userAddress,
+          inputMint,
+          outputMint,
+          amount: swapAmount,
+          slippageBps: 100
+        })
+      });
+      
+      if (!buildResponse.ok) {
+        throw new Error('Failed to build swap transaction');
+      }
+      
+      const buildData = await buildResponse.json();
+      
+      // Sign the transaction
+      const swapTx = Transaction.from(Buffer.from(buildData.transaction, 'base64'));
+      const signedTx = await signTransaction(swapTx);
+      
+      // Execute the swap
+      const executeResponse = await fetch(`${API_BASE_URL}/api/swap/${proposalId}/jupiter/executeSwapTx`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transaction: Buffer.from(signedTx.serialize({ requireAllSignatures: false })).toString('base64')
+        })
+      });
+      
+      if (!executeResponse.ok) {
+        throw new Error('Failed to execute swap');
+      }
+      
+      // Use the actual quote amounts from Jupiter
+      return {
+        baseAmount: halfOogwayAmount.toString(),    // Remaining OOGWAY
+        quoteAmount: buildData.quote.outAmount      // SOL received from swap (actual)
+      };
+    }
   }
 }
 

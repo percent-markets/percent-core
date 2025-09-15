@@ -65,6 +65,7 @@ export class SwapService {
   
   /**
    * Build a swap transaction using Jupiter
+   * Returns both the transaction and the quote data
    */
   async buildSwapTx(
     proposalId: number,
@@ -73,7 +74,7 @@ export class SwapService {
     outputMint: PublicKey,
     amount: BN,
     slippageBps: number = 50
-  ): Promise<Transaction> {
+  ): Promise<{ transaction: Transaction; quote: any }> {
     // Check AMMs are not finalized
     await this.checkAMMsFinalized(proposalId);
     
@@ -82,6 +83,7 @@ export class SwapService {
   
   /**
    * Build Jupiter swap transaction
+   * Returns both the transaction and the quote data
    */
   private async buildJupiterSwapTx(
     user: PublicKey,
@@ -89,7 +91,7 @@ export class SwapService {
     outputMint: PublicKey,
     amount: BN,
     slippageBps: number
-  ): Promise<Transaction> {
+  ): Promise<{ transaction: Transaction; quote: any }> {
     try {
       // Get quote first
       const quoteData = await this.fetchQuote(inputMint, outputMint, amount, slippageBps);
@@ -123,7 +125,7 @@ export class SwapService {
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = user;
       
-      return transaction;
+      return { transaction, quote: quoteData };
       
     } catch (error) {
       console.error('Jupiter swap error:', error);

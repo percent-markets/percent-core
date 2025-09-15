@@ -19,8 +19,9 @@ async function createProposal() {
   const quoteDecimals = 9;
   
   // Raw token amounts (smallest units)
-  const initialBaseAmount = '10000000000';  // 10 billion raw units = 10,000 tokens (6 decimals)
-  const initialQuoteAmount = '1000000000000'; // 1 trillion raw units = 1,000 tokens (9 decimals)
+  // Current_spot = ~0.010 SOL per oogway
+  const initialBaseAmount = '500000000000';  // 500k Oogway (6 decimals)
+  const initialQuoteAmount = '100000000'; // 0.1 Sol (9 decimals)
   
   // Calculate decimal-adjusted price (same as AMM will return)
   // Convert to actual token amounts: raw / 10^decimals
@@ -29,7 +30,7 @@ async function createProposal() {
   const ammPrice = quoteTokens / baseTokens; // 1,000 / 10,000 = 0.1
   
   const request: CreateProposalRequest = {
-    description: 'Test Proposal',
+    description: 'First Mainnet Proposal! 🥳',
     proposalLength: 3000, // 5 minutes
     twap: {
       initialTwapValue: ammPrice, // Decimal-adjusted price (0.1)

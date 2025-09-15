@@ -200,6 +200,11 @@ export interface JupiterBuildSwapTxRequest {
 
 export interface JupiterBuildSwapTxResponse {
   transaction: string;
+  quote: {
+    inAmount: string;
+    outAmount: string;
+    priceImpactPct: string;
+  };
   message: string;
 }
 
@@ -211,4 +216,8 @@ export interface JupiterExecuteSwapTxResponse {
   signature: string;
   status: 'success' | 'failed';
   message: string;
+}
+
+export interface NetworkInfoResponse {
+  network: 'devnet' | 'mainnet';
 }

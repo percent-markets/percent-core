@@ -5,6 +5,7 @@ import fs from 'fs';
 import TestModeratorService from '../test/test-moderator.service';
 import { PersistenceService } from '../../app/services/persistence.service';
 import { SchedulerService } from '../../app/services/scheduler.service';
+import { rpc } from '@coral-xyz/anchor/dist/cjs/utils';
 
 class ModeratorService {
   private static instance: Moderator | null = null;
@@ -45,6 +46,8 @@ class ModeratorService {
         // Create new moderator with default config
         const keypairPath = process.env.SOLANA_KEYPAIR_PATH || './wallet.json';
         const rpcUrl = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
+
+        console.log('USING:', rpcUrl);
         
         if (!fs.existsSync(keypairPath)) {
           throw new Error(`Keypair file not found at ${keypairPath}`);
@@ -54,7 +57,7 @@ class ModeratorService {
         const authority = Keypair.fromSecretKey(new Uint8Array(keypairData));
         
         const config: IModeratorConfig = {
-          baseMint: new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'), // USDC
+          baseMint: new PublicKey('C7MGcMnN8cXUkj8JQuMhkJZh6WqY2r8QnT3AUfKTkrix'), // Oogway
           quoteMint: new PublicKey('So11111111111111111111111111111111111111112'), // Wrapped SOL
           baseDecimals: 6,
           quoteDecimals: 9,
