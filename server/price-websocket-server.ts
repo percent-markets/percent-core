@@ -1,6 +1,8 @@
-import WebSocket from 'ws';
+import WebSocket, { WebSocketServer } from 'ws';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { getDevnetPriceService } from './devnet-price-service';
+import { Client } from 'pg';
+import { Pool } from 'pg';
 
 interface PriceData {
   tokenAddress: string;
@@ -12,10 +14,24 @@ interface PriceData {
 interface ClientSubscription {
   tokens: Set<string>;
   poolAddresses?: Map<string, string>; // token -> pool mapping
+  proposals: Set<number>; // subscribed proposal IDs for trades
+}
+
+interface TradeEvent {
+  type: 'TRADE';
+  proposalId: number;
+  market: 'pass' | 'fail';
+  userAddress: string;
+  isBaseToQuote: boolean;
+  amountIn: string;
+  amountOut: string;
+  price: string;
+  txSignature: string | null;
+  timestamp: string;
 }
 
 class PriceWebSocketServer {
-  private wss: WebSocket.Server;
+  private wss: WebSocketServer;
   private clients: Map<WebSocket, ClientSubscription> = new Map();
   private prices: Map<string, PriceData> = new Map();
   private priceUpdateInterval: NodeJS.Timeout | null = null;
@@ -23,12 +39,15 @@ class PriceWebSocketServer {
   private devnetService = getDevnetPriceService();
   private devnetTokens: Set<string> = new Set(); // Track which tokens are on devnet
   private poolMonitors: Map<string, number> = new Map(); // poolAddress -> subscriptionId
+  private pgClient: Client | null = null;
+  private subscribedProposals: Set<number> = new Set();
 
   constructor(port: number = 9091) {
-    this.wss = new WebSocket.Server({ port });
-    console.log(`Price WebSocket server started on port ${port}`);
+    this.wss = new WebSocketServer({ port });
+    console.log(`Price & Trade WebSocket server started on port ${port}`);
     this.setupServer();
     this.startPriceUpdates();
+    this.setupDatabaseListener();
   }
 
   private setupServer() {
@@ -36,7 +55,7 @@ class PriceWebSocketServer {
       console.log('New client connected');
       
       // Initialize client subscription
-      this.clients.set(ws, { tokens: new Set() });
+      this.clients.set(ws, { tokens: new Set(), proposals: new Set() });
 
       ws.on('message', (message: string) => {
         try {
@@ -127,6 +146,27 @@ class PriceWebSocketServer {
 
       case 'PING':
         ws.send(JSON.stringify({ type: 'PONG' }));
+        break;
+
+      case 'SUBSCRIBE_TRADES':
+        if (data.proposalId && typeof data.proposalId === 'number') {
+          console.log('Client subscribing to trades for proposal:', data.proposalId);
+          client.proposals.add(data.proposalId);
+          this.subscribedProposals.add(data.proposalId);
+
+          // Send acknowledgment
+          ws.send(JSON.stringify({
+            type: 'TRADES_SUBSCRIBED',
+            proposalId: data.proposalId
+          }));
+        }
+        break;
+
+      case 'UNSUBSCRIBE_TRADES':
+        if (data.proposalId && typeof data.proposalId === 'number') {
+          client.proposals.delete(data.proposalId);
+          this.updateSubscribedProposals();
+        }
         break;
     }
   }
@@ -228,7 +268,7 @@ class PriceWebSocketServer {
       }
     } catch (error) {
       // Silently handle errors for non-existent tokens
-      if (!error.message?.includes('404')) {
+      if (error instanceof Error && !error.message?.includes('404')) {
         console.error(`Error fetching price for ${tokenAddress}:`, error.message);
       }
     }
@@ -305,6 +345,113 @@ class PriceWebSocketServer {
     }
   }
 
+  private updateSubscribedProposals() {
+    // Update the set of all subscribed proposals across all clients
+    const allProposals = new Set<number>();
+    this.clients.forEach(subscription => {
+      subscription.proposals.forEach(proposalId => allProposals.add(proposalId));
+    });
+    this.subscribedProposals = allProposals;
+  }
+
+  private async setupDatabaseListener() {
+    try {
+      // Get database connection info from environment
+      const dbUrl = process.env.DB_URL || process.env.DATABASE_URL;
+      if (!dbUrl) {
+        console.log('No database URL found, trade notifications disabled');
+        return;
+      }
+
+      this.pgClient = new Client({ connectionString: dbUrl });
+      await this.pgClient.connect();
+      console.log('Connected to PostgreSQL for trade notifications');
+
+      // Listen for new_trade notifications
+      await this.pgClient.query('LISTEN new_trade');
+
+      this.pgClient.on('notification', (msg) => {
+        if (msg.channel === 'new_trade' && msg.payload) {
+          try {
+            const tradeData = JSON.parse(msg.payload);
+            this.handleNewTrade(tradeData);
+          } catch (error) {
+            console.error('Error parsing trade notification:', error);
+          }
+        }
+      });
+
+      // Also poll for recent trades on connection (in case we missed any)
+      this.pollRecentTrades();
+
+    } catch (error) {
+      console.error('Failed to setup database listener:', error);
+      // Continue without database notifications
+    }
+  }
+
+  private async pollRecentTrades() {
+    if (!this.pgClient) return;
+
+    try {
+      // Get trades from last 5 seconds for all subscribed proposals
+      if (this.subscribedProposals.size > 0) {
+        const proposalIds = Array.from(this.subscribedProposals).join(',');
+        const query = `
+          SELECT * FROM trade_history
+          WHERE proposal_id IN (${proposalIds})
+          AND timestamp > NOW() - INTERVAL '5 seconds'
+          ORDER BY timestamp DESC
+        `;
+
+        const result = await this.pgClient.query(query);
+        result.rows.forEach(trade => {
+          this.broadcastTrade({
+            type: 'TRADE',
+            proposalId: trade.proposal_id,
+            market: trade.market,
+            userAddress: trade.user_address,
+            isBaseToQuote: trade.is_base_to_quote,
+            amountIn: trade.amount_in,
+            amountOut: trade.amount_out,
+            price: trade.price,
+            txSignature: trade.tx_signature,
+            timestamp: trade.timestamp.toISOString()
+          });
+        });
+      }
+    } catch (error) {
+      console.error('Error polling recent trades:', error);
+    }
+  }
+
+  private handleNewTrade(tradeData: any) {
+    // Broadcast to all clients subscribed to this proposal
+    const trade: TradeEvent = {
+      type: 'TRADE',
+      proposalId: tradeData.proposalId || tradeData.proposal_id,
+      market: tradeData.market,
+      userAddress: tradeData.userAddress || tradeData.user_address,
+      isBaseToQuote: tradeData.isBaseToQuote || tradeData.is_base_to_quote,
+      amountIn: tradeData.amountIn || tradeData.amount_in,
+      amountOut: tradeData.amountOut || tradeData.amount_out,
+      price: tradeData.price,
+      txSignature: tradeData.txSignature || tradeData.tx_signature,
+      timestamp: tradeData.timestamp || new Date().toISOString()
+    };
+
+    this.broadcastTrade(trade);
+  }
+
+  private broadcastTrade(trade: TradeEvent) {
+    this.clients.forEach((subscription, ws) => {
+      if (subscription.proposals.has(trade.proposalId) && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(trade));
+      }
+    });
+    console.log(`Trade broadcast for proposal ${trade.proposalId}: ${trade.market} ${trade.isBaseToQuote ? 'buy' : 'sell'}`);
+  }
+
   public async shutdown() {
     // Stop all pool monitors
     for (const [poolAddress, subscriptionId] of this.poolMonitors) {
@@ -314,6 +461,9 @@ class PriceWebSocketServer {
     
     if (this.priceUpdateInterval) {
       clearInterval(this.priceUpdateInterval);
+    }
+    if (this.pgClient) {
+      await this.pgClient.end();
     }
     this.wss.close();
   }

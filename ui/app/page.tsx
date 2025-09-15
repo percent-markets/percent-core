@@ -8,6 +8,7 @@ import Sidebar from '@/components/Sidebar';
 import TradingInterface from '@/components/TradingInterface';
 import Header from '@/components/Header';
 import { useProposals } from '@/hooks/useProposals';
+import { useTradeHistory } from '@/hooks/useTradeHistory';
 import { IoMdStopwatch } from 'react-icons/io';
 import { formatNumber, formatCurrency } from '@/lib/formatters';
 import { api } from '@/lib/api';
@@ -89,10 +90,20 @@ export default function HomePage() {
     }
   }, [sortedProposals, selectedProposalId]);
   
-  const proposal = useMemo(() => 
+  const proposal = useMemo(() =>
     proposals.find(p => p.id === selectedProposalId) || sortedProposals[0] || null,
     [selectedProposalId, proposals, sortedProposals]
   );
+
+  // Fetch trade history for the selected proposal
+  const {
+    trades,
+    loading: tradesLoading,
+    getTimeAgo,
+    formatAddress,
+    getTokenUsed,
+    calculateVolume
+  } = useTradeHistory(proposal?.id || null);
   
   const handleSelectProposal = useCallback((id: number) => {
     setSelectedProposalId(id);
@@ -348,141 +359,53 @@ export default function HomePage() {
               {/* Table Header */}
               <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs text-[#9C9D9E] font-medium border-b border-[#2A2A2A]">
                 <div>Trader</div>
-                <div>Position</div>
+                <div>Bet</div>
                 <div>Type</div>
-                <div>Market</div>
+                <div>Price</div>
                 <div>Amount</div>
                 <div className="flex justify-between">
-                  <span>Price</span>
+                  <span>Volume</span>
                   <span>Age</span>
                 </div>
               </div>
               
               {/* Table Body - Scrollable */}
               <div className="max-h-[400px] overflow-y-auto scrollbar-hide">
-                {/* Sample trade rows - 10 entries */}
-                <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs hover:bg-[#272A2D]/30 transition-colors">
-                  <div className="text-white">0xAb5...3d8</div>
-                  <div className="text-white">2.5%</div>
-                  <div className="text-emerald-400">buy</div>
-                  <div className="text-white">Pass</div>
-                  <div className="text-white">{formatNumber(100, 0)}</div>
-                  <div className="flex justify-between">
-                    <span className="text-white">{formatCurrency(0.701, 3)}</span>
-                    <span className="text-[#9C9D9E]">2m</span>
+                {tradesLoading ? (
+                  <div className="px-4 py-8 text-center text-[#9C9D9E] text-xs">
+                    Loading trades...
                   </div>
-                </div>
-                <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs hover:bg-[#272A2D]/30 transition-colors">
-                  <div className="text-white">0x7F2...9e4</div>
-                  <div className="text-white">0.0%</div>
-                  <div className="text-rose-400">sell</div>
-                  <div className="text-white">Fail</div>
-                  <div className="text-white">{formatNumber(50, 0)}</div>
-                  <div className="flex justify-between">
-                    <span className="text-white">{formatCurrency(0.299, 3)}</span>
-                    <span className="text-[#9C9D9E]">5m</span>
+                ) : trades.length === 0 ? (
+                  <div className="px-4 py-8 text-center text-[#9C9D9E] text-xs">
+                    No trades yet
                   </div>
-                </div>
-                <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs hover:bg-[#272A2D]/30 transition-colors">
-                  <div className="text-white">0x3C9...1a7</div>
-                  <div className="text-white">5.2%</div>
-                  <div className="text-emerald-400">buy</div>
-                  <div className="text-white">Pass</div>
-                  <div className="text-white">{formatNumber(250, 0)}</div>
-                  <div className="flex justify-between">
-                    <span className="text-white">{formatCurrency(0.698, 3)}</span>
-                    <span className="text-[#9C9D9E]">12m</span>
-                  </div>
-                </div>
-                <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs hover:bg-[#272A2D]/30 transition-colors">
-                  <div className="text-white">0x9D1...8f2</div>
-                  <div className="text-white">1.8%</div>
-                  <div className="text-emerald-400">buy</div>
-                  <div className="text-white">Fail</div>
-                  <div className="text-white">{formatNumber(75, 0)}</div>
-                  <div className="flex justify-between">
-                    <span className="text-white">{formatCurrency(0.301, 3)}</span>
-                    <span className="text-[#9C9D9E]">18m</span>
-                  </div>
-                </div>
-                <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs hover:bg-[#272A2D]/30 transition-colors">
-                  <div className="text-white">0x2E4...5c9</div>
-                  <div className="text-white">3.1%</div>
-                  <div className="text-rose-400">sell</div>
-                  <div className="text-white">Pass</div>
-                  <div className="text-white">{formatNumber(150, 0)}</div>
-                  <div className="flex justify-between">
-                    <span className="text-white">{formatCurrency(0.695, 3)}</span>
-                    <span className="text-[#9C9D9E]">25m</span>
-                  </div>
-                </div>
-                <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs hover:bg-[#272A2D]/30 transition-colors">
-                  <div className="text-white">0x8F3...2b1</div>
-                  <div className="text-white">4.0%</div>
-                  <div className="text-emerald-400">buy</div>
-                  <div className="text-white">Pass</div>
-                  <div className="text-white">{formatNumber(180, 0)}</div>
-                  <div className="flex justify-between">
-                    <span className="text-white">{formatCurrency(0.703, 3)}</span>
-                    <span className="text-[#9C9D9E]">28m</span>
-                  </div>
-                </div>
-                <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs hover:bg-[#272A2D]/30 transition-colors">
-                  <div className="text-white">0x5A2...7c6</div>
-                  <div className="text-white">1.2%</div>
-                  <div className="text-rose-400">sell</div>
-                  <div className="text-white">Fail</div>
-                  <div className="text-white">{formatNumber(90, 0)}</div>
-                  <div className="flex justify-between">
-                    <span className="text-white">{formatCurrency(0.297, 3)}</span>
-                    <span className="text-[#9C9D9E]">32m</span>
-                  </div>
-                </div>
-                <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs hover:bg-[#272A2D]/30 transition-colors">
-                  <div className="text-white">0x1B7...4d3</div>
-                  <div className="text-white">6.5%</div>
-                  <div className="text-emerald-400">buy</div>
-                  <div className="text-white">Pass</div>
-                  <div className="text-white">{formatNumber(320, 0)}</div>
-                  <div className="flex justify-between">
-                    <span className="text-white">{formatCurrency(0.705, 3)}</span>
-                    <span className="text-[#9C9D9E]">35m</span>
-                  </div>
-                </div>
-                <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs hover:bg-[#272A2D]/30 transition-colors">
-                  <div className="text-white">0x7C8...9e2</div>
-                  <div className="text-white">2.3%</div>
-                  <div className="text-emerald-400">buy</div>
-                  <div className="text-white">Fail</div>
-                  <div className="text-white">{formatNumber(110, 0)}</div>
-                  <div className="flex justify-between">
-                    <span className="text-white">{formatCurrency(0.302, 3)}</span>
-                    <span className="text-[#9C9D9E]">40m</span>
-                  </div>
-                </div>
-                <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs hover:bg-[#272A2D]/30 transition-colors">
-                  <div className="text-white">0x4D9...1f5</div>
-                  <div className="text-white">3.7%</div>
-                  <div className="text-rose-400">sell</div>
-                  <div className="text-white">Pass</div>
-                  <div className="text-white">{formatNumber(200, 0)}</div>
-                  <div className="flex justify-between">
-                    <span className="text-white">{formatCurrency(0.694, 3)}</span>
-                    <span className="text-[#9C9D9E]">45m</span>
-                  </div>
-                </div>
-                {/* Additional trades would continue here for scrolling */}
-                <div className="grid grid-cols-6 gap-4 px-4 py-3 text-xs hover:bg-[#272A2D]/30 transition-colors">
-                  <div className="text-white">0x9A3...7b4</div>
-                  <div className="text-white">1.5%</div>
-                  <div className="text-rose-400">sell</div>
-                  <div className="text-white">Fail</div>
-                  <div className="text-white">{formatNumber(65, 0)}</div>
-                  <div className="flex justify-between">
-                    <span className="text-white">{formatCurrency(0.296, 3)}</span>
-                    <span className="text-[#9C9D9E]">52m</span>
-                  </div>
-                </div>
+                ) : (
+                  trades.map((trade) => {
+                    const tokenUsed = getTokenUsed(trade.isBaseToQuote, trade.market);
+                    const volume = calculateVolume(trade.amountIn, trade.isBaseToQuote, trade.market);
+                    const isBuy = trade.isBaseToQuote;
+
+                    return (
+                      <div key={trade.id} className="grid grid-cols-6 gap-4 px-4 py-3 text-xs hover:bg-[#272A2D]/30 transition-colors">
+                        <div className="text-white">{formatAddress(trade.userAddress)}</div>
+                        <div className={trade.market === 'pass' ? 'text-emerald-400' : 'text-rose-400'}>
+                          {trade.market === 'pass' ? 'Pass' : 'Fail'}
+                        </div>
+                        <div className={isBuy ? 'text-emerald-400' : 'text-rose-400'}>
+                          {isBuy ? 'buy' : 'sell'}
+                        </div>
+                        <div className="text-white">{formatCurrency(parseFloat(trade.price), 3)}</div>
+                        <div className="text-white">
+                          {formatNumber(parseFloat(trade.amountIn), 2)} {tokenUsed}
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-white">{formatCurrency(volume, 2)}</span>
+                          <span className="text-[#9C9D9E]">{getTimeAgo(trade.timestamp)}</span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
           </div>
