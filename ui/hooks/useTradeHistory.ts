@@ -238,13 +238,9 @@ export function useTradeHistory(proposalId: number | null) {
 
   // Memoized helper function to determine token used
   const getTokenUsed = useCallback((isBaseToQuote: boolean, market: 'pass' | 'fail') => {
-    // For pass market: base is oogway, quote is SOL
-    // For fail market: base is SOL, quote is oogway
-    if (market === 'pass') {
-      return isBaseToQuote ? '$oogway' : 'SOL';
-    } else {
-      return isBaseToQuote ? 'SOL' : '$oogway';
-    }
+    // Both pass and fail markets use the same token pairs:
+    // base = oogway, quote = SOL
+    return isBaseToQuote ? '$oogway' : 'SOL';
   }, []);
 
   // Memoized helper function to calculate volume in USD
