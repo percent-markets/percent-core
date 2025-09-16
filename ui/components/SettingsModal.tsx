@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { X, Copy, Shield, Zap, DollarSign, Key } from 'lucide-react';
 import { usePrivyWallet } from '@/hooks/usePrivyWallet';
 import { useSolanaWallets } from '@privy-io/react-auth/solana';
 import { useAllUserPositions } from '@/hooks/useAllUserPositions';
 import { useClaimablePositions } from '@/hooks/useClaimablePositions';
 import { formatNumber } from '@/lib/formatters';
+import { claimWinnings } from '@/lib/trading';
+import toast from 'react-hot-toast';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -26,12 +28,139 @@ export default function SettingsModal({
   oogwayPrice = 0
 }: SettingsModalProps) {
   const { authenticated, user, walletAddress, logout, login } = usePrivyWallet();
-  const { exportWallet } = useSolanaWallets();
+  const { wallets, exportWallet } = useSolanaWallets();
   const { positions, totalValue: positionsTotalValue } = useAllUserPositions(walletAddress);
   const { positions: claimablePositions, totalClaimableValue } = useClaimablePositions(walletAddress);
   const [copied, setCopied] = useState(false);
   const [selectedTab, setSelectedTab] = useState<'wallet' | 'trading' | 'claims'>('wallet');
-  
+  const [claimingPositions, setClaimingPositions] = useState<Set<string>>(new Set());
+  const [isClaimingAll, setIsClaimingAll] = useState(false);
+  const [claimedPositions, setClaimedPositions] = useState<Set<string>>(new Set());
+
+  const handleCopy = useCallback(() => {
+    if (walletAddress) {
+      navigator.clipboard.writeText(walletAddress);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }, [walletAddress]);
+
+  const handleClaimSingle = useCallback(async (position: typeof claimablePositions[0]) => {
+    if (!authenticated) {
+      login();
+      return;
+    }
+
+    if (!walletAddress) {
+      toast.error('No wallet address found');
+      return;
+    }
+
+    const claimKey = `${position.proposalId}-${position.claimableToken}`;
+    setClaimingPositions(prev => new Set(prev).add(claimKey));
+
+    try {
+      // Create userPosition object matching what claimWinnings expects
+      const userPosition = {
+        type: position.positionType,
+        passAmount: position.positionType === 'pass' && position.claimableToken === 'oogway'
+          ? position.claimableAmount * 1e6
+          : position.claimableToken === 'sol' ? position.claimableAmount * 1e9 : 0,
+        failAmount: position.positionType === 'fail' && position.claimableToken === 'oogway'
+          ? position.claimableAmount * 1e6
+          : position.claimableToken === 'sol' ? position.claimableAmount * 1e9 : 0
+      };
+
+      await claimWinnings({
+        proposalId: position.proposalId,
+        proposalStatus: position.proposalStatus,
+        userPosition,
+        userAddress: walletAddress,
+        signTransaction: async (transaction) => {
+          const wallet = wallets[0];
+          if (!wallet) throw new Error('No Solana wallet found');
+          const signedTx = await wallet.signTransaction(transaction);
+          return signedTx;
+        }
+      });
+
+      toast.success(`Claimed ${formatNumber(position.claimableAmount)} ${position.claimableToken === 'sol' ? 'SOL' : '$oogway'}`);
+
+      // Mark this position as claimed
+      setClaimedPositions(prev => new Set(prev).add(claimKey));
+
+    } catch (error) {
+      console.error('Claim failed:', error);
+      // Error toast is already shown by claimWinnings function
+    } finally {
+      setClaimingPositions(prev => {
+        const next = new Set(prev);
+        next.delete(claimKey);
+        return next;
+      });
+    }
+  }, [authenticated, login, walletAddress, wallets]);
+
+  const handleClaimAll = useCallback(async () => {
+    if (!authenticated) {
+      login();
+      return;
+    }
+
+    if (!walletAddress) {
+      toast.error('No wallet address found');
+      return;
+    }
+
+    if (claimablePositions.length === 0) {
+      toast.error('No positions to claim');
+      return;
+    }
+
+    // Mark that we're claiming all
+    setIsClaimingAll(true);
+
+    try {
+      // Claim all positions sequentially
+      for (const position of claimablePositions) {
+        const userPosition = {
+          type: position.positionType,
+          passAmount: position.positionType === 'pass' && position.claimableToken === 'oogway'
+            ? position.claimableAmount * 1e6
+            : position.claimableToken === 'sol' ? position.claimableAmount * 1e9 : 0,
+          failAmount: position.positionType === 'fail' && position.claimableToken === 'oogway'
+            ? position.claimableAmount * 1e6
+            : position.claimableToken === 'sol' ? position.claimableAmount * 1e9 : 0
+        };
+
+        await claimWinnings({
+          proposalId: position.proposalId,
+          proposalStatus: position.proposalStatus,
+          userPosition,
+          userAddress: walletAddress,
+          signTransaction: async (transaction) => {
+            const wallet = wallets[0];
+            if (!wallet) throw new Error('No Solana wallet found');
+            const signedTx = await wallet.signTransaction(transaction);
+            return signedTx;
+          }
+        });
+      }
+
+      toast.success('Successfully claimed all positions!');
+
+      // Mark all positions as claimed
+      const allKeys = claimablePositions.map(p => `${p.proposalId}-${p.claimableToken}`);
+      setClaimedPositions(new Set(allKeys));
+
+    } catch (error) {
+      console.error('Claim all failed:', error);
+      toast.error('Failed to claim all positions');
+    } finally {
+      setIsClaimingAll(false);
+    }
+  }, [authenticated, login, walletAddress, wallets, claimablePositions]);
+
   // Handle escape key press
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -39,16 +168,16 @@ export default function SettingsModal({
         onClose();
       }
     };
-    
+
     if (isOpen) {
       document.addEventListener('keydown', handleEsc);
     }
-    
+
     return () => {
       document.removeEventListener('keydown', handleEsc);
     };
   }, [isOpen, onClose]);
-  
+
   // Prevent body scroll when modal is open
   useEffect(() => {
     if (isOpen) {
@@ -56,24 +185,18 @@ export default function SettingsModal({
     } else {
       document.body.style.overflow = 'unset';
     }
-    
+
     return () => {
       document.body.style.overflow = 'unset';
     };
   }, [isOpen]);
-  
+
+  // Early return if modal is not open
   if (!isOpen) return null;
-  
+
+  // Computed values
   const shortAddress = walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : '';
   const isConnected = authenticated;
-  
-  const handleCopy = () => {
-    if (walletAddress) {
-      navigator.clipboard.writeText(walletAddress);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
   
   return (
     <>
@@ -387,24 +510,30 @@ export default function SettingsModal({
               {/* Claims header */}
               <h3 className="text-sm font-medium text-[#AFAFAF] mb-4">Payouts</h3>
 
-              {claimablePositions.length > 0 ? (
-                <>
-                  {/* Claims table */}
-                  <div className="bg-[#121212] border border-[#2A2A2A] rounded-lg overflow-hidden">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-[#2A2A2A]">
-                      <th className="text-left text-xs text-[#AFAFAF] font-medium p-3">Proposal</th>
-                      <th className="text-right text-xs text-[#AFAFAF] font-medium p-3 w-fit whitespace-nowrap">Result</th>
-                      <th className="text-right text-xs text-[#AFAFAF] font-medium p-3 w-fit whitespace-nowrap">Payout</th>
-                      <th className="text-right text-xs text-[#AFAFAF] font-medium p-3 w-fit whitespace-nowrap">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {claimablePositions.map((position, index) => (
+              {(() => {
+                // Filter out claimed positions
+                const unclaimedPositions = claimablePositions.filter(
+                  p => !claimedPositions.has(`${p.proposalId}-${p.claimableToken}`)
+                );
+
+                return unclaimedPositions.length > 0 ? (
+                  <>
+                    {/* Claims table */}
+                    <div className="bg-[#121212] border border-[#2A2A2A] rounded-lg overflow-hidden">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-[#2A2A2A]">
+                        <th className="text-left text-xs text-[#AFAFAF] font-medium p-3">Proposal</th>
+                        <th className="text-right text-xs text-[#AFAFAF] font-medium p-3 w-fit whitespace-nowrap">Result</th>
+                        <th className="text-right text-xs text-[#AFAFAF] font-medium p-3 w-fit whitespace-nowrap">Payout</th>
+                        <th className="text-right text-xs text-[#AFAFAF] font-medium p-3 w-fit whitespace-nowrap">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {unclaimedPositions.map((position, index) => (
                       <tr
                         key={`${position.proposalId}-${position.claimableToken}`}
-                        className={index < claimablePositions.length - 1 ? 'border-b border-[#2A2A2A]/50' : ''}
+                        className={index < unclaimedPositions.length - 1 ? 'border-b border-[#2A2A2A]/50' : ''}
                       >
                         <td className="p-3 w-full max-w-0">
                           <div className="overflow-hidden">
@@ -444,8 +573,16 @@ export default function SettingsModal({
                           </div>
                         </td>
                         <td className="p-3 text-right whitespace-nowrap">
-                          <button className="px-3 py-1.5 bg-[#4CBBF4] hover:bg-[#3CA5D8] text-[#181818] text-xs font-semibold rounded transition-colors cursor-pointer">
-                            Claim
+                          <button
+                            onClick={() => handleClaimSingle(position)}
+                            disabled={claimingPositions.has(`${position.proposalId}-${position.claimableToken}`)}
+                            className={`px-3 py-1.5 text-[#181818] text-xs font-semibold rounded transition-colors cursor-pointer ${
+                              claimingPositions.has(`${position.proposalId}-${position.claimableToken}`)
+                                ? 'bg-gray-500 cursor-not-allowed'
+                                : 'bg-[#4CBBF4] hover:bg-[#3CA5D8]'
+                            }`}
+                          >
+                            {claimingPositions.has(`${position.proposalId}-${position.claimableToken}`) ? 'Claiming...' : 'Claim'}
                           </button>
                         </td>
                       </tr>
@@ -463,7 +600,7 @@ export default function SettingsModal({
                       <div className="space-y-1">
                         {/* Group claimable amounts by token type */}
                         {(() => {
-                          const totals = claimablePositions.reduce((acc, pos) => {
+                          const totals = unclaimedPositions.reduce((acc, pos) => {
                             if (!acc[pos.claimableToken]) {
                               acc[pos.claimableToken] = 0;
                             }
@@ -485,11 +622,19 @@ export default function SettingsModal({
                           ));
                         })()}
                         <div className="text-xs text-[#AFAFAF]">
-                          (${totalClaimableValue.toFixed(2)} USD)
+                          (${unclaimedPositions.reduce((sum, p) => sum + p.claimableValue, 0).toFixed(2)} USD)
                         </div>
                       </div>
-                      <button className="px-4 py-1.5 bg-[#4CBBF4] hover:bg-[#3CA5D8] text-[#181818] text-sm font-semibold rounded transition-colors cursor-pointer">
-                        Claim All
+                      <button
+                        onClick={handleClaimAll}
+                        disabled={isClaimingAll}
+                        className={`px-4 py-1.5 text-[#181818] text-sm font-semibold rounded transition-colors cursor-pointer ${
+                          isClaimingAll
+                            ? 'bg-gray-500 cursor-not-allowed'
+                            : 'bg-[#4CBBF4] hover:bg-[#3CA5D8]'
+                        }`}
+                      >
+                        {isClaimingAll ? 'Claiming All...' : 'Claim All'}
                       </button>
                     </div>
                   </div>
@@ -504,7 +649,8 @@ export default function SettingsModal({
               <h3 className="text-lg font-medium text-white mb-2">No claims available</h3>
               <p className="text-sm text-[#AFAFAF]">You don't have any winning positions to claim yet</p>
             </div>
-          )}
+          );
+            })()}
         </div>
       )}
     </div>
