@@ -260,7 +260,7 @@ export default function HomePage() {
                 {proposal.id === 0 ? (
                   <>
                     <h1 className="text-3xl font-semibold mb-4">
-                      OOG-1
+                      What is the price of $oogway after OOG-1 settles?
                     </h1>
                     <div className="space-y-4 text-gray-300">
                       <p>
