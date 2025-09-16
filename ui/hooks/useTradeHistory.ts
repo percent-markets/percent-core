@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useTokenPrices } from './useTokenPrices';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:9091';
+const WS_URL = process.env.NEXT_PUBLIC_WS_PRICE_URL || 'ws://localhost:9091';
 const RECONNECT_DELAY = 3000;
 const MAX_RECONNECT_ATTEMPTS = 5;
 
