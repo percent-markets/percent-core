@@ -132,6 +132,35 @@ router.post('/', requireApiKey, async (req, res, next) => {
   }
 });
 
+router.post('/:id/finalize', async (req, res, next) => {
+  try {
+    const moderator = await getModerator();
+    const id = parseInt(req.params.id);
+    
+    if (isNaN(id) || id < 0) {
+      return res.status(400).json({ error: 'Invalid proposal ID' });
+    }
+    
+    // Get proposal from database (always fresh data)
+    const proposal = await moderator.getProposal(id);
+    
+    if (!proposal) {
+      return res.status(404).json({ error: 'Proposal not found' });
+    }
+    
+    // Finalize the proposal
+    const status = await moderator.finalizeProposal(id);
+    
+    res.json({
+      id,
+      status,
+      message: `Proposal #${id} finalized with status: ${status}`
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.post('/:id/execute', async (req, res, next) => {
   try {
     const moderator = await getModerator();
