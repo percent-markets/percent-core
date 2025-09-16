@@ -427,7 +427,7 @@ class PriceWebSocketServer {
   private async setupDatabaseListener() {
     try {
       // Get database connection info from environment
-      const dbUrl = process.env.DB_URL || process.env.DATABASE_URL;
+      const dbUrl = process.env.DB_LISTEN_URL;
       if (!dbUrl) {
         console.log('No database URL found, trade notifications disabled');
         return;
