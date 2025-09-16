@@ -284,10 +284,18 @@ export class Proposal implements IProposal {
       
       // Remove liquidity from AMMs before finalizing vaults
       if (this.__pAMM && !this.__pAMM.isFinalized) {
-        await this.__pAMM.removeLiquidity();
+        try {
+          await this.__pAMM.removeLiquidity();
+        } catch (error) {
+          console.error('Error removing liquidity from pAMM:', error);
+        }
       }
       if (this.__fAMM && !this.__fAMM.isFinalized) {
-        await this.__fAMM.removeLiquidity();
+        try {
+          await this.__fAMM.removeLiquidity();
+        } catch (error) {
+          console.error('Error removing liquidity from fAMM:', error);
+        }
       }
       
       // Finalize both vaults with the proposal status
@@ -297,18 +305,25 @@ export class Proposal implements IProposal {
         
         // Redeem authority's winning tokens after finalization
         // This converts winning conditional tokens back to regular tokens
-        const baseRedeemTx = await this.__baseVault.buildRedeemWinningTokensTx(
-          this.config.authority.publicKey
-        );
-        const quoteRedeemTx = await this.__quoteVault.buildRedeemWinningTokensTx(
-          this.config.authority.publicKey
-        );
+        try {
+          const baseRedeemTx = await this.__baseVault.buildRedeemWinningTokensTx(
+            this.config.authority.publicKey
+          );
+          baseRedeemTx.sign(this.config.authority);
+          await this.__baseVault.executeRedeemWinningTokensTx(baseRedeemTx);
+        } catch (error) {
+          console.error('Error redeeming base vault winning tokens:', error);
+        }
 
-        baseRedeemTx.sign(this.config.authority);
-        quoteRedeemTx.sign(this.config.authority);
-        
-        await this.__baseVault.executeRedeemWinningTokensTx(baseRedeemTx);
-        await this.__quoteVault.executeRedeemWinningTokensTx(quoteRedeemTx);
+        try {
+          const quoteRedeemTx = await this.__quoteVault.buildRedeemWinningTokensTx(
+            this.config.authority.publicKey
+          );
+          quoteRedeemTx.sign(this.config.authority);
+          await this.__quoteVault.executeRedeemWinningTokensTx(quoteRedeemTx);
+        } catch (error) {
+          console.error('Error redeeming quote vault winning tokens:', error);
+        }
       }
     }
     
