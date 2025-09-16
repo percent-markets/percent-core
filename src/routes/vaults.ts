@@ -54,9 +54,7 @@ router.post('/:id/:type/buildSplitTx', async (req, res, next) => {
     const amountBigInt = BigInt(amount);
     
     let transaction;
-    console.log("WE ARE SPLITTING")
     // Check if we need to wrap SOL (mainnet + quote vault)
-    console.log(isMainnet(), vaultType)
     if (isMainnet() && vaultType === 'quote') {
       // Get the moderator to access the connection
       const moderator = await getModerator();
@@ -278,7 +276,53 @@ router.post('/:id/:type/buildRedeemWinningTokensTx', async (req, res, next) => {
     const vault = await getVault(proposalId, vaultType);
     const userPubkey = new PublicKey(user);
     
-    const transaction = await vault.buildRedeemWinningTokensTx(userPubkey);
+    let transaction = await vault.buildRedeemWinningTokensTx(userPubkey);
+    
+    // Check if we need to unwrap SOL (mainnet + quote vault)
+    if (isMainnet() && vaultType === 'quote') {
+      // Get the user's wrapped SOL account
+      const wrappedSolAccount = await getAssociatedTokenAddress(
+        NATIVE_MINT,
+        userPubkey,
+        false,
+        TOKEN_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+      );
+      
+      // Get the moderator to access the connection
+      const moderator = await getModerator();
+      const connection = moderator.config.connection;
+      
+      // Create SPL Token Service instance
+      const tokenService = new SPLTokenService(connection);
+      
+      // Build unwrap SOL instruction (close the wrapped SOL account)
+      const unwrapInstruction = tokenService.buildUnwrapSolIx(
+        wrappedSolAccount,
+        userPubkey, // Send unwrapped SOL back to user
+        userPubkey  // Owner of the wrapped SOL account
+      );
+      
+      // Append unwrap instruction to the transaction
+      // We need to deserialize, modify, and reserialize the transaction
+      const txBuffer = transaction.serialize({ requireAllSignatures: false });
+      const deserializedTx = Transaction.from(txBuffer);
+      
+      // Create a new transaction with original instructions plus unwrap
+      const newTransaction = new Transaction();
+      
+      // Add all original instructions first
+      deserializedTx.instructions.forEach(ix => newTransaction.add(ix));
+      
+      // Then add unwrap instruction at the end
+      newTransaction.add(unwrapInstruction);
+      
+      // Copy over other transaction properties
+      newTransaction.recentBlockhash = deserializedTx.recentBlockhash;
+      newTransaction.feePayer = deserializedTx.feePayer;
+      
+      transaction = newTransaction;
+    }
     
     res.json({
       transaction: transaction.serialize({ requireAllSignatures: false }).toString('base64'),

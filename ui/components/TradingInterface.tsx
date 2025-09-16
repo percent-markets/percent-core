@@ -5,7 +5,7 @@ import { usePrivyWallet } from '@/hooks/usePrivyWallet';
 import { useTokenPrices } from '@/hooks/useTokenPrices';
 import { useUserBalances } from '@/hooks/useUserBalances';
 import { formatNumber, formatCurrency } from '@/lib/formatters';
-import { openPosition, closePosition } from '@/lib/trading';
+import { openPosition, closePosition, claimWinnings } from '@/lib/trading';
 import { useSolanaWallets } from '@privy-io/react-auth/solana';
 import toast from 'react-hot-toast';
 
@@ -120,6 +120,7 @@ const TradingInterface = memo(({
   const { wallets } = useSolanaWallets();
   const [isTrading, setIsTrading] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+  const [isClaiming, setIsClaiming] = useState(false);
 
   // Reset position mode to 'increase' when user no longer has a position
   useEffect(() => {
@@ -257,6 +258,57 @@ const TradingInterface = memo(({
       setIsClosing(false);
     }
   }, [isConnected, login, walletAddress, userPosition, amount, proposalId, wallets, refetchBalances]);
+  
+  const handleClaim = useCallback(async () => {
+    if (!isConnected) {
+      login();
+      return;
+    }
+    
+    if (!walletAddress) {
+      toast.error('No wallet address found');
+      return;
+    }
+    
+    if (!userPosition) {
+      toast.error('No position to claim');
+      return;
+    }
+    
+    if (proposalStatus !== 'Passed' && proposalStatus !== 'Failed') {
+      toast.error('Cannot claim from pending proposal');
+      return;
+    }
+    
+    setIsClaiming(true);
+    
+    try {
+      await claimWinnings({
+        proposalId,
+        proposalStatus: proposalStatus as 'Passed' | 'Failed',
+        userPosition,
+        userAddress: walletAddress,
+        signTransaction: async (transaction) => {
+          // Get the first Solana wallet from Privy
+          const wallet = wallets[0];
+          if (!wallet) throw new Error('No Solana wallet found');
+          
+          // Sign the transaction with Privy's Solana wallet
+          const signedTx = await wallet.signTransaction(transaction);
+          return signedTx;
+        }
+      });
+      
+      // Refresh user balances after claiming
+      refetchBalances();
+      
+    } catch (error) {
+      console.error('Claim failed:', error);
+      // Error toast is already shown by claimWinnings function
+    } finally {
+      setIsClaiming(false);
+    }
+  }, [isConnected, login, walletAddress, userPosition, proposalStatus, proposalId, wallets, refetchBalances]);
 
   // Quick amount buttons - depends on position mode and input mode
   const quickAmounts = useMemo(() => {
@@ -561,16 +613,15 @@ const TradingInterface = memo(({
           {userPosition ? (
             /* Claim Button */
             <button
-                onClick={() => {
-                  if (!isConnected) {
-                    login();
-                    return;
-                  }
-                  console.log('Claiming winnings');
-                }}
-                className="w-full py-3 rounded-lg font-semibold transition cursor-pointer bg-emerald-500 hover:bg-emerald-600 text-[#181818]"
+                onClick={handleClaim}
+                disabled={isClaiming}
+                className={`w-full py-3 rounded-lg font-semibold transition cursor-pointer ${
+                  isClaiming 
+                    ? 'bg-gray-500 cursor-not-allowed' 
+                    : 'bg-emerald-500 hover:bg-emerald-600'
+                } text-[#181818]`}
               >
-                Claim
+                {isClaiming ? 'Claiming...' : 'Claim'}
               </button>
             ) : (
               <div className="text-center py-6 text-gray-400 text-sm">

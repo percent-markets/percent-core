@@ -536,7 +536,9 @@ export class Vault implements IVault {
     }
     
     // Determine which conditional token is the winning token
-    const isPassWinning = this._proposalStatus === ProposalStatus.Passed;
+    // Executed proposals are passed proposals that have been executed
+    const isPassWinning = this._proposalStatus === ProposalStatus.Passed || 
+                          this._proposalStatus === ProposalStatus.Executed;
     const winningMint = isPassWinning ? this.passConditionalMint : this.failConditionalMint;
     const winningBalance = isPassWinning 
       ? await this.getPassConditionalBalance(user)

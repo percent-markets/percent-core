@@ -621,6 +621,111 @@ async function splitTokens(
 }
 
 /**
+ * Claim winnings from a finished proposal
+ */
+export async function claimWinnings(config: {
+  proposalId: number;
+  proposalStatus: 'Passed' | 'Failed';
+  userPosition: { type: 'pass' | 'fail' } | null;
+  userAddress: string;
+  signTransaction: (transaction: Transaction) => Promise<Transaction>;
+}): Promise<void> {
+  const { proposalId, proposalStatus, userPosition, userAddress, signTransaction } = config;
+  
+  if (!userPosition) {
+    throw new Error('No position to claim');
+  }
+  
+  const toastId = toast.loading('Claiming winnings...');
+  
+  try {
+    // Determine which vault to redeem from based on proposal outcome and user position
+    let vaultToRedeem: 'base' | 'quote';
+    
+    if (proposalStatus === 'Passed') {
+      // Proposal passed
+      if (userPosition.type === 'pass') {
+        // User bet on pass and won - redeem from base vault (gets oogway)
+        vaultToRedeem = 'base';
+      } else {
+        // User bet on fail and lost - redeem from quote vault (gets remaining SOL if any)
+        vaultToRedeem = 'quote';
+      }
+    } else {
+      // Proposal failed
+      if (userPosition.type === 'fail') {
+        // User bet on fail and won - redeem from base vault (gets oogway)
+        vaultToRedeem = 'base';
+      } else {
+        // User bet on pass and lost - redeem from quote vault (gets remaining SOL if any)
+        vaultToRedeem = 'quote';
+      }
+    }
+    
+    // Build redeem transaction
+    const redeemResponse = await fetch(
+      `${API_BASE_URL}/api/vaults/${proposalId}/${vaultToRedeem}/buildRedeemWinningTokensTx`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          user: userAddress
+        })
+      }
+    );
+    
+    if (!redeemResponse.ok) {
+      const error = await redeemResponse.json();
+      throw new Error(`Failed to build redeem transaction: ${error.message || JSON.stringify(error)}`);
+    }
+    
+    const redeemData = await redeemResponse.json();
+    
+    // Sign the transaction
+    const redeemTx = Transaction.from(Buffer.from(redeemData.transaction, 'base64'));
+    const signedRedeemTx = await signTransaction(redeemTx);
+    
+    // Execute the signed redeem transaction
+    const executeRedeemResponse = await fetch(
+      `${API_BASE_URL}/api/vaults/${proposalId}/${vaultToRedeem}/executeRedeemWinningTokensTx`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          transaction: Buffer.from(signedRedeemTx.serialize({ requireAllSignatures: false })).toString('base64')
+        })
+      }
+    );
+    
+    if (!executeRedeemResponse.ok) {
+      const error = await executeRedeemResponse.json();
+      throw new Error(`Failed to execute redeem transaction: ${error.message || JSON.stringify(error)}`);
+    }
+    
+    const result = await executeRedeemResponse.json();
+    
+    toast.success(
+      'Winnings claimed successfully!',
+      { id: toastId, duration: 5000 }
+    );
+    
+    return result;
+    
+  } catch (error) {
+    console.error('Error claiming winnings:', error);
+    toast.error(
+      `Failed to claim winnings: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      { id: toastId }
+    );
+    throw error;
+  }
+}
+
+/**
  * Execute a swap on pass or fail market
  */
 async function executeMarketSwap(

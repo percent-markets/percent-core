@@ -1,7 +1,7 @@
 import { getPool } from './database.service';
 import { IPersistenceService, IProposalDB, IModeratorStateDB, ITransactionData } from '../types/persistence.interface';
 import { IProposal, IProposalConfig } from '../types/proposal.interface';
-import { IModeratorConfig } from '../types/moderator.interface';
+import { IModeratorConfig, ProposalStatus } from '../types/moderator.interface';
 import { AMMState } from '../types/amm.interface';
 import { VaultState } from '../types/vault.interface';
 import { Proposal } from '../proposal';
@@ -39,6 +39,8 @@ type VaultPrivateAccess = {
   _escrow: PublicKey;
   _passConditionalMint: PublicKey;
   _failConditionalMint: PublicKey;
+  _proposalStatus: ProposalStatus;
+  _isFinalized: boolean;
 };
 
 /**
@@ -510,6 +512,12 @@ export class PersistenceService implements IPersistenceService {
           (baseVault as unknown as VaultPrivateAccess)._escrow = new PublicKey(row.base_vault_state.escrow);
           (baseVault as unknown as VaultPrivateAccess)._passConditionalMint = new PublicKey(row.base_vault_state.passConditionalMint);
           (baseVault as unknown as VaultPrivateAccess)._failConditionalMint = new PublicKey(row.base_vault_state.failConditionalMint);
+          
+          // If vault is finalized, also set the proposal status
+          if (row.base_vault_state.state === 'Finalized') {
+            (baseVault as unknown as VaultPrivateAccess)._proposalStatus = row.status as ProposalStatus;
+            (baseVault as unknown as VaultPrivateAccess)._isFinalized = true;
+          }
         }
         
         if (row.quote_vault_state) {
@@ -517,6 +525,12 @@ export class PersistenceService implements IPersistenceService {
           (quoteVault as unknown as VaultPrivateAccess)._escrow = new PublicKey(row.quote_vault_state.escrow);
           (quoteVault as unknown as VaultPrivateAccess)._passConditionalMint = new PublicKey(row.quote_vault_state.passConditionalMint);
           (quoteVault as unknown as VaultPrivateAccess)._failConditionalMint = new PublicKey(row.quote_vault_state.failConditionalMint);
+          
+          // If vault is finalized, also set the proposal status
+          if (row.quote_vault_state.state === 'Finalized') {
+            (quoteVault as unknown as VaultPrivateAccess)._proposalStatus = row.status as ProposalStatus;
+            (quoteVault as unknown as VaultPrivateAccess)._isFinalized = true;
+          }
         }
         
         // Create AMMs using the conditional token mints from vaults

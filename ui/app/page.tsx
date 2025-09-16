@@ -485,7 +485,10 @@ export default function HomePage() {
                 onMarketChange={handleMarketChange}
                 passPrice={0.5}
                 failPrice={0.5}
-                proposalStatus={proposal.status as 'Pending' | 'Passed' | 'Failed'}
+                proposalStatus={
+                  proposal.status === 'Executed' ? 'Passed' : 
+                  proposal.status as 'Pending' | 'Passed' | 'Failed'
+                }
               />
             </div>
           </div>
