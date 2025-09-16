@@ -6,17 +6,10 @@
     "dev:test": "tsx watch src/test/server.test.ts",
     "ws:price": "tsx server/price-websocket-server.ts",
     "build": "tsc",
-    "start": "node dist/server.js",
-    "test": "NODE_ENV=test vitest",
-    "test:ui": "NODE_ENV=test vitest --ui",
-    "test:run": "NODE_ENV=test vitest run",
-    "test:coverage": "NODE_ENV=test vitest run --coverage",
+    "start": "node dist/src/server.js",
     "create-proposal": "tsx scripts/create-proposal.ts",
     "execute-proposal": "tsx scripts/execute-proposal.ts",
-    "get-analytics": "tsx scripts/get-analytics.ts",
-    "test-swap": "tsx scripts/test-swap.ts",
-    "fetch-historical-data": "tsx scripts/fetch-historical-data.ts",
-    "test-close-position": "tsx scripts/test-close-position.ts"
+    "test-swap": "tsx scripts/test-swap.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.31.1",

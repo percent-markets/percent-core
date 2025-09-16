@@ -3,6 +3,9 @@ import type { WebSocket } from 'ws';
 import { getDevnetPriceService } from './devnet-price-service';
 import { getMainnetPriceService } from './mainnet-price-service';
 import { Client } from 'pg';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 interface PriceData {
   tokenAddress: string;
@@ -567,8 +570,10 @@ class PriceWebSocketServer {
   }
 }
 
+const ws_port = process.env.WS_PORT;
+if (ws_port === undefined) throw Error("WS_PORT not set");
 // Start the server
-const server = new PriceWebSocketServer(9091);
+const server = new PriceWebSocketServer(Number(ws_port));
 
 // Handle graceful shutdown
 process.on('SIGINT', () => {
