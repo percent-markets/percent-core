@@ -507,7 +507,7 @@ export default function HomePage() {
                           </a>
                         </div>
                         <div className={trade.market === 'pass' ? 'text-emerald-400' : 'text-rose-400'}>
-                          {trade.market === 'pass' ? 'Pass' : 'Fail'}
+                          {trade.market === 'pass' ? 'Fail' : 'Pass'}
                         </div>
                         <div className={isBuy ? 'text-emerald-400' : 'text-rose-400'}>
                           {isBuy ? 'Buy' : 'Sell'}
