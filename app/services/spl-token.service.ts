@@ -330,6 +330,43 @@ export class SPLTokenService implements ISPLTokenService {
   }
 
   /**
+   * Builds a create associated token account instruction if needed
+   * @param mint - The token mint
+   * @param owner - The owner of the token account
+   * @param payer - The account paying for creation if needed
+   * @returns Instruction to create account or null if it already exists
+   */
+  async buildCreateAssociatedTokenAccountIxIfNeeded(
+    mint: PublicKey,
+    owner: PublicKey,
+    payer: PublicKey
+  ): Promise<TransactionInstruction | null> {
+    const associatedToken = await getAssociatedTokenAddress(
+      mint,
+      owner,
+      false,
+      TOKEN_PROGRAM_ID,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    );
+
+    try {
+      await getAccount(this.connection, associatedToken);
+      // Account exists, no instruction needed
+      return null;
+    } catch {
+      // Account doesn't exist, return create instruction
+      return createAssociatedTokenAccountInstruction(
+        payer,
+        associatedToken,
+        owner,
+        mint,
+        TOKEN_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+      );
+    }
+  }
+
+  /**
    * Gets or creates an associated token account
    * @param mint - The token mint
    * @param owner - The owner of the token account
