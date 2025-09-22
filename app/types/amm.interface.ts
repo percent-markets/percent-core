@@ -27,6 +27,24 @@ export interface IAMM {
   positionNft?: PublicKey;            // Position NFT mint address
   
   /**
+   * Sets the AMM state (useful for deserialization or testing)
+   * @param state - The new AMM state
+   */
+  setState(state: AMMState): void;
+
+  /**
+   * Builds a transaction for initializing the AMM pool with initial liquidity
+   * Transaction is always pre-signed with authority and position NFT keypair
+   * @param initialBaseTokenAmount - Initial base token amount to deposit
+   * @param initialQuoteAmount - Initial quote token amount to deposit
+   * @returns Pre-signed transaction ready for execution
+   */
+  buildInitializeTx(
+    initialBaseTokenAmount: BN,
+    initialQuoteAmount: BN
+  ): Promise<Transaction>;
+
+  /**
    * Initializes the AMM pool with initial liquidity
    * Creates pool, position, and deposits initial tokens
    * @param initialBaseTokenAmount - Initial base token amount to deposit
@@ -36,21 +54,37 @@ export interface IAMM {
     initialBaseTokenAmount: BN,
     initialQuoteAmount: BN
   ): Promise<void>;
-  
+
   /**
    * Fetches the current price from the pool
    * @returns Current price as base/quote ratio
    * @throws Error if pool is uninitialized or finalized
    */
   fetchPrice(): Promise<Decimal>;
-  
+
   /**
    * Fetches the current liquidity from the pool
    * @returns Current liquidity as BN
    * @throws Error if pool is uninitialized or finalized
    */
   fetchLiquidity(): Promise<BN>;
-  
+
+  /**
+   * Builds a transaction for removing all liquidity from the pool
+   * Transaction is always pre-signed with authority
+   * @returns Pre-signed transaction ready for execution
+   * @throws Error if AMM is not initialized, already finalized, or pool uninitialized
+   */
+  buildRemoveLiquidityTx(): Promise<Transaction>;
+
+  /**
+   * Executes a pre-signed remove liquidity transaction
+   * @param tx - Transaction already pre-signed with authority
+   * @returns Transaction signature
+   * @throws Error if transaction execution fails
+   */
+  executeRemoveLiquidityTx(tx: Transaction): Promise<string>;
+
   /**
    * Removes all liquidity and closes the position
    * Sets AMM state to finalized, preventing further operations

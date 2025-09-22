@@ -39,7 +39,6 @@ type VaultPrivateAccess = {
   _passConditionalMint: PublicKey;
   _failConditionalMint: PublicKey;
   _proposalStatus: ProposalStatus;
-  _isFinalized: boolean;
 };
 
 /**
@@ -515,7 +514,6 @@ export class PersistenceService implements IPersistenceService {
           // If vault is finalized, also set the proposal status
           if (row.base_vault_state.state === 'Finalized') {
             (baseVault as unknown as VaultPrivateAccess)._proposalStatus = row.status as ProposalStatus;
-            (baseVault as unknown as VaultPrivateAccess)._isFinalized = true;
           }
         }
         
@@ -528,7 +526,6 @@ export class PersistenceService implements IPersistenceService {
           // If vault is finalized, also set the proposal status
           if (row.quote_vault_state.state === 'Finalized') {
             (quoteVault as unknown as VaultPrivateAccess)._proposalStatus = row.status as ProposalStatus;
-            (quoteVault as unknown as VaultPrivateAccess)._isFinalized = true;
           }
         }
         

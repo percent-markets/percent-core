@@ -43,7 +43,6 @@ export class Vault implements IVault {
   private _failConditionalMint!: PublicKey;
   private _escrow!: PublicKey;
   private _state: VaultState = VaultState.Uninitialized;
-  private _isFinalized: boolean = false;
   private _proposalStatus: ProposalStatus = ProposalStatus.Pending;
   private _passMintKeypair: Keypair | null = null;
   private _failMintKeypair: Keypair | null = null;
@@ -53,7 +52,6 @@ export class Vault implements IVault {
   get failConditionalMint(): PublicKey { return this._failConditionalMint; }
   get escrow(): PublicKey { return this._escrow; }
   get state(): VaultState { return this._state; }
-  get isFinalized(): boolean { return this._isFinalized; }
   get proposalStatus(): ProposalStatus { return this._proposalStatus; }
 
   private connection: Connection;
@@ -111,30 +109,33 @@ export class Vault implements IVault {
   }
 
   /**
-   * Initializes the vault by creating both pass and fail conditional token mints and escrow account
-   * Must be called before any split/merge operations
-   * Creates two conditional mints (pass/fail) with decimals specified in constructor
-   * All operations are atomic in a single transaction
+   * Builds a transaction for initializing the vault
+   * Creates both pass and fail conditional token mints and escrow account
+   * Transaction is always pre-signed with authority and mint keypairs
+   * @returns Pre-signed transaction ready for execution
+   * @throws Error if vault is already initialized
    */
-  async initialize(): Promise<void> {
+  async buildInitializeTx(): Promise<Transaction> {
     if (this._state !== VaultState.Uninitialized) {
       throw new Error('Vault already initialized');
     }
 
     // Generate mint keypairs upfront
-    this._passMintKeypair = Keypair.generate();
-    this._failMintKeypair = Keypair.generate();
+    const passMintKeypair = Keypair.generate();
+    const failMintKeypair = Keypair.generate();
 
-    // Store public keys
-    this._passConditionalMint = this._passMintKeypair.publicKey;
-    this._failConditionalMint = this._failMintKeypair.publicKey;
+    // Store public keys and keypairs
+    this._passConditionalMint = passMintKeypair.publicKey;
+    this._failConditionalMint = failMintKeypair.publicKey;
+    this._passMintKeypair = passMintKeypair;
+    this._failMintKeypair = failMintKeypair;
 
     // Build single transaction with all instructions
     const transaction = new Transaction();
 
     // Create and initialize pass conditional mint using token service
     const passMinIxs = await this.tokenService.buildCreateMintIxs(
-      this._passMintKeypair,
+      passMintKeypair,
       this.decimals,
       this.authority.publicKey,
       this.authority.publicKey
@@ -143,7 +144,7 @@ export class Vault implements IVault {
 
     // Create and initialize fail conditional mint using token service
     const failMintIxs = await this.tokenService.buildCreateMintIxs(
-      this._failMintKeypair,
+      failMintKeypair,
       this.decimals,
       this.authority.publicKey,
       this.authority.publicKey
@@ -171,13 +172,30 @@ export class Vault implements IVault {
     const memoMessage = `%[Initialize] Vault ${this.vaultType} | Proposal #${this.proposalId} | Authority: ${this.authority.publicKey.toBase58()}`;
     transaction.add(createMemoIx(memoMessage));
 
-    // Execute the transaction with all signers
+    // Add blockhash and fee payer
+    const { blockhash } = await this.connection.getLatestBlockhash();
+    transaction.recentBlockhash = blockhash;
+    transaction.feePayer = this.authority.publicKey;
+
+    // Pre-sign the transaction with all required signers
+    transaction.partialSign(this.authority, passMintKeypair, failMintKeypair);
+
+    return transaction;
+  }
+
+  /**
+   * Initializes the vault by creating both pass and fail conditional token mints and escrow account
+   * Must be called before any split/merge operations
+   * Creates two conditional mints (pass/fail) with decimals specified in constructor
+   * All operations are atomic in a single transaction
+   */
+  async initialize(): Promise<void> {
+    // Build the pre-signed initialization transaction
+    const transaction = await this.buildInitializeTx();
+
+    // Execute the transaction (already has all signatures)
     console.log(`Initializing vault for proposal #${this.proposalId}, vault type: ${this.vaultType}`);
-    const result = await this.executionService.executeTx(
-      transaction,
-      this.authority,
-      [this._passMintKeypair, this._failMintKeypair] // Additional signers for mint accounts
-    );
+    const result = await this.executionService.executeTx(transaction);
 
     if (result.status === 'failed') {
       throw new Error(`Vault initialization failed: ${result.error}`);
@@ -186,7 +204,15 @@ export class Vault implements IVault {
     console.log(`Vault initialized successfully. Transaction: ${result.signature}`);
 
     // Update state to Active
-    this._state = VaultState.Active;
+    this.setState(VaultState.Active);
+  }
+
+  /**
+   * Sets the vault state (useful for deserialization or testing)
+   * @param state - The new vault state
+   */
+  setState(state: VaultState): void {
+    this._state = state;
   }
 
   /**
@@ -195,13 +221,15 @@ export class Vault implements IVault {
    * @param user - User's public key who is splitting tokens
    * @param amount - Amount to split in smallest units
    * @param skipBalanceCheck - Skip balance validation (used for wrapped SOL on mainnet)
+   * @param presign - Whether to pre-sign with authority (default: false)
    * @returns Transaction with blockhash and fee payer set, ready for user signature
    * @throws Error if vault is finalized, amount is invalid, or insufficient balance
    */
   async buildSplitTx(
     user: PublicKey,
     amount: bigint,
-    skipBalanceCheck: boolean = false
+    skipBalanceCheck: boolean = false,
+    presign: boolean = false
   ): Promise<Transaction> {
     if (this._state === VaultState.Uninitialized) {
       throw new Error('Vault not initialized');
@@ -297,7 +325,12 @@ export class Vault implements IVault {
     const { blockhash } = await this.connection.getLatestBlockhash();
     tx.recentBlockhash = blockhash;
     tx.feePayer = user;
-    
+
+    // Pre-sign with authority for minting operations if requested
+    if (presign) {
+      tx.partialSign(this.authority);
+    }
+
     return tx;
   }
 
@@ -306,12 +339,14 @@ export class Vault implements IVault {
    * Requires equal amounts of both conditional tokens to receive regular tokens
    * @param user - User's public key who is merging tokens
    * @param amount - Amount to merge in smallest units (of each conditional token)
+   * @param presign - Whether to pre-sign with escrow (default: false)
    * @returns Transaction with blockhash and fee payer set, ready for user signature
    * @throws Error if insufficient balance of either conditional token or vault is finalized
    */
   async buildMergeTx(
     user: PublicKey,
-    amount: bigint
+    amount: bigint,
+    presign: boolean = false
   ): Promise<Transaction> {
     if (this._state === VaultState.Uninitialized) {
       throw new Error('Vault not initialized');
@@ -402,71 +437,70 @@ export class Vault implements IVault {
     const { blockhash } = await this.connection.getLatestBlockhash();
     tx.recentBlockhash = blockhash;
     tx.feePayer = user;
-    
+
+    // Pre-sign with escrow for transferring regular tokens back to user if requested
+    if (presign) {
+      tx.partialSign(this.escrowKeypair);
+    }
+
     return tx;
   }
 
   /**
-   * Executes a pre-signed split transaction
-   * @param tx - Transaction already signed by user
+   * Executes a split transaction
+   * @param tx - Transaction signed by user
+   * @param presigned - Whether the transaction is already pre-signed with authority (default: false)
    * @returns Transaction signature
    * @throws Error if transaction execution fails
-   * 
-   * Note: In production, user signs first, then this method adds authority signature for minting
    */
-  async executeSplitTx(tx: Transaction): Promise<string> {
+  async executeSplitTx(tx: Transaction, presigned: boolean = false): Promise<string> {
     if (this._state === VaultState.Uninitialized) {
       throw new Error('Vault not initialized - cannot execute split');
     }
-    
+
     if (this._state === VaultState.Finalized) {
       throw new Error('Vault is finalized - no splits allowed');
     }
-    
-    // Add authority signature for minting operations
-    // User already signed for their transfer to escrow
+
+    // Execute transaction - sign with authority if not pre-signed
     console.log('Executing transaction to split tokens');
-    const result = await this.executionService.executeTx(
-      tx,
-      this.authority  // Authority signs for minting conditional tokens
-    );
-    
+    const result = presigned
+      ? await this.executionService.executeTx(tx)
+      : await this.executionService.executeTx(tx, this.authority);
+
     if (result.status === 'failed') {
       throw new Error(`Split transaction failed: ${result.error}`);
     }
-    
+
     return result.signature;
   }
 
   /**
-   * Executes a pre-signed merge transaction
-   * @param tx - Transaction already signed by user
+   * Executes a merge transaction
+   * @param tx - Transaction signed by user
+   * @param presigned - Whether the transaction is already pre-signed with escrow (default: false)
    * @returns Transaction signature
    * @throws Error if transaction execution fails
-   * 
-   * Note: In production, user signs first, then this method adds escrow signature for transfer
    */
-  async executeMergeTx(tx: Transaction): Promise<string> {
+  async executeMergeTx(tx: Transaction, presigned: boolean = false): Promise<string> {
     if (this._state === VaultState.Uninitialized) {
       throw new Error('Vault not initialized - cannot execute merge');
     }
-    
+
     if (this._state === VaultState.Finalized) {
       throw new Error('Vault is finalized - no merges allowed, use redemption instead');
     }
-    
-    // Add escrow signature for transferring regular tokens back to user
-    // User already signed for burning their conditional tokens
+
+    // Execute transaction - sign with escrow if not pre-signed
     console.log('Executing transaction to merge tokens');
-    const result = await this.executionService.executeTx(
-      tx,
-      this.escrowKeypair  // Escrow signs for transferring regular tokens
-    );
-    
+    const result = presigned
+      ? await this.executionService.executeTx(tx)
+      : await this.executionService.executeTx(tx, this.escrowKeypair);
+
     if (result.status === 'failed') {
       throw new Error(`Merge transaction failed: ${result.error}`);
     }
-    
+
     return result.signature;
   }
 
@@ -567,8 +601,7 @@ export class Vault implements IVault {
       throw new Error(`Cannot finalize vault with status: ${proposalStatus}`);
     }
     
-    this._state = VaultState.Finalized;
-    this._isFinalized = true;
+    this.setState(VaultState.Finalized);
     this._proposalStatus = proposalStatus;
   }
 
@@ -576,10 +609,11 @@ export class Vault implements IVault {
    * Builds a transaction to redeem winning conditional tokens for regular tokens
    * Only the winning conditional tokens (pass if passed, fail if failed) can be redeemed
    * @param user - User's public key
+   * @param presign - Whether to pre-sign with escrow (default: false)
    * @returns Transaction with blockhash and fee payer set, ready for user signature
    * @throws Error if vault not finalized or no winning tokens to redeem
    */
-  async buildRedeemWinningTokensTx(user: PublicKey): Promise<Transaction> {
+  async buildRedeemWinningTokensTx(user: PublicKey, presign: boolean = false): Promise<Transaction> {
     if (this._state !== VaultState.Finalized) {
       throw new Error('Cannot redeem before vault finalization');
     }
@@ -652,29 +686,33 @@ export class Vault implements IVault {
     const { blockhash } = await this.connection.getLatestBlockhash();
     tx.recentBlockhash = blockhash;
     tx.feePayer = user;
-    
+
+    // Pre-sign with escrow for transferring regular tokens to winner if requested
+    if (presign) {
+      tx.partialSign(this.escrowKeypair);
+    }
+
     return tx;
   }
 
   /**
-   * Executes a pre-signed redeem winning tokens transaction
-   * @param tx - Transaction already signed by user
+   * Executes a redeem winning tokens transaction
+   * @param tx - Transaction signed by user
+   * @param presigned - Whether the transaction is already pre-signed with escrow (default: false)
    * @returns Transaction signature
    * @throws Error if transaction execution fails
    */
-  async executeRedeemWinningTokensTx(tx: Transaction): Promise<string> {
-    // Add escrow signature for transferring regular tokens to winner
-    // User already signed for burning their winning conditional tokens
+  async executeRedeemWinningTokensTx(tx: Transaction, presigned: boolean = false): Promise<string> {
+    // Execute transaction - sign with escrow if not pre-signed
     console.log('Executing transaction to redeem winning tokens');
-    const result = await this.executionService.executeTx(
-      tx,
-      this.escrowKeypair  // Escrow signs for transferring regular tokens
-    );
-    
+    const result = presigned
+      ? await this.executionService.executeTx(tx)
+      : await this.executionService.executeTx(tx, this.escrowKeypair);
+
     if (result.status === 'failed') {
       throw new Error(`Redeem winning tokens transaction failed: ${result.error}`);
     }
-    
+
     return result.signature;
   }
 

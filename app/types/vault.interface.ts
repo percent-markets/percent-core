@@ -60,7 +60,6 @@ export interface IVault {
   readonly failConditionalMint: PublicKey;  // Fail conditional token mint (created on init)
   readonly escrow: PublicKey;               // Escrow holding regular tokens
   readonly state: VaultState;               // Current operational state of the vault
-  readonly isFinalized: boolean;            // Whether vault has been finalized (deprecated, use state)
   readonly proposalStatus: ProposalStatus;  // Status of the proposal (determines winning tokens)
   
   /**

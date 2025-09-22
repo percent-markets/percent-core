@@ -78,20 +78,29 @@ export class AMM implements IAMM {
   }
 
   /**
-   * Initializes the AMM pool with initial liquidity
-   * Creates a new constant product pool and deposits initial tokens
+   * Sets the AMM state (useful for deserialization or testing)
+   * @param state - The new AMM state
+   */
+  setState(state: AMMState): void {
+    this._state = state;
+  }
+
+  /**
+   * Builds a transaction for initializing the AMM pool with initial liquidity
+   * Transaction is always pre-signed with authority and position NFT keypair
    * @param initialBaseTokenAmount - Amount of base tokens to deposit initially
    * @param initialQuoteAmount - Amount of quote tokens to deposit initially
-   * @throws Error if pool creation fails
+   * @returns Pre-signed transaction ready for execution
+   * @throws Error if AMM is already initialized
    */
-  async initialize(
+  async buildInitializeTx(
     initialBaseTokenAmount: BN,
     initialQuoteAmount: BN
-  ): Promise<void> {
+  ): Promise<Transaction> {
     if (this._state !== AMMState.Uninitialized) {
       throw new Error('AMM already initialized');
     }
-    
+
     // Generate keypair for position NFT (represents LP ownership)
     const positionNftKeypair = new Keypair();
 
@@ -142,26 +151,49 @@ export class AMM implements IAMM {
       tokenBProgram: TOKEN_PROGRAM_ID
     });
 
-    // Execute pool creation transaction
-    console.log('Executing transaction to create custom pool');
-    // The positionNftKeypair needs to sign as it's creating a new account
-    const result = await this.executionService.executeTx(
-      tx,
-      this.authority,
-      [positionNftKeypair] 
+    // Add blockhash and fee payer
+    const { blockhash } = await this.executionService.connection.getLatestBlockhash();
+    tx.recentBlockhash = blockhash;
+    tx.feePayer = this.authority.publicKey;
+
+    // Pre-sign the transaction with authority and position NFT keypair
+    tx.partialSign(this.authority, positionNftKeypair);
+
+    // Store pool and position references
+    this.pool = pool;
+    this.position = position;
+    this.positionNft = positionNftKeypair.publicKey;
+
+    return tx;
+  }
+
+  /**
+   * Initializes the AMM pool with initial liquidity
+   * Creates a new constant product pool and deposits initial tokens
+   * @param initialBaseTokenAmount - Amount of base tokens to deposit initially
+   * @param initialQuoteAmount - Amount of quote tokens to deposit initially
+   * @throws Error if pool creation fails
+   */
+  async initialize(
+    initialBaseTokenAmount: BN,
+    initialQuoteAmount: BN
+  ): Promise<void> {
+    // Build the pre-signed initialization transaction (also stores pool/position references)
+    const transaction = await this.buildInitializeTx(
+      initialBaseTokenAmount,
+      initialQuoteAmount
     );
+
+    // Execute pool creation transaction (already has all signatures)
+    console.log('Executing transaction to create custom pool');
+    const result = await this.executionService.executeTx(transaction);
 
     if (result.status === 'failed') {
       throw new Error(`Failed to create custom pool: ${result.error}`);
     }
 
-    // Store pool and position references for future operations
-    this.pool = pool;
-    this.position = position;
-    this.positionNft = positionNftKeypair.publicKey;
-    
     // Update state to Trading
-    this._state = AMMState.Trading;
+    this.setState(AMMState.Trading);
   }
 
   /**
@@ -204,19 +236,20 @@ export class AMM implements IAMM {
   }
 
   /**
-   * Removes all liquidity from the pool and closes the position
-   * This action is irreversible and finalizes the AMM
-   * @throws Error if AMM is already finalized or pool uninitialized
+   * Builds a transaction for removing all liquidity from the pool
+   * Transaction is always pre-signed with authority
+   * @returns Pre-signed transaction ready for execution
+   * @throws Error if AMM is not initialized, already finalized, or pool uninitialized
    */
-  async removeLiquidity(): Promise<void> {
+  async buildRemoveLiquidityTx(): Promise<Transaction> {
     if (this._state === AMMState.Uninitialized) {
       throw new Error('AMM not initialized');
     }
-    
+
     if (this._state === AMMState.Finalized) {
       throw new Error('AMM is already finalized');
     }
-    
+
     if (!this.pool || !this.position || !this.positionNft) {
       throw new Error('AMM pool is uninitialized');
     }
@@ -224,7 +257,7 @@ export class AMM implements IAMM {
     // Fetch current pool and position states for removal operation
     const poolState: PoolState = await this.cpAmm.fetchPoolState(this.pool);
     const positionState: PositionState = await this.cpAmm.fetchPositionState(this.position);
-    
+
     // Derive the position NFT account (token account holding the NFT)
     const positionNftAccount = derivePositionNftAccount(this.positionNft);
 
@@ -243,13 +276,28 @@ export class AMM implements IAMM {
 
     // Build transaction to remove all liquidity and close position
     const tx = await this.cpAmm.removeAllLiquidityAndClosePosition(params);
-    
-    // Execute the transaction
+
+    // Add blockhash and fee payer
+    const { blockhash } = await this.executionService.connection.getLatestBlockhash();
+    tx.recentBlockhash = blockhash;
+    tx.feePayer = this.authority.publicKey;
+
+    // Pre-sign the transaction with authority
+    tx.partialSign(this.authority);
+
+    return tx;
+  }
+
+  /**
+   * Executes a pre-signed remove liquidity transaction
+   * @param tx - Transaction already pre-signed with authority
+   * @returns Transaction signature
+   * @throws Error if transaction execution fails
+   */
+  async executeRemoveLiquidityTx(tx: Transaction): Promise<string> {
+    // Execute the pre-signed transaction
     console.log('Executing transaction to remove liquidity and close position');
-    const result = await this.executionService.executeTx(
-      tx,
-      this.authority
-    );
+    const result = await this.executionService.executeTx(tx);
 
     if (result.status === 'failed') {
       throw new Error(`Failed to remove liquidity and close position: ${result.error}`);
@@ -258,9 +306,24 @@ export class AMM implements IAMM {
     // Clear position references after successful closure
     delete this.position;
     delete this.positionNft;
-    
+
     // Mark AMM as finalized - no further operations allowed
-    this._state = AMMState.Finalized;
+    this.setState(AMMState.Finalized);
+
+    return result.signature;
+  }
+
+  /**
+   * Removes all liquidity from the pool and closes the position
+   * This action is irreversible and finalizes the AMM
+   * @throws Error if AMM is already finalized or pool uninitialized
+   */
+  async removeLiquidity(): Promise<void> {
+    // Build the pre-signed remove liquidity transaction
+    const tx = await this.buildRemoveLiquidityTx();
+
+    // Execute the transaction and update state
+    await this.executeRemoveLiquidityTx(tx);
   }
 
   /**
