@@ -9,8 +9,6 @@ import { ExecutionService } from './services/execution.service';
 import { IExecutionResult, IExecutionConfig } from './types/execution.interface';
 import { Vault } from './vault';
 import { AMM } from './amm';
-import { SPLTokenService, NATIVE_MINT } from './services/spl-token.service';
-import { getNetworkFromConnection, Network } from './utils/network';
 
 /**
  * Proposal class representing a governance proposal in the protocol
@@ -137,62 +135,11 @@ export class Proposal implements IProposal {
       this.config.authority.publicKey,
       baseTokensToSplit
     );
-    
-    // For quote vault on mainnet, we need to wrap SOL first
-    let quoteSplitTx: Transaction;
-    const isMainnet = getNetworkFromConnection(this.config.connection) === Network.MAINNET;
-    const isQuoteWrappedSol = this.quoteMint.equals(NATIVE_MINT);
-    
-    if (isMainnet && isQuoteWrappedSol) {
-      // Check native SOL balance
-      const solBalance = await this.config.connection.getBalance(this.config.authority.publicKey);
-      const solBalanceBigInt = BigInt(solBalance);
-      
-      if (solBalanceBigInt < quoteTokensToSplit) {
-        throw new Error(
-          `Insufficient SOL balance for authority: ${solBalance / 1e9} SOL available, ${Number(quoteTokensToSplit) / 1e9} SOL required`
-        );
-      }
-      
-      // Build split transaction with balance check skipped (we already checked SOL)
-      quoteSplitTx = await this.__quoteVault.buildSplitTx(
-        this.config.authority.publicKey,
-        quoteTokensToSplit,
-        true // skipBalanceCheck
-      );
-      
-      // Create SPL Token Service and wrap SOL
-      const tokenService = new SPLTokenService(this.config.connection);
-      const wrapInstructions = await tokenService.buildWrapSolIxs(
-        this.config.authority.publicKey,
-        quoteTokensToSplit
-      );
-      
-      // Prepend wrap instructions to the transaction
-      const txBuffer = quoteSplitTx.serialize({ requireAllSignatures: false });
-      const deserializedTx = Transaction.from(txBuffer);
-      
-      // Create a new transaction with wrap instructions first
-      const newTransaction = new Transaction();
-      
-      // Add wrap instructions first
-      wrapInstructions.forEach(ix => newTransaction.add(ix));
-      
-      // Then add all original instructions
-      deserializedTx.instructions.forEach(ix => newTransaction.add(ix));
-      
-      // Copy over other transaction properties
-      newTransaction.recentBlockhash = deserializedTx.recentBlockhash;
-      newTransaction.feePayer = deserializedTx.feePayer;
-      
-      quoteSplitTx = newTransaction;
-    } else {
-      // Normal flow - vault will check token balance
-      quoteSplitTx = await this.__quoteVault.buildSplitTx(
-        this.config.authority.publicKey,
-        quoteTokensToSplit
-      );
-    }
+
+    const quoteSplitTx = await this.__quoteVault.buildSplitTx(
+      this.config.authority.publicKey,
+      quoteTokensToSplit
+    );
     
     // Execute splits using vault's executeSplitTx method
     await this.__baseVault.executeSplitTx(baseSplitTx);

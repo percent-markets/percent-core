@@ -14,11 +14,12 @@ import {
   VaultState
 } from './types/vault.interface';
 import { ProposalStatus } from './types/moderator.interface';
-import { SPLTokenService } from './services/spl-token.service';
+import { SPLTokenService, NATIVE_MINT } from './services/spl-token.service';
 import { ISPLTokenService } from './types/spl-token.interface';
 import { ExecutionService } from './services/execution.service';
 import { IExecutionService, IExecutionConfig } from './types/execution.interface';
 import { createMemoIx } from './utils/memo';
+import { getNetworkFromConnection, Network } from './utils/network';
 
 /**
  * Vault implementation for managing conditional tokens in prediction markets
@@ -86,6 +87,16 @@ export class Vault implements IVault {
     };
     
     this.executionService = new ExecutionService(executionConfig);
+  }
+
+
+  /**
+   * Checks if we should handle wrapped SOL (mainnet + quote vault with NATIVE_MINT)
+   */
+  private shouldHandleWrappedSOL(): boolean {
+    const isMainnet = getNetworkFromConnection(this.connection) === Network.MAINNET;
+    const isQuoteWrappedSol = this.vaultType === VaultType.Quote && this.regularMint.equals(NATIVE_MINT);
+    return isMainnet && isQuoteWrappedSol;
   }
 
   /**
@@ -218,9 +229,9 @@ export class Vault implements IVault {
   /**
    * Builds a transaction for splitting regular tokens into BOTH pass and fail conditional tokens
    * User receives equal amounts of both conditional tokens for each regular token
+   * Automatically handles SOL wrapping if needed (mainnet + quote vault)
    * @param user - User's public key who is splitting tokens
    * @param amount - Amount to split in smallest units
-   * @param skipBalanceCheck - Skip balance validation (used for wrapped SOL on mainnet)
    * @param presign - Whether to pre-sign with authority (default: false)
    * @returns Transaction with blockhash and fee payer set, ready for user signature
    * @throws Error if vault is finalized, amount is invalid, or insufficient balance
@@ -228,23 +239,33 @@ export class Vault implements IVault {
   async buildSplitTx(
     user: PublicKey,
     amount: bigint,
-    skipBalanceCheck: boolean = false,
     presign: boolean = false
   ): Promise<Transaction> {
     if (this._state === VaultState.Uninitialized) {
       throw new Error('Vault not initialized');
     }
-    
+
     if (this._state === VaultState.Finalized) {
       throw new Error('Vault is finalized, no more splits allowed');
     }
-    
+
     if (amount <= 0n) {
       throw new Error('Amount must be positive');
     }
-    
-    // Check user has sufficient regular token balance (skip for wrapped SOL on mainnet)
-    if (!skipBalanceCheck) {
+
+    // Check if we need to handle wrapped SOL
+    const shouldHandleSol = this.shouldHandleWrappedSOL();
+
+    // Check balance - for wrapped SOL, check native SOL balance instead
+    if (shouldHandleSol) {
+      const solBalance = await this.connection.getBalance(user);
+      const solBalanceBigInt = BigInt(solBalance);
+      if (solBalanceBigInt < amount) {
+        throw new Error(
+          `Insufficient SOL balance: ${solBalance / 1e9} SOL available, ${Number(amount) / 1e9} SOL required`
+        );
+      }
+    } else {
       const userBalance = await this.getBalance(user);
       if (amount > userBalance) {
         throw new Error(
@@ -252,14 +273,20 @@ export class Vault implements IVault {
         );
       }
     }
-    
+
     const tx = new Transaction();
-    
+
+    // If handling wrapped SOL, add wrap instructions first
+    if (shouldHandleSol) {
+      const wrapInstructions = await this.tokenService.buildWrapSolIxs(user, amount);
+      wrapInstructions.forEach(ix => tx.add(ix));
+    }
+
     // Get user's token accounts
     const userRegularAccount = await getAssociatedTokenAddress(this.regularMint, user);
     const userPassAccount = await getAssociatedTokenAddress(this.passConditionalMint, user);
     const userFailAccount = await getAssociatedTokenAddress(this.failConditionalMint, user);
-    
+
     // Check if pass conditional account needs to be created
     const passAccountInfo = await this.tokenService.getTokenAccountInfo(userPassAccount);
     if (!passAccountInfo) {
@@ -337,6 +364,7 @@ export class Vault implements IVault {
   /**
    * Builds a transaction for merging BOTH pass and fail conditional tokens back to regular tokens
    * Requires equal amounts of both conditional tokens to receive regular tokens
+   * Automatically handles SOL unwrapping if needed (mainnet + quote vault)
    * @param user - User's public key who is merging tokens
    * @param amount - Amount to merge in smallest units (of each conditional token)
    * @param presign - Whether to pre-sign with escrow (default: false)
@@ -351,14 +379,17 @@ export class Vault implements IVault {
     if (this._state === VaultState.Uninitialized) {
       throw new Error('Vault not initialized');
     }
-    
+
     if (this._state === VaultState.Finalized) {
       throw new Error('Cannot merge after vault finalization - use redemption instead');
     }
-    
+
     if (amount <= 0n) {
       throw new Error('Amount must be positive');
     }
+
+    // Check if we need to handle wrapped SOL
+    const shouldHandleSol = this.shouldHandleWrappedSOL();
     
     // Check user has sufficient balance of BOTH conditional tokens
     const passBalance = await this.getPassConditionalBalance(user);
@@ -377,12 +408,23 @@ export class Vault implements IVault {
     }
     
     const tx = new Transaction();
-    
+
     // Get user's token accounts
     const userRegularAccount = await getAssociatedTokenAddress(this.regularMint, user);
     const userPassAccount = await getAssociatedTokenAddress(this.passConditionalMint, user);
     const userFailAccount = await getAssociatedTokenAddress(this.failConditionalMint, user);
-    
+
+    // Ensure user's regular token account exists (create if needed)
+    // This is especially important for wrapped SOL which might not exist
+    const createAccountIx = await this.tokenService.buildCreateAssociatedTokenAccountIxIfNeeded(
+      this.regularMint,
+      user,
+      user
+    );
+    if (createAccountIx) {
+      tx.add(createAccountIx);
+    }
+
     // Burn pass conditional tokens from user (user signs)
     const burnPassIx = this.tokenService.buildBurnIx(
       this.passConditionalMint,
@@ -432,6 +474,25 @@ export class Vault implements IVault {
     // Add memo for transaction identification on Solscan
     const memoMessage = `%[Merge] ${amount} ${this.vaultType} | Proposal #${this.proposalId} | ${user.toBase58()}`;
     tx.add(createMemoIx(memoMessage));
+
+    // If handling wrapped SOL, add unwrap instructions at the end
+    if (shouldHandleSol) {
+      const wrappedSolAccount = await getAssociatedTokenAddress(
+        NATIVE_MINT,
+        user,
+        false,
+        TOKEN_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+      );
+
+      const unwrapInstruction = this.tokenService.buildUnwrapSolIx(
+        wrappedSolAccount,
+        user, // Send unwrapped SOL back to user
+        user  // Owner of the wrapped SOL account
+      );
+
+      tx.add(unwrapInstruction);
+    }
 
     // Add blockhash and fee payer so transaction can be signed
     const { blockhash } = await this.connection.getLatestBlockhash();
@@ -608,6 +669,7 @@ export class Vault implements IVault {
   /**
    * Builds a transaction to redeem winning conditional tokens for regular tokens
    * Only the winning conditional tokens (pass if passed, fail if failed) can be redeemed
+   * Automatically handles SOL unwrapping if needed (mainnet + quote vault)
    * @param user - User's public key
    * @param presign - Whether to pre-sign with escrow (default: false)
    * @returns Transaction with blockhash and fee payer set, ready for user signature
@@ -617,10 +679,13 @@ export class Vault implements IVault {
     if (this._state !== VaultState.Finalized) {
       throw new Error('Cannot redeem before vault finalization');
     }
-    
+
     if (this._proposalStatus === ProposalStatus.Pending) {
       throw new Error(`Cannot redeem from pending proposal`);
     }
+
+    // Check if we need to handle wrapped SOL
+    const shouldHandleSol = this.shouldHandleWrappedSOL();
     
     // Determine which conditional token is the winning token
     // Executed proposals are passed proposals that have been executed
@@ -681,6 +746,25 @@ export class Vault implements IVault {
     const winningType = isPassWinning ? 'pass' : 'fail';
     const memoMessage = `%[Redeem] ${winningBalance} ${this.vaultType} (${winningType}) | Proposal #${this.proposalId} | ${user.toBase58()}`;
     tx.add(createMemoIx(memoMessage));
+
+    // If handling wrapped SOL, add unwrap instructions at the end
+    if (shouldHandleSol) {
+      const wrappedSolAccount = await getAssociatedTokenAddress(
+        NATIVE_MINT,
+        user,
+        false,
+        TOKEN_PROGRAM_ID,
+        ASSOCIATED_TOKEN_PROGRAM_ID
+      );
+
+      const unwrapInstruction = this.tokenService.buildUnwrapSolIx(
+        wrappedSolAccount,
+        user, // Send unwrapped SOL back to user
+        user  // Owner of the wrapped SOL account
+      );
+
+      tx.add(unwrapInstruction);
+    }
 
     // Add blockhash and fee payer so transaction can be signed
     const { blockhash } = await this.connection.getLatestBlockhash();

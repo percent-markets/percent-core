@@ -71,21 +71,21 @@ export interface IVault {
   /**
    * Builds transaction for splitting regular tokens into BOTH pass and fail conditional tokens
    * User receives equal amounts of both conditional tokens for each regular token
+   * Automatically handles SOL wrapping if needed (mainnet + quote vault)
    * @param user - User's public key who is splitting tokens
    * @param amount - Amount to split in smallest units
-   * @param skipBalanceCheck - Skip balance validation (used for wrapped SOL on mainnet)
    * @returns Unsigned transaction requiring user and authority signatures
    * @throws Error if insufficient balance or vault is finalized
    */
   buildSplitTx(
     user: PublicKey,
-    amount: bigint,
-    skipBalanceCheck?: boolean
+    amount: bigint
   ): Promise<Transaction>;
   
   /**
    * Builds transaction for merging BOTH pass and fail conditional tokens back to regular tokens
    * Requires equal amounts of both conditional tokens to receive regular tokens
+   * Automatically handles SOL unwrapping if needed (mainnet + quote vault)
    * @param user - User's public key who is merging tokens
    * @param amount - Amount to merge in smallest units (of each conditional token)
    * @returns Unsigned transaction requiring user and authority signatures
@@ -166,6 +166,7 @@ export interface IVault {
   /**
    * Builds a transaction to redeem winning conditional tokens for regular tokens
    * Only the winning conditional tokens (pass if passed, fail if failed) can be redeemed
+   * Automatically handles SOL unwrapping if needed (mainnet + quote vault)
    * @param user - User's public key
    * @returns Unsigned transaction requiring user and authority signatures
    * @throws Error if vault not finalized or no winning tokens to redeem
