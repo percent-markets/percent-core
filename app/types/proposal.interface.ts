@@ -26,6 +26,7 @@ export interface IProposalConfig {
     initialBaseAmount: BN;                      // Initial base token liquidity (same for both AMMs)
     initialQuoteAmount: BN;                     // Initial quote token liquidity (same for both AMMs)
   };
+  jitoUuid?: string;                           // Optional Jito UUID for bundle submissions (mainnet only)
 }
 
 /**
@@ -55,6 +56,14 @@ export interface IProposal {
    * Uses connection, authority, and decimals from constructor config
    */
   initialize(): Promise<void>;
+
+  /**
+   * Initializes the proposal using Jito bundles for atomic execution
+   * Batches all initialization transactions into a single bundle
+   * Ensures all components are created atomically with MEV protection
+   * Only works on mainnet where Jito is available
+   */
+  initializeViaBundle?(): Promise<void>;
 
   /**
    * Gets both AMMs for the proposal

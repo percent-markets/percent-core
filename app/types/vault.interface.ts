@@ -74,12 +74,14 @@ export interface IVault {
    * Automatically handles SOL wrapping if needed (mainnet + quote vault)
    * @param user - User's public key who is splitting tokens
    * @param amount - Amount to split in smallest units
-   * @returns Unsigned transaction requiring user and authority signatures
+   * @param presign - Whether to pre-sign with authority (default: false)
+   * @returns Transaction with blockhash and fee payer set, ready for user signature (pre-signed if requested)
    * @throws Error if insufficient balance or vault is finalized
    */
   buildSplitTx(
     user: PublicKey,
-    amount: bigint
+    amount: bigint,
+    presign?: boolean
   ): Promise<Transaction>;
   
   /**
@@ -88,12 +90,14 @@ export interface IVault {
    * Automatically handles SOL unwrapping if needed (mainnet + quote vault)
    * @param user - User's public key who is merging tokens
    * @param amount - Amount to merge in smallest units (of each conditional token)
-   * @returns Unsigned transaction requiring user and authority signatures
+   * @param presign - Whether to pre-sign with escrow (default: false)
+   * @returns Transaction with blockhash and fee payer set, ready for user signature (pre-signed if requested)
    * @throws Error if insufficient balance of either conditional token or vault is finalized
    */
   buildMergeTx(
     user: PublicKey,
-    amount: bigint
+    amount: bigint,
+    presign?: boolean
   ): Promise<Transaction>;
   
   /**
@@ -168,10 +172,11 @@ export interface IVault {
    * Only the winning conditional tokens (pass if passed, fail if failed) can be redeemed
    * Automatically handles SOL unwrapping if needed (mainnet + quote vault)
    * @param user - User's public key
-   * @returns Unsigned transaction requiring user and authority signatures
+   * @param presign - Whether to pre-sign with escrow (default: false)
+   * @returns Transaction with blockhash and fee payer set, ready for user signature (pre-signed if requested)
    * @throws Error if vault not finalized or no winning tokens to redeem
    */
-  buildRedeemWinningTokensTx(user: PublicKey): Promise<Transaction>;
+  buildRedeemWinningTokensTx(user: PublicKey, presign?: boolean): Promise<Transaction>;
   
   /**
    * Executes a pre-signed redeem winning tokens transaction

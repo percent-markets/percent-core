@@ -1,7 +1,7 @@
-import { Transaction, PublicKey, Keypair } from '@solana/web3.js';
+import { Transaction, PublicKey, Keypair, SystemProgram } from '@solana/web3.js';
 import { IProposal, IProposalConfig } from './types/proposal.interface';
 import { IAMM } from './types/amm.interface';
-import { IVault, VaultType } from './types/vault.interface';
+import { IVault, VaultType, VaultState } from './types/vault.interface';
 import { ITWAPOracle, TWAPStatus } from './types/twap-oracle.interface';
 import { ProposalStatus } from './types/moderator.interface';
 import { TWAPOracle } from './twap-oracle';
@@ -9,6 +9,10 @@ import { ExecutionService } from './services/execution.service';
 import { IExecutionResult, IExecutionConfig } from './types/execution.interface';
 import { Vault } from './vault';
 import { AMM } from './amm';
+import { JitoService, BlockEngineUrl, TipPercentile } from '@slateos/jito';
+import { AMMState } from './types/amm.interface';
+import { createMemoIx } from './utils/memo';
+import bs58 from 'bs58';
 
 /**
  * Proposal class representing a governance proposal in the protocol
@@ -162,6 +166,243 @@ export class Proposal implements IProposal {
     
     // Update status to Pending now that everything is initialized
     this._status = ProposalStatus.Pending;
+  }
+
+  /**
+   * Initializes the proposal using Jito bundles for atomic execution
+   * Uses two sequential bundles: vault setup, then AMM setup with liquidity
+   * Ensures all components are created atomically with MEV protection
+   */
+  async initializeViaBundle(): Promise<void> {
+    console.log(`Initializing proposal #${this.id} via Jito bundles`);
+
+    // Initialize Jito service with mainnet endpoint and UUID if provided
+    const jito = new JitoService(BlockEngineUrl.MAINNET, this.config.jitoUuid);
+
+    // Initialize vaults for base and quote tokens
+    this.__baseVault = new Vault({
+      proposalId: this.id,
+      vaultType: VaultType.Base,
+      regularMint: this.baseMint,
+      decimals: this.config.baseDecimals,
+      connection: this.config.connection,
+      authority: this.config.authority
+    });
+
+    this.__quoteVault = new Vault({
+      proposalId: this.id,
+      vaultType: VaultType.Quote,
+      regularMint: this.quoteMint,
+      decimals: this.config.quoteDecimals,
+      connection: this.config.connection,
+      authority: this.config.authority
+    });
+
+    try {
+      // Get fee recommendations once for both bundles
+      const fees = await jito.getRecommendedFeeFromTipFloor(TipPercentile.P75);
+      console.log(`Jito tip per bundle: ${fees.jitoTipSol} SOL`);
+
+      // ========================================
+      // Bundle 1: Vault Setup (3 transactions)
+      // ========================================
+      console.log('\n📦 Bundle 1: Vault Setup');
+      const bundle1Txs: Transaction[] = [];
+
+      // 1.1 Create Jito tip transaction for bundle 1
+      const tipAccount1 = await jito.getRandomTipAccount();
+      const tipTx1 = new Transaction();
+      const { blockhash: blockhash1 } = await this.config.connection.getLatestBlockhash();
+      tipTx1.recentBlockhash = blockhash1;
+      tipTx1.feePayer = this.config.authority.publicKey;
+
+      tipTx1.add(SystemProgram.transfer({
+        fromPubkey: this.config.authority.publicKey,
+        toPubkey: new PublicKey(tipAccount1),
+        lamports: fees.jitoTipLamports
+      }));
+
+      tipTx1.add(createMemoIx(
+        `%[Jito Bundle 1] Vault Setup | Proposal #${this.id} | Authority: ${this.config.authority.publicKey.toBase58()}`
+      ));
+
+      tipTx1.sign(this.config.authority);
+      bundle1Txs.push(tipTx1);
+
+      // 1.2 Build vault initialization transactions (this sets the conditional mints)
+      const baseVaultTx = await (this.__baseVault as Vault).buildInitializeTx();
+      const quoteVaultTx = await (this.__quoteVault as Vault).buildInitializeTx();
+      bundle1Txs.push(baseVaultTx, quoteVaultTx);
+
+      // Now that conditional mints are set, create AMMs
+      const executionConfig: IExecutionConfig = {
+        rpcEndpoint: this.config.connection.rpcEndpoint,
+        commitment: 'confirmed',
+        maxRetries: 3,
+        skipPreflight: false
+      };
+
+      // Initialize pass AMM (trades pBase/pQuote tokens)
+      this.__pAMM = new AMM(
+        this.__baseVault.passConditionalMint,
+        this.__quoteVault.passConditionalMint,
+        this.config.baseDecimals,
+        this.config.quoteDecimals,
+        this.config.authority,
+        executionConfig
+      );
+
+      // Initialize fail AMM (trades fBase/fQuote tokens)
+      this.__fAMM = new AMM(
+        this.__baseVault.failConditionalMint,
+        this.__quoteVault.failConditionalMint,
+        this.config.baseDecimals,
+        this.config.quoteDecimals,
+        this.config.authority,
+        executionConfig
+      );
+
+      // Submit and confirm Bundle 1
+      const bundle1Serialized = bundle1Txs.map(tx => tx.serialize().toString('base64'));
+      const bundle1Sigs = bundle1Txs.map(tx =>
+        tx.signature ? bs58.encode(tx.signature) : null
+      ).filter(sig => sig !== null);
+
+      console.log(`Submitting Bundle 1 with ${bundle1Serialized.length} transactions`);
+      const bundle1Response = await jito.sendBundle([
+        bundle1Serialized,
+        { encoding: 'base64' }
+      ]);
+
+      if (!bundle1Response.result) {
+        throw new Error(`Bundle 1 submission failed: ${bundle1Response.error?.message || 'Unknown error'}`);
+      }
+
+      const bundle1Id = bundle1Response.result;
+      console.log(`Bundle 1 ID: ${bundle1Id}`);
+      console.log(`Bundle 1 signatures: ${bundle1Sigs.join(', ')}`);
+
+      console.log('Waiting for Bundle 1 confirmation...');
+      const bundle1Confirm = await jito.confirmInflightBundle(bundle1Id, 60000);
+
+      if ('status' in bundle1Confirm && bundle1Confirm.status === 'Landed') {
+        console.log(`✅ Bundle 1 landed successfully in slot ${(bundle1Confirm as any).landed_slot}`);
+      } else if ('confirmation_status' in bundle1Confirm && bundle1Confirm.confirmation_status) {
+        console.log(`✅ Bundle 1 confirmed with status: ${bundle1Confirm.confirmation_status}`);
+      } else {
+        throw new Error(`Bundle 1 failed to land: ${JSON.stringify(bundle1Confirm)}`);
+      }
+
+      // Update vault states after Bundle 1 success
+      (this.__baseVault as Vault).setState(VaultState.Active);
+      (this.__quoteVault as Vault).setState(VaultState.Active);
+      console.log('Vaults initialized and active');
+
+      // ========================================
+      // Bundle 2: AMM Setup & Seeding (5 transactions)
+      // ========================================
+      console.log('\n📦 Bundle 2: AMM Setup & Seeding');
+      const bundle2Txs: Transaction[] = [];
+
+      // 2.1 Create Jito tip transaction for bundle 2
+      const tipAccount2 = await jito.getRandomTipAccount();
+      const tipTx2 = new Transaction();
+      const { blockhash: blockhash2 } = await this.config.connection.getLatestBlockhash();
+      tipTx2.recentBlockhash = blockhash2;
+      tipTx2.feePayer = this.config.authority.publicKey;
+
+      tipTx2.add(SystemProgram.transfer({
+        fromPubkey: this.config.authority.publicKey,
+        toPubkey: new PublicKey(tipAccount2),
+        lamports: fees.jitoTipLamports
+      }));
+
+      tipTx2.add(createMemoIx(
+        `%[Jito Bundle 2] AMM Setup | Proposal #${this.id} | Authority: ${this.config.authority.publicKey.toBase58()}`
+      ));
+
+      tipTx2.sign(this.config.authority);
+      bundle2Txs.push(tipTx2);
+
+      // 2.2 Build split transactions for initial liquidity (pre-signed)
+      const baseTokensToSplit = BigInt(this.config.ammConfig.initialBaseAmount.toString());
+      const quoteTokensToSplit = BigInt(this.config.ammConfig.initialQuoteAmount.toString());
+
+      const baseSplitTx = await this.__baseVault.buildSplitTx(
+        this.config.authority.publicKey,
+        baseTokensToSplit,
+        true  // presign with authority
+      );
+      const quoteSplitTx = await this.__quoteVault.buildSplitTx(
+        this.config.authority.publicKey,
+        quoteTokensToSplit,
+        true  // presign with authority
+      );
+      bundle2Txs.push(baseSplitTx, quoteSplitTx);
+
+      // 2.3 Build AMM initialization transactions
+      const pAmmTx = await (this.__pAMM as AMM).buildInitializeTx(
+        this.config.ammConfig.initialBaseAmount,
+        this.config.ammConfig.initialQuoteAmount
+      );
+      const fAmmTx = await (this.__fAMM as AMM).buildInitializeTx(
+        this.config.ammConfig.initialBaseAmount,
+        this.config.ammConfig.initialQuoteAmount
+      );
+      bundle2Txs.push(pAmmTx, fAmmTx);
+
+      // Submit and confirm Bundle 2
+      const bundle2Serialized = bundle2Txs.map(tx => tx.serialize().toString('base64'));
+      const bundle2Sigs = bundle2Txs.map(tx =>
+        tx.signature ? bs58.encode(tx.signature) : null
+      ).filter(sig => sig !== null);
+
+      console.log(`Submitting Bundle 2 with ${bundle2Serialized.length} transactions`);
+      const bundle2Response = await jito.sendBundle([
+        bundle2Serialized,
+        { encoding: 'base64' }
+      ]);
+
+      if (!bundle2Response.result) {
+        throw new Error(`Bundle 2 submission failed: ${bundle2Response.error?.message || 'Unknown error'}`);
+      }
+
+      const bundle2Id = bundle2Response.result;
+      console.log(`Bundle 2 ID: ${bundle2Id}`);
+      console.log(`Bundle 2 signatures: ${bundle2Sigs.join(', ')}`);
+
+      console.log('Waiting for Bundle 2 confirmation...');
+      const bundle2Confirm = await jito.confirmInflightBundle(bundle2Id, 60000);
+
+      if ('status' in bundle2Confirm && bundle2Confirm.status === 'Landed') {
+        console.log(`✅ Bundle 2 landed successfully in slot ${(bundle2Confirm as any).landed_slot}`);
+      } else if ('confirmation_status' in bundle2Confirm && bundle2Confirm.confirmation_status) {
+        console.log(`✅ Bundle 2 confirmed with status: ${bundle2Confirm.confirmation_status}`);
+      } else {
+        throw new Error(`Bundle 2 failed to land: ${JSON.stringify(bundle2Confirm)}`);
+      }
+
+      // Update AMM states after Bundle 2 success
+      (this.__pAMM as AMM).setState(AMMState.Trading);
+      (this.__fAMM as AMM).setState(AMMState.Trading);
+
+      // Set AMMs in TWAP oracle so it can track prices
+      this.twapOracle.setAMMs(this.__pAMM, this.__fAMM);
+
+      // Update status to Pending now that everything is initialized
+      this._status = ProposalStatus.Pending;
+
+      console.log(`\n🎉 Proposal #${this.id} initialized successfully via Jito bundles`);
+
+    } catch (error) {
+      // Clean up on failure - reset all components
+      this.__baseVault = null;
+      this.__quoteVault = null;
+      this.__pAMM = null;
+      this.__fAMM = null;
+
+      throw new Error(`Failed to initialize proposal via bundles: ${error}`);
+    }
   }
 
   /**
