@@ -26,7 +26,6 @@ export interface IProposalConfig {
     initialBaseAmount: BN;                      // Initial base token liquidity (same for both AMMs)
     initialQuoteAmount: BN;                     // Initial quote token liquidity (same for both AMMs)
   };
-  jitoUuid?: string;                           // Optional Jito UUID for bundle submissions (mainnet only)
 }
 
 /**

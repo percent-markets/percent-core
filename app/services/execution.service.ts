@@ -104,7 +104,6 @@ export class ExecutionService implements IExecutionService {
 
       // Log success
       this.logExecution({
-        proposalId: 0,  // Remove proposalId from logging
         signature,
         status: 'success',
         timestamp: result.timestamp
@@ -125,7 +124,6 @@ export class ExecutionService implements IExecutionService {
 
       // Log failure
       this.logExecution({
-        proposalId: 0,  // Remove proposalId from logging
         signature: '',
         status: 'failed',
         timestamp: result.timestamp,

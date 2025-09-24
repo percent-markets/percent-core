@@ -1,15 +1,30 @@
 import { getPool } from '../utils/database';
-import { 
-  IHistoryService, 
-  IPriceHistory, 
-  ITWAPHistory, 
-  ITradeHistory, 
-  IChartDataPoint 
+import {
+  IHistoryService,
+  IPriceHistory,
+  ITWAPHistory,
+  ITradeHistory,
+  IChartDataPoint
 } from '../types/history.interface';
 import { Decimal } from 'decimal.js';
 
 /**
  * Service for managing historical data in PostgreSQL
+ * Provides recording and retrieval of price, TWAP, and trade history
+ * Supports aggregated data for charts and analytics
+ *
+ * Features:
+ * - Price snapshots with liquidity tracking
+ * - TWAP oracle history recording
+ * - Trade history with user attribution
+ * - Time-based aggregation for chart data
+ * - Configurable intervals for data grouping
+ *
+ * Architecture:
+ * - Singleton pattern for database connection reuse
+ * - PostgreSQL for persistent storage
+ * - Decimal.js for precision arithmetic
+ * - Time-based bucketing for aggregations
  */
 export class HistoryService implements IHistoryService {
   private static instance: HistoryService | null = null;
@@ -24,7 +39,15 @@ export class HistoryService implements IHistoryService {
   }
   
   /**
-   * Record a price snapshot
+   * Records a price snapshot to the database
+   * Captures current price and liquidity state of an AMM
+   * @param data - Price history data excluding auto-generated fields
+   * @param data.proposalId - ID of the proposal
+   * @param data.market - Which AMM market ('pass' or 'fail')
+   * @param data.price - Current price at this point
+   * @param data.baseLiquidity - Optional base token liquidity
+   * @param data.quoteLiquidity - Optional quote token liquidity
+   * @throws Error if database insert fails
    */
   async recordPrice(data: Omit<IPriceHistory, 'id' | 'timestamp'>): Promise<void> {
     const pool = getPool();
@@ -50,7 +73,15 @@ export class HistoryService implements IHistoryService {
   }
   
   /**
-   * Record a TWAP snapshot
+   * Records a TWAP snapshot to the database
+   * Captures both current TWAP values and cumulative aggregations
+   * @param data - TWAP history data excluding auto-generated fields
+   * @param data.proposalId - ID of the proposal
+   * @param data.passTwap - Current pass market TWAP
+   * @param data.failTwap - Current fail market TWAP
+   * @param data.passAggregation - Cumulative pass price aggregation
+   * @param data.failAggregation - Cumulative fail price aggregation
+   * @throws Error if database insert fails
    */
   async recordTWAP(data: Omit<ITWAPHistory, 'id' | 'timestamp'>): Promise<void> {
     const pool = getPool();
@@ -76,7 +107,18 @@ export class HistoryService implements IHistoryService {
   }
   
   /**
-   * Record a trade
+   * Records a trade transaction to the database
+   * Captures swap details including user, amounts, and execution price
+   * @param data - Trade history data excluding auto-generated fields
+   * @param data.proposalId - ID of the proposal
+   * @param data.market - Which AMM was traded ('pass' or 'fail')
+   * @param data.userAddress - Wallet address of the trader
+   * @param data.isBaseToQuote - Direction of the trade
+   * @param data.amountIn - Amount of tokens swapped in
+   * @param data.amountOut - Amount of tokens received
+   * @param data.price - Execution price of the trade
+   * @param data.txSignature - Optional Solana transaction signature
+   * @throws Error if database insert fails
    */
   async recordTrade(data: Omit<ITradeHistory, 'id' | 'timestamp'>): Promise<void> {
     const pool = getPool();
@@ -106,7 +148,14 @@ export class HistoryService implements IHistoryService {
   }
   
   /**
-   * Get price history for a proposal
+   * Retrieves price history for a proposal
+   * Supports time filtering and interval-based aggregation
+   * @param proposalId - ID of the proposal to query
+   * @param from - Optional start date filter
+   * @param to - Optional end date filter
+   * @param interval - Optional interval for aggregation ('1m', '5m', '15m', '1h', '4h', '1d')
+   * @returns Array of price history records, aggregated if interval specified
+   * @throws Error if database query fails
    */
   async getPriceHistory(
     proposalId: number,
@@ -136,8 +185,8 @@ export class HistoryService implements IHistoryService {
       query += ' ORDER BY timestamp DESC';
       
       if (interval) {
-        // For intervals, we'll aggregate the data
-        // This is a simplified version - you might want more sophisticated aggregation
+        // Aggregate data into time buckets for charting
+        // Uses PostgreSQL date_trunc and floor functions for consistent bucketing
         const intervalSeconds = this.parseInterval(interval);
         if (intervalSeconds > 0) {
           query = `
@@ -200,7 +249,13 @@ export class HistoryService implements IHistoryService {
   }
   
   /**
-   * Get TWAP history for a proposal
+   * Retrieves TWAP history for a proposal
+   * Returns time-weighted average price snapshots with aggregations
+   * @param proposalId - ID of the proposal to query
+   * @param from - Optional start date filter
+   * @param to - Optional end date filter
+   * @returns Array of TWAP history records ordered by timestamp descending
+   * @throws Error if database query fails
    */
   async getTWAPHistory(
     proposalId: number,
@@ -246,7 +301,14 @@ export class HistoryService implements IHistoryService {
   }
   
   /**
-   * Get trade history for a proposal
+   * Retrieves trade history for a proposal
+   * Returns individual swap transactions with user attribution
+   * @param proposalId - ID of the proposal to query
+   * @param from - Optional start date filter
+   * @param to - Optional end date filter
+   * @param limit - Optional maximum number of records to return
+   * @returns Array of trade history records ordered by timestamp descending
+   * @throws Error if database query fails
    */
   async getTradeHistory(
     proposalId: number,
@@ -300,7 +362,20 @@ export class HistoryService implements IHistoryService {
   }
   
   /**
-   * Get chart data for a proposal
+   * Retrieves aggregated chart data for a proposal
+   * Combines price and volume data into time-bucketed points for visualization
+   * @param proposalId - ID of the proposal to query
+   * @param interval - Time interval for aggregation buckets
+   * @param from - Optional start date filter
+   * @param to - Optional end date filter
+   * @returns Array of chart data points with prices and volume
+   * @throws Error if database query fails
+   *
+   * Implementation details:
+   * - Aggregates price data using AVG for each time bucket
+   * - Calculates volume as sum of amountIn for trades in each bucket
+   * - Uses FIRST_VALUE/LAST_VALUE for OHLC data (open/close prices)
+   * - Combines data from both price_history and trade_history tables
    */
   async getChartData(
     proposalId: number,
@@ -386,10 +461,11 @@ export class HistoryService implements IHistoryService {
       
       const volumeResult = await pool.query(volumeQuery, params);
       
-      // Combine price and volume data
+      // Combine price and volume data into unified chart points
+      // Uses Map for efficient lookup and deduplication by timestamp
       const chartData = new Map<number, IChartDataPoint>();
-      
-      // Process price data
+
+      // Process price data from aggregated buckets
       for (const row of priceResult.rows) {
         const timestamp = new Date(row.bucket).getTime();
         const existing = chartData.get(timestamp) || { timestamp };
@@ -403,7 +479,8 @@ export class HistoryService implements IHistoryService {
         chartData.set(timestamp, existing);
       }
       
-      // Add volume data
+      // Add volume data to existing chart points
+      // Volume represents total trade amount in each time bucket
       for (const row of volumeResult.rows) {
         const timestamp = new Date(row.bucket).getTime();
         const existing = chartData.get(timestamp) || { timestamp };
@@ -419,7 +496,10 @@ export class HistoryService implements IHistoryService {
   }
   
   /**
-   * Parse interval string to seconds
+   * Parses interval string to seconds for SQL aggregation
+   * @param interval - Interval string ('1m', '5m', '15m', '1h', '4h', '1d')
+   * @returns Number of seconds in the interval
+   * @private
    */
   private parseInterval(interval: string): number {
     const intervals: Record<string, number> = {

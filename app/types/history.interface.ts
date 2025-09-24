@@ -1,59 +1,65 @@
 import { Decimal } from 'decimal.js';
 
 /**
- * Price history record
+ * Price history record for AMM price tracking
+ * Captures point-in-time price and liquidity snapshots
  */
 export interface IPriceHistory {
-  id?: number;
-  timestamp: Date;
-  proposalId: number;
-  market: 'pass' | 'fail';
-  price: Decimal;
-  baseLiquidity?: Decimal;
-  quoteLiquidity?: Decimal;
+  id?: number;                   // Database primary key (auto-generated)
+  timestamp: Date;                // Snapshot timestamp
+  proposalId: number;             // Associated proposal ID
+  market: 'pass' | 'fail';        // Which AMM market (pass or fail)
+  price: Decimal;                 // Current price at this point in time
+  baseLiquidity?: Decimal;        // Base token liquidity in the pool (optional)
+  quoteLiquidity?: Decimal;       // Quote token liquidity in the pool (optional)
 }
 
 /**
- * TWAP history record
+ * TWAP (Time-Weighted Average Price) history record
+ * Tracks both current TWAP values and cumulative aggregations
  */
 export interface ITWAPHistory {
-  id?: number;
-  timestamp: Date;
-  proposalId: number;
-  passTwap: Decimal;
-  failTwap: Decimal;
-  passAggregation: Decimal;
-  failAggregation: Decimal;
+  id?: number;                   // Database primary key (auto-generated)
+  timestamp: Date;                // Snapshot timestamp
+  proposalId: number;             // Associated proposal ID
+  passTwap: Decimal;              // Current pass market TWAP
+  failTwap: Decimal;              // Current fail market TWAP
+  passAggregation: Decimal;       // Cumulative pass price aggregation
+  failAggregation: Decimal;       // Cumulative fail price aggregation
 }
 
 /**
- * Trade history record
+ * Trade history record for swap transactions
+ * Captures individual trades executed on the AMMs
  */
 export interface ITradeHistory {
-  id?: number;
-  timestamp: Date;
-  proposalId: number;
-  market: 'pass' | 'fail';
-  userAddress: string;
-  isBaseToQuote: boolean;
-  amountIn: Decimal;
-  amountOut: Decimal;
-  price: Decimal;
-  txSignature?: string;
+  id?: number;                   // Database primary key (auto-generated)
+  timestamp: Date;                // Trade execution timestamp
+  proposalId: number;             // Associated proposal ID
+  market: 'pass' | 'fail';        // Which AMM market was traded
+  userAddress: string;            // Trader's wallet address
+  isBaseToQuote: boolean;         // Trade direction (true: base→quote, false: quote→base)
+  amountIn: Decimal;              // Input token amount
+  amountOut: Decimal;             // Output token amount received
+  price: Decimal;                 // Execution price (calculated from amounts)
+  txSignature?: string;           // Solana transaction signature (optional)
 }
 
 /**
- * Chart data point
+ * Chart data point for visualization
+ * Aggregated data for displaying price charts and volume
  */
 export interface IChartDataPoint {
-  timestamp: number;
-  passPrice?: number;
-  failPrice?: number;
-  volume?: number;
+  timestamp: number;              // Unix timestamp in milliseconds
+  passPrice?: number;             // Pass market price at this time (optional)
+  failPrice?: number;             // Fail market price at this time (optional)
+  volume?: number;                // Trading volume in this time period (optional)
 }
 
 /**
- * Service for managing historical data
+ * Service interface for managing historical data
+ * Provides methods for recording and retrieving price, TWAP, and trade history
+ * All data is persisted in PostgreSQL for analytics and visualization
  */
 export interface IHistoryService {
   /**
