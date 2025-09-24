@@ -1,4 +1,4 @@
-import { getPool } from './database.service';
+import { getPool } from '../utils/database';
 import { 
   IHistoryService, 
   IPriceHistory, 

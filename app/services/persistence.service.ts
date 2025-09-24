@@ -1,4 +1,4 @@
-import { getPool } from './database.service';
+import { getPool } from '../utils/database';
 import { IPersistenceService, IProposalDB, IModeratorStateDB, ITransactionData } from '../types/persistence.interface';
 import { IProposal, IProposalConfig } from '../types/proposal.interface';
 import { IModeratorConfig, ProposalStatus } from '../types/moderator.interface';
