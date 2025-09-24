@@ -6,6 +6,8 @@ import { Proposal } from './proposal';
 import { SchedulerService } from './services/scheduler.service';
 import { PersistenceService } from './services/persistence.service';
 import { getNetworkFromConnection, Network } from './utils/network';
+import { BlockEngineUrl, JitoService } from '@slateos/jito';
+import { ExecutionService } from './services/execution.service';
 
 /**
  * Moderator class that manages governance proposals for the protocol
@@ -16,6 +18,7 @@ export class Moderator implements IModerator {
   private _proposalIdCounter: number = 0;                  // Auto-incrementing ID counter for proposals
   private scheduler: SchedulerService;                     // Scheduler for automatic tasks
   private persistenceService: PersistenceService;          // Database persistence service
+  private jitoService?: JitoService;
 
   /**
    * Creates a new Moderator instance
@@ -26,6 +29,9 @@ export class Moderator implements IModerator {
     this.scheduler = SchedulerService.getInstance();
     this.scheduler.setModerator(this);
     this.persistenceService = PersistenceService.getInstance();
+    if (this.config.jitoUuid) {
+      this.jitoService = new JitoService(BlockEngineUrl.MAINNET, this.config.jitoUuid);
+    }
   }
   
   /**
@@ -67,6 +73,7 @@ export class Moderator implements IModerator {
    */
   async createProposal(params: ICreateProposalParams): Promise<IProposal> {
     try {
+      console.log(`Creating proposal #${this._proposalIdCounter} ...`);
       // Create proposal config from moderator config and params
       const proposalConfig: IProposalConfig = {
         id: this._proposalIdCounter,
@@ -82,7 +89,6 @@ export class Moderator implements IModerator {
         connection: this.config.connection,
         twap: params.twap,
         ammConfig: params.amm,
-        jitoUuid: this.config.jitoUuid  // Pass Jito UUID if configured
       };
 
       // Create new proposal with config object
@@ -91,15 +97,15 @@ export class Moderator implements IModerator {
       // Initialize the proposal (use Jito bundles on mainnet if UUID provided)
       const network = getNetworkFromConnection(this.config.connection);
       if (network === Network.MAINNET && this.config.jitoUuid) {
-        console.log(`Initializing proposal on mainnet using Jito bundles (UUID: ${this.config.jitoUuid})`);
-        await proposal.initializeViaBundle();
+        console.log(`Initializing proposal on ${network} using Jito ...`);
+        await proposal.initializeViaBundle(this.jitoService!);
       } else {
-        console.log(`Initializing proposal on ${network} using regular transactions`);
+        console.log(`Initializing proposal on ${network} ...`);
         await proposal.initialize();
       }
       
       // Save to database FIRST (database is source of truth)
-      await this.persistenceService.saveProposal(proposal);
+      await this.saveProposal(proposal);
       this._proposalIdCounter++;  // Increment counter for next proposal
       await this.persistenceService.saveModeratorState(this._proposalIdCounter, this.config);
       
@@ -152,7 +158,7 @@ export class Moderator implements IModerator {
 
     if (network === Network.MAINNET && this.config.jitoUuid) {
       console.log(`Finalizing proposal #${id} on mainnet using Jito bundles (UUID: ${this.config.jitoUuid})`);
-      status = await proposal.finalizeViaBundle();
+      status = await proposal.finalizeViaBundle(this.jitoService!);
     } else {
       console.log(`Finalizing proposal #${id} on ${network} using regular transactions`);
       status = await proposal.finalize();
@@ -181,6 +187,7 @@ export class Moderator implements IModerator {
     executionConfig: IExecutionConfig
   ): Promise<IExecutionResult> {
     // Get proposal from cache or database
+    console.log(`Executing proposal #${id} ...`);
     const proposal = await this.getProposal(id);
     if (!proposal) {
       throw new Error(`Proposal with ID ${id} does not exist`);
@@ -188,16 +195,16 @@ export class Moderator implements IModerator {
     
     switch (proposal.status) {
       case ProposalStatus.Uninitialized:
-        throw new Error(`Proposal #${id} is not initialized - cannot execute`);
+        throw new Error(`Proposal ${id} is not initialized - cannot execute`);
       
       case ProposalStatus.Pending:
-        throw new Error('Proposal is still pending');
+        throw new Error(`Proposal ${id} is still pending`);
       
       case ProposalStatus.Failed:
-        throw new Error('Proposal has failed');
+        throw new Error(`Proposal ${id} has failed`);
       
       case ProposalStatus.Executed:
-        throw new Error('Proposal has already been executed');
+        throw new Error(`Proposal ${id} has already been executed`);
       
       case ProposalStatus.Passed:
         // Log proposal being executed
@@ -205,15 +212,15 @@ export class Moderator implements IModerator {
         const result = await proposal.execute(signer, executionConfig);
         
         // Save updated state to database (database is source of truth)
-        await this.persistenceService.saveProposal(proposal);
+        await this.saveProposal(proposal);
         
         
-        console.log(`Proposal #${id} executed, saved to database`);
+        console.log(`Proposal #${id} executed`);
         
         return result;
       
       default:
-        throw new Error(`Unknown proposal status: ${proposal.status}`);
+        throw new Error(`Unknown proposal status: ${proposal.status} for proposal ${id}`);
     }
   }
 }

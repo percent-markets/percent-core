@@ -55,7 +55,6 @@ export interface IExecutionConfig {
  * Structured log output for execution events
  */
 export interface IExecutionLog {
-  proposalId: number;
   signature: string;
   status: 'success' | 'failed';
   timestamp: number;

@@ -172,12 +172,10 @@ export class Proposal implements IProposal {
    * Initializes the proposal using Jito bundles for atomic execution
    * Uses two sequential bundles: vault setup, then AMM setup with liquidity
    * Ensures all components are created atomically with MEV protection
+   * @param jito - Jito service instance
    */
-  async initializeViaBundle(): Promise<void> {
+  async initializeViaBundle(jito: JitoService): Promise<void> {
     console.log(`Initializing proposal #${this.id} via Jito bundles`);
-
-    // Initialize Jito service with mainnet endpoint and UUID if provided
-    const jito = new JitoService(BlockEngineUrl.MAINNET, this.config.jitoUuid);
 
     // Initialize vaults for base and quote tokens
     this.__baseVault = new Vault({
@@ -513,10 +511,11 @@ export class Proposal implements IProposal {
    * Finalizes the proposal using Jito bundles for atomic execution
    * Removes liquidity from AMMs and redeems authority's winning tokens
    * All operations execute atomically in a single bundle
+   * @param jito - Jito service instance
    * @returns The updated proposal status (Passed or Failed)
    * @throws Error if finalization fails or proposal not ready
    */
-  async finalizeViaBundle(): Promise<ProposalStatus> {
+  async finalizeViaBundle(jito: JitoService): Promise<ProposalStatus> {
     if (this._status === ProposalStatus.Uninitialized) {
       throw new Error(`Proposal #${this.id}: Not initialized - call initialize() first`);
     }
@@ -533,10 +532,6 @@ export class Proposal implements IProposal {
     }
 
     console.log(`Finalizing proposal #${this.id} via Jito bundle`);
-
-    // Initialize Jito service
-    console.log('Initializing Jito service with UUID:', this.config.jitoUuid);
-    const jito = new JitoService(BlockEngineUrl.MAINNET, this.config.jitoUuid);
 
     try {
       // Perform final TWAP crank to ensure we have the most up-to-date data

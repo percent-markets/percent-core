@@ -5,6 +5,7 @@ import { IVault } from './vault.interface';
 import { ITWAPOracle, ITWAPConfig } from './twap-oracle.interface';
 import { ProposalStatus } from './moderator.interface';
 import { IExecutionResult, IExecutionConfig } from './execution.interface';
+import { JitoService } from '@slateos/jito';
 
 /**
  * Configuration for creating a new proposal
@@ -61,8 +62,9 @@ export interface IProposal {
    * Batches all initialization transactions into a single bundle
    * Ensures all components are created atomically with MEV protection
    * Only works on mainnet where Jito is available
+   * @param jito - Jito service instance
    */
-  initializeViaBundle?(): Promise<void>;
+  initializeViaBundle?(jito: JitoService): Promise<void>;
 
   /**
    * Gets both AMMs for the proposal
@@ -90,9 +92,10 @@ export interface IProposal {
    * Removes liquidity from AMMs and redeems authority's winning tokens
    * All operations execute atomically in a single bundle
    * Only works on mainnet where Jito is available
+   * @param jito - Jito service instance
    * @returns The final status after checking time and votes
    */
-  finalizeViaBundle(): Promise<ProposalStatus>;
+  finalizeViaBundle(jito: JitoService): Promise<ProposalStatus>;
 
   /**
    * Executes the proposal's transaction
