@@ -151,19 +151,6 @@ export interface ISPLTokenService {
   ): Promise<string>;
 
   /**
-   * Builds a create associated token account instruction if needed
-   * @param mint - The token mint
-   * @param owner - The owner of the token account
-   * @param payer - The account paying for creation if needed
-   * @returns Instruction to create account or null if it already exists
-   */
-  buildCreateAssociatedTokenAccountIxIfNeeded(
-    mint: PublicKey,
-    owner: PublicKey,
-    payer: PublicKey
-  ): Promise<TransactionInstruction | null>;
-
-  /**
    * Gets or creates an associated token account
    * @param mint - The token mint
    * @param owner - The owner of the token account
