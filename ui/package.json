@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@feedback-fish/react": "^1.2.2",
     "@privy-io/react-auth": "^2.24.0",
     "@solana/spl-token": "^0.4.14",
     "@solana/web3.js": "^1.98.4",

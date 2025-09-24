@@ -3,6 +3,7 @@ import { Inter, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import PrivyProviderWrapper from "@/providers/PrivyProvider";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import FeedbackWidget from "@/components/FeedbackWidget";
 import { Toaster } from "react-hot-toast";
 
 const inter = Inter({
@@ -37,7 +38,8 @@ export default function RootLayout({
         <ErrorBoundary>
           <PrivyProviderWrapper>
             {children}
-            <Toaster 
+            <FeedbackWidget />
+            <Toaster
               position="bottom-right"
               toastOptions={{
                 style: {
