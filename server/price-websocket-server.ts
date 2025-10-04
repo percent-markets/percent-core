@@ -193,7 +193,7 @@ class PriceWebSocketServer {
 
   private startPriceUpdates() {
     // Initial fetch for OOGWAY
-    const OOGWAY_ADDRESS = 'C7MGcMnN8cXUkj8JQuMhkJZh6WqY2r8QnT3AUfKTkrix';
+    const OOGWAY_ADDRESS = 'GVvPZpC6ymCoiHzYJ7CWZ8LhVn9tL2AUpRjSAsLh6jZC';
     this.fetchTokenPrice(OOGWAY_ADDRESS);
 
     // For mainnet tokens (like OOGWAY), poll DexScreener every 10 seconds

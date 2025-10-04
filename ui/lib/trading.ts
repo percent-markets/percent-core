@@ -5,7 +5,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 // SOL and OOGWAY mint addresses
 const SOL_MINT = 'So11111111111111111111111111111111111111112';
-const OOGWAY_MINT = 'C7MGcMnN8cXUkj8JQuMhkJZh6WqY2r8QnT3AUfKTkrix';
+const OOGWAY_MINT = 'GVvPZpC6ymCoiHzYJ7CWZ8LhVn9tL2AUpRjSAsLh6jZC';
 
 export interface OpenPositionConfig {
   proposalId: number;

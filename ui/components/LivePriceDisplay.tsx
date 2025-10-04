@@ -27,7 +27,7 @@ interface TwapData {
 
 // OOGWAY token configuration
 const OOGWAY_CONFIG = {
-  address: 'C7MGcMnN8cXUkj8JQuMhkJZh6WqY2r8QnT3AUfKTkrix',
+  address: 'GVvPZpC6ymCoiHzYJ7CWZ8LhVn9tL2AUpRjSAsLh6jZC',
   poolAddress: '2FCqTyvFcE4uXgRL1yh56riZ9vdjVgoP6yknZW3f8afX',
   name: '$oogway',
   symbol: '$oogway'
