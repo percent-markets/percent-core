@@ -30,10 +30,10 @@ async function createProposal() {
   const ammPrice = quoteTokens / baseTokens; // 1,000 / 10,000 = 0.1
   
   const request: CreateProposalRequest = {
-    description: 'Testing UI Elements',
+    description: 'ZC Emissions Proposal',
     proposalLength: 86400, // 1 day
-    spotPoolAddress: '2FCqTyvFcE4uXgRL1yh56riZ9vdjVgoP6yknZW3f8afX', // OOGWAY/SOL spot pool
-    totalSupply: 1000000000, // 1 billion tokens for market cap calculation
+    spotPoolAddress: 'CCZdbVvDqPN8DmMLVELfnt9G1Q9pQNt3bTGifSpUY9Ad', // OOGWAY/SOL spot pool
+    totalSupply: 1020000000, // 1 billion tokens for market cap calculation
     twap: {
       initialTwapValue: ammPrice, // Decimal-adjusted price (0.1)
       twapMaxObservationChangePerUpdate: null,

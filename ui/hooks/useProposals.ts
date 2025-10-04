@@ -11,7 +11,9 @@ export function useProposals() {
     try {
       setLoading(true);
       const data = await api.getProposals();
-      setProposals(data);
+      // Filter out proposals 6 and 7
+      const filteredData = data.filter(p => p.id !== 6 && p.id !== 7);
+      setProposals(filteredData);
       setError(null);
     } catch (err) {
       console.error('Error fetching proposals:', err);

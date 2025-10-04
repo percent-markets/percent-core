@@ -7,7 +7,7 @@ interface TokenPrices {
   error: string | null;
 }
 
-const OOGWAY_ADDRESS = 'C7MGcMnN8cXUkj8JQuMhkJZh6WqY2r8QnT3AUfKTkrix';
+const OOGWAY_ADDRESS = 'GVvPZpC6ymCoiHzYJ7CWZ8LhVn9tL2AUpRjSAsLh6jZC';
 const SOL_ADDRESS = 'So11111111111111111111111111111111111111112';
 
 export function useTokenPrices(): TokenPrices {
