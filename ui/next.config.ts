@@ -6,7 +6,10 @@ const nextConfig: NextConfig = {
     formats: ['image/avif', 'image/webp'],
   },
   compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
+    // Remove console.log in production but keep console.error and console.warn for debugging
+    removeConsole: process.env.NODE_ENV === 'production'
+      ? { exclude: ['error', 'warn'] }
+      : false,
   },
   eslint: {
     ignoreDuringBuilds: true,

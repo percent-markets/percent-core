@@ -41,4 +41,5 @@ yarn-error.log*
 next-env.d.ts
 
 # TradingView Charting Library (private/licensed)
-public/charting_library/
+# Included in repo since this is a private repository
+# public/charting_library/

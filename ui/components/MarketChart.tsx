@@ -25,6 +25,8 @@ export default function MarketChart({ proposalId, market, height = 256 }: Market
 
   useEffect(() => {
     let isMounted = true;
+    let retryCount = 0;
+    const MAX_RETRIES = 20; // 10 seconds max wait time (20 * 500ms)
 
     const initChart = async () => {
       try {
@@ -47,8 +49,15 @@ export default function MarketChart({ proposalId, market, height = 256 }: Market
           throw new Error(`Missing ${market} market addresses`);
         }
 
-        // Wait for TradingView library to load
+        // Wait for TradingView library to load with timeout
         if (typeof window === 'undefined' || !window.TradingView) {
+          retryCount++;
+          if (retryCount >= MAX_RETRIES) {
+            throw new Error(
+              'TradingView library failed to load. This may be due to a CDN issue or ad blocker. ' +
+              'Please refresh the page or check your browser console for errors.'
+            );
+          }
           // If library not loaded yet, wait a bit and retry
           setTimeout(initChart, 500);
           return;
