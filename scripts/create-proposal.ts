@@ -31,7 +31,7 @@ async function createProposal() {
   console.log(ammPrice);
   
   const request: CreateProposalRequest = {
-    description: 'ZC Emissions Proposal',
+    description: 'Update Staking Vault Rewards and Parameters',
     proposalLength: 900, // 15 minutes
     spotPoolAddress: 'CCZdbVvDqPN8DmMLVELfnt9G1Q9pQNt3bTGifSpUY9Ad', // ZC/SOL spot pool
     totalSupply: 1019381155, // 1 billion tokens for market cap calculation
