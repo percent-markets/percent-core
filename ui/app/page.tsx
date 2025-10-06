@@ -180,7 +180,7 @@ export default function HomePage() {
       return;
     }
 
-    if (!selectedProposalId) {
+    if (!proposal || proposal.id === undefined) {
       toast.error('No proposal selected');
       return;
     }
@@ -198,7 +198,7 @@ export default function HomePage() {
 
       // Build split transaction
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      const buildResponse = await fetch(`${API_BASE_URL}/api/vaults/${selectedProposalId}/${vaultType}/buildSplitTx`, {
+      const buildResponse = await fetch(`${API_BASE_URL}/api/vaults/${proposal.id}/${vaultType}/buildSplitTx`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -221,7 +221,7 @@ export default function HomePage() {
       const signedTx = await wallet.signTransaction(splitTx);
 
       // Execute split transaction
-      const executeResponse = await fetch(`${API_BASE_URL}/api/vaults/${selectedProposalId}/${vaultType}/executeSplitTx`, {
+      const executeResponse = await fetch(`${API_BASE_URL}/api/vaults/${proposal.id}/${vaultType}/executeSplitTx`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -249,7 +249,7 @@ export default function HomePage() {
     } finally {
       setIsEntering(false);
     }
-  }, [authenticated, walletAddress, amount, selectedProposalId, selectedToken, wallets, refetchBalances]);
+  }, [authenticated, walletAddress, amount, proposal, selectedToken, wallets, refetchBalances]);
 
   // Handle Exit Market - Merge conditional tokens back
   const handleExitMarket = useCallback(async () => {
@@ -263,7 +263,7 @@ export default function HomePage() {
       return;
     }
 
-    if (!selectedProposalId) {
+    if (!proposal || proposal.id === undefined) {
       toast.error('No proposal selected');
       return;
     }
@@ -286,7 +286,7 @@ export default function HomePage() {
 
       // Build merge transaction
       const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      const buildResponse = await fetch(`${API_BASE_URL}/api/vaults/${selectedProposalId}/${vaultType}/buildMergeTx`, {
+      const buildResponse = await fetch(`${API_BASE_URL}/api/vaults/${proposal.id}/${vaultType}/buildMergeTx`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -309,7 +309,7 @@ export default function HomePage() {
       const signedTx = await wallet.signTransaction(mergeTx);
 
       // Execute merge transaction
-      const executeResponse = await fetch(`${API_BASE_URL}/api/vaults/${selectedProposalId}/${vaultType}/executeMergeTx`, {
+      const executeResponse = await fetch(`${API_BASE_URL}/api/vaults/${proposal.id}/${vaultType}/executeMergeTx`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -337,7 +337,7 @@ export default function HomePage() {
     } finally {
       setIsExiting(false);
     }
-  }, [authenticated, walletAddress, amount, selectedProposalId, selectedToken, userBalances, wallets, refetchBalances]);
+  }, [authenticated, walletAddress, amount, proposal, selectedToken, userBalances, wallets, refetchBalances]);
 
   // Calculate PFG percentage and passing status to match backend logic
   const { pfgPercentage, isPassing } = useMemo(() => {
