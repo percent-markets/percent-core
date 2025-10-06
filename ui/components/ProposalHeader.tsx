@@ -61,7 +61,7 @@ export function ProposalHeader({
         {/* PFG Display */}
         <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg px-4 py-2">
           <div className="flex flex-col items-end">
-            <span className="text-xs text-gray-400 mb-1">Pass-Fail Gap (PFG)</span>
+            <span className="text-xs text-gray-400 mb-1">TWAP Pass-Fail Gap (PFG)</span>
             <span className="text-lg font-bold text-white">
               {pfgPercentage !== null ? `${pfgPercentage.toFixed(2)}%` : 'Loading...'}
             </span>
