@@ -27,17 +27,17 @@ export default function Header({ walletAddress, authenticated, solBalance, zcBal
           <>
             <div className="flex items-center gap-1.5">
               <Wallet className="w-4 h-4 text-white" />
-              <span className="text-white text-sm font-rinter font-semibold">{walletPrefix}</span>
+              <span className="text-white text-sm font-mono font-medium">{walletPrefix}</span>
             </div>
             <span className="text-2xl" style={{ color: '#2D2D2D' }}>/</span>
             <div className="flex items-center gap-1.5">
               <img src="/solana-logo.jpg" alt="SOL" className="w-5 h-5 rounded-full" />
-              <span className="text-white text-sm font-rinter font-semibold">{solBalance.toFixed(3)}</span>
+              <span className="text-white text-sm font-mono font-medium">{solBalance.toFixed(3)}</span>
             </div>
             <span className="text-2xl" style={{ color: '#2D2D2D' }}>/</span>
             <div className="flex items-center gap-1.5">
               <img src="/zc-logo.jpg" alt="ZC" className="w-5 h-5 rounded-full" />
-              <span className="text-white text-sm font-rinter font-semibold">{zcBalance.toFixed(0)}</span>
+              <span className="text-white text-sm font-mono font-medium">{zcBalance.toFixed(0)}</span>
             </div>
           </>
         )}

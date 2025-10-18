@@ -42,7 +42,7 @@ export default function HomePage() {
   const [livePrices, setLivePrices] = useState<{ pass: number | null; fail: number | null }>({ pass: null, fail: null });
   const [twapData, setTwapData] = useState<{ passTwap: number | null; failTwap: number | null }>({ passTwap: null, failTwap: null });
   const [activeTab, setActiveTab] = useState<'trade' | 'description'>('trade');
-  const [navTab, setNavTab] = useState<'live' | 'history' | 'launch'>('live');
+  const [navTab, setNavTab] = useState<'live' | 'history' | 'portfolio'>('live');
   const [marketMode, setMarketMode] = useState<'enter' | 'exit'>('enter');
   const [amount, setAmount] = useState<string>('');
   const [selectedToken, setSelectedToken] = useState<'sol' | 'zc'>('sol');
@@ -410,17 +410,17 @@ export default function HomePage() {
                 History
               </button>
               <button
-                onClick={() => setNavTab('launch')}
+                onClick={() => setNavTab('portfolio')}
                 className={`text-sm py-1 px-4 transition-all duration-200 ease-in-out cursor-pointer my-0.5 hover:bg-white/10 hover:rounded relative ${
-                  navTab === 'launch'
+                  navTab === 'portfolio'
                     ? 'text-white'
                     : 'text-gray-400 hover:text-gray-300'
                 }`}
               >
-                {navTab === 'launch' && (
+                {navTab === 'portfolio' && (
                   <div className="absolute -top-[7px] left-0 right-0 h-[2px] bg-white z-10" />
                 )}
-                Launch
+                Portfolio
               </button>
             </div>
           </div>
@@ -480,17 +480,17 @@ export default function HomePage() {
               History
             </button>
             <button
-              onClick={() => setNavTab('launch')}
+              onClick={() => setNavTab('portfolio')}
               className={`text-sm py-1 px-4 transition-all duration-200 ease-in-out cursor-pointer my-0.5 hover:bg-white/10 hover:rounded relative ${
-                navTab === 'launch'
+                navTab === 'portfolio'
                   ? 'text-white'
                   : 'text-gray-400 hover:text-gray-300'
               }`}
             >
-              {navTab === 'launch' && (
+              {navTab === 'portfolio' && (
                 <div className="absolute -top-[7px] left-0 right-0 h-[2px] bg-white z-10" />
               )}
-              Launch
+              Portfolio
             </button>
           </div>
         </div>
