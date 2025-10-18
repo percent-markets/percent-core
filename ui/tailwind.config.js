@@ -10,6 +10,8 @@ module.exports = {
       fontFamily: {
         sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
         'ibm-plex-mono': ['var(--font-ibm-plex-mono)', 'monospace'],
+        'roboto-mono': ['var(--font-roboto-mono)', 'monospace'],
+        'rinter': ['var(--font-rinter)', 'monospace'],
       },
       colors: {
         orange: {

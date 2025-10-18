@@ -1,9 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import SettingsModal from './SettingsModal';
-import { useTokenPrices } from '@/hooks/useTokenPrices';
-import { usePrivy } from '@privy-io/react-auth';
+import { Wallet, FileText } from 'lucide-react';
 
 interface HeaderProps {
   walletAddress: string | null;
@@ -13,111 +10,81 @@ interface HeaderProps {
   hasWalletBalance?: boolean;
 }
 
-export default function Header({ walletAddress, authenticated, solBalance, zcBalance, hasWalletBalance = true }: HeaderProps) {
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const { sol: solPrice, zc: zcPrice } = useTokenPrices();
-  const { login } = usePrivy();
-
-  // Show "Deposit" if user has no balance, otherwise show address
-  const shortAddress = walletAddress
-    ? (!hasWalletBalance ? 'DEPOSIT' : walletAddress.slice(0, 6))
-    : 'CONNECT WALLET';
-  const avatarText = walletAddress ? walletAddress.slice(0, 2).toUpperCase() : '??';
+export default function Header({ walletAddress, authenticated, solBalance, zcBalance }: HeaderProps) {
+  const walletPrefix = walletAddress ? walletAddress.slice(0, 6) : 'N/A';
 
   return (
-    <>
-      <div className="h-14 flex items-center justify-between px-8 bg-[#181818] border-b border-[#2A2A2A]">
-        <div className="flex items-center gap-6">
-          <img 
-            src="/percent-logo-big.svg" 
-            alt="percent.markets" 
-            className="h-8"
-          />
-          <div className="flex items-center gap-2">
-            <a 
-              href="https://x.com/percentmarkets" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="w-7 h-7 bg-[#272727] hover:bg-[#303030] rounded-md transition-colors mb-0.5 flex items-center justify-center"
-            >
-              <svg className="h-3.5 w-3.5 fill-[#AFAFAF]" viewBox="0 0 24 24">
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-              </svg>
-            </a>
-            <a
-              href="https://axiom.trade/meme/CCZdbVvDqPN8DmMLVELfnt9G1Q9pQNt3bTGifSpUY9Ad"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-2 h-7 bg-[#272727] hover:bg-[#303030] rounded-md transition-colors mb-0.5 flex items-center justify-center"
-            >
-              <span className="text-xs text-[#AFAFAF] font-bold">$ZC</span>
-            </a>
-          </div>
-        </div>
-        
-        {/* Wallet Info or Login Button */}
-        {authenticated ? (
-          <div className="flex items-center gap-2.5">
-            {/* SOL Balance */}
+    <div className="h-14 flex items-center justify-between px-8 bg-[#0a0a0a] border-b border-[#494949]">
+      {/* Left side: Logo / wallet / balances */}
+      <div className="flex items-center gap-4 text-gray-400">
+        <img
+          src="/long-logo.svg"
+          alt="percent.markets"
+          className="h-8"
+        />
+        <span className="text-2xl" style={{ color: '#2D2D2D' }}>/</span>
+        {authenticated && walletAddress && (
+          <>
             <div className="flex items-center gap-1.5">
-              <span className="text-sm text-[#AFAFAF]">{solBalance.toFixed(3)}</span>
-              <svg className="h-3 w-3" viewBox="0 0 101 88" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M100.48 69.3817L83.8068 86.8015C83.4444 87.1799 83.0058 87.4816 82.5185 87.6878C82.0312 87.894 81.5055 88.0003 80.9743 88H1.93563C1.55849 88 1.18957 87.8926 0.874202 87.6912C0.558829 87.4897 0.31074 87.2029 0.160416 86.8659C0.0100923 86.529 -0.0359181 86.1566 0.0280382 85.7945C0.0919944 85.4324 0.263131 85.0964 0.520422 84.8278L17.2061 67.408C17.5676 67.0306 18.0047 66.7295 18.4904 66.5234C18.9762 66.3172 19.5002 66.2104 20.0301 66.2095H99.0644C99.4415 66.2095 99.8104 66.3169 100.126 66.5183C100.441 66.7198 100.689 67.0065 100.84 67.3435C100.99 67.6804 101.036 68.0529 100.972 68.415C100.908 68.7771 100.737 69.1131 100.48 69.3817ZM83.8068 36.3032C83.4444 35.9248 83.0058 35.6231 82.5185 35.4169C82.0312 35.2108 81.5055 35.1045 80.9743 35.1048H1.93563C1.55849 35.1048 1.18957 35.2121 0.874202 35.4136C0.558829 35.6151 0.31074 35.9019 0.160416 36.2388C0.0100923 36.5758 -0.0359181 36.9482 0.0280382 37.3103C0.0919944 37.6723 0.263131 38.0083 0.520422 38.277L17.2061 55.6968C17.5676 56.0742 18.0047 56.3752 18.4904 56.5814C18.9762 56.7875 19.5002 56.8944 20.0301 56.8952H99.0644C99.4415 56.8952 99.8104 56.7879 100.126 56.5864C100.441 56.3849 100.689 56.0981 100.84 55.7612C100.99 55.4242 101.036 55.0518 100.972 54.6897C100.908 54.3277 100.737 53.9917 100.48 53.723L83.8068 36.3032ZM1.93563 21.7905H80.9743C81.5055 21.7898 82.0312 21.6835 82.5185 21.4773C83.0058 21.2712 83.4444 20.9695 83.8068 20.5911L100.48 3.17133C100.737 2.90265 100.908 2.56667 100.972 2.2046C101.036 1.84253 100.99 1.47008 100.84 1.13314C100.689 0.796193 100.441 0.509443 100.126 0.307961C99.8104 0.106479 99.4415 -0.000854492 99.0644 -0.000854492H20.0301C19.5002 -0.00013126 18.9762 0.106791 18.4904 0.312929C18.0047 0.519068 17.5676 0.820087 17.2061 1.19754L0.524723 18.6173C0.267481 18.8859 0.0963642 19.2219 0.0323936 19.584C-0.0315771 19.946 0.0144792 20.3184 0.164862 20.6554C0.315245 20.9923 0.563347 21.2791 0.878727 21.4806C1.19411 21.682 1.56303 21.7894 1.94013 21.7896L1.93563 21.7905Z" fill="#AFAFAF"/>
-              </svg>
+              <Wallet className="w-4 h-4 text-white" />
+              <span className="text-white text-sm font-rinter font-semibold">{walletPrefix}</span>
             </div>
-
-            {/* Divider */}
-            <div className="w-px h-4 bg-[#3D3D3D]"></div>
-
-            {/* $ZC Balance */}
+            <span className="text-2xl" style={{ color: '#2D2D2D' }}>/</span>
             <div className="flex items-center gap-1.5">
-              <span className="text-sm text-[#AFAFAF]">{zcBalance.toFixed(0)}</span>
-              <span className="text-sm text-[#AFAFAF] font-bold">$ZC</span>
+              <img src="/solana-logo.jpg" alt="SOL" className="w-5 h-5 rounded-full" />
+              <span className="text-white text-sm font-rinter font-semibold">{solBalance.toFixed(3)}</span>
             </div>
-
-            {/* Divider */}
-            <div className="w-px h-4 bg-[#3D3D3D]"></div>
-
-            {/* Wallet Button */}
-            <button
-              onClick={() => setIsSettingsOpen(true)}
-              className={
-                !hasWalletBalance
-                  ? "px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors"
-                  : "group flex items-center gap-2 transition cursor-pointer"
-              }
-            >
-              {!hasWalletBalance ? (
-                <span>{shortAddress}</span>
-              ) : (
-                <>
-                  <span className="text-sm text-[#AFAFAF] group-hover:text-orange-400 transition-colors">{shortAddress}</span>
-                  <div className="w-8 h-8 bg-[#272727] group-hover:bg-[#303030] rounded-full flex items-center justify-center transition-colors">
-                    <span className="text-xs font-medium text-[#AFAFAF] group-hover:text-orange-400 transition-colors">{avatarText}</span>
-                  </div>
-                </>
-              )}
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={login}
-            className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-lg transition-colors"
-          >
-            Login
-          </button>
+            <span className="text-2xl" style={{ color: '#2D2D2D' }}>/</span>
+            <div className="flex items-center gap-1.5">
+              <img src="/zc-logo.jpg" alt="ZC" className="w-5 h-5 rounded-full" />
+              <span className="text-white text-sm font-rinter font-semibold">{zcBalance.toFixed(0)}</span>
+            </div>
+          </>
         )}
       </div>
-      
-      {/* Settings Modal */}
-      <SettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        solBalance={solBalance}
-        zcBalance={zcBalance}
-        solPrice={solPrice}
-        zcPrice={zcPrice}
-      />
-    </>
+
+      {/* Right side: Links */}
+      <nav className="flex items-center gap-3 sm:gap-6">
+        <a
+          href="https://www.zcombinator.io/presale/zcQPTGhdiTMFM6erwko2DWBTkN8nCnAGM7MUX9RpERC"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-gray-400 hover:text-white transition-colors"
+        >
+          <span className="text-sm">$PERC</span>
+        </a>
+        <a
+          href="https://docs.percent.markets/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-gray-400 hover:text-white transition-colors"
+        >
+          <FileText className="w-4 h-4 sm:hidden" />
+          <span className="hidden sm:inline text-sm">Docs</span>
+        </a>
+        <a
+          href="http://discord.gg/zcombinator"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-gray-400 hover:text-white transition-colors"
+        >
+          <svg className="w-4 h-4 sm:hidden" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.64 12.64 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 .084-.028a14.09 14.09 0 0 0 1.226-1.994a.076.076 0 0 0-.041-.106a13.107 13.107 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.299 12.299 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.839 19.839 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.956-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.955-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.946 2.418-2.157 2.418z"/>
+          </svg>
+          <span className="hidden sm:inline text-sm">Discord</span>
+        </a>
+        <a
+          href="https://x.com/percentmarkets"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-gray-400 hover:text-white transition-colors"
+        >
+          <svg className="w-4 h-4 sm:hidden" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+          </svg>
+          <span className="hidden sm:inline text-sm">Twitter</span>
+        </a>
+      </nav>
+    </div>
   );
 }

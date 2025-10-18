@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import { usePrivyWallet } from '@/hooks/usePrivyWallet';
 import { useWalletBalances } from '@/hooks/useWalletBalances';
 import { useTokenPrices } from '@/hooks/useTokenPrices';
-import Sidebar from '@/components/Sidebar';
+// import Sidebar from '@/components/Sidebar';
 import TradingInterface from '@/components/TradingInterface';
 import Header from '@/components/Header';
 import { ProposalHeader } from '@/components/ProposalHeader';
@@ -356,14 +356,7 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen bg-[#181818]">
-        {/* Sidebar with skeleton */}
-        <Sidebar 
-          selectedProposal={0}
-          onSelectProposal={handleSelectProposal}
-          proposals={proposals}
-          loading={loading}
-        />
+      <div className="flex h-screen bg-[#0a0a0a]">
         {/* Main content skeleton */}
         <div className="flex-1 flex items-center justify-center">
           <div className="text-gray-500">Loading...</div>
@@ -374,15 +367,7 @@ export default function HomePage() {
 
   if (!proposal || proposals.length === 0) {
     return (
-      <div className="flex h-screen bg-[#181818]">
-        {/* Sidebar */}
-        <Sidebar 
-          selectedProposal={0}
-          onSelectProposal={handleSelectProposal}
-          proposals={proposals}
-          loading={loading}
-        />
-        
+      <div className="flex h-screen bg-[#0a0a0a]">
         {/* Main Content */}
         <div className="flex-1 flex flex-col">
           {/* Header */}
@@ -393,7 +378,7 @@ export default function HomePage() {
             zcBalance={zcBalance}
             hasWalletBalance={hasWalletBalance}
           />
-          
+
           {/* Empty state */}
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
@@ -407,15 +392,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="flex h-screen bg-[#181818]">
-      {/* Sidebar */}
-      <Sidebar 
-        selectedProposal={selectedProposalId || 0}
-        onSelectProposal={handleSelectProposal}
-        proposals={proposals}
-        loading={loading}
-      />
-
+    <div className="flex h-screen bg-[#0a0a0a]">
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header */}

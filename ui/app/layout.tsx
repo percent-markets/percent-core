@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Inter, IBM_Plex_Mono } from "next/font/google";
+import { Inter, IBM_Plex_Mono, Roboto_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import PrivyProviderWrapper from "@/providers/PrivyProvider";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -18,6 +19,16 @@ const ibmPlexMono = IBM_Plex_Mono({
   variable: "--font-ibm-plex-mono",
 });
 
+const robotoMono = Roboto_Mono({
+  subsets: ["latin"],
+  variable: "--font-roboto-mono",
+});
+
+const rinter = localFont({
+  src: "../public/fonts/Rinter.ttf",
+  variable: "--font-rinter",
+});
+
 export const metadata: Metadata = {
   title: "Percent | ZC",
   description: "Trade decision markets",
@@ -34,7 +45,7 @@ export default function RootLayout({
         <script src="/charting_library/charting_library/charting_library.standalone.js" async></script>
       </head>
       <body
-        className={`${inter.variable} ${ibmPlexMono.variable} font-sans antialiased bg-gray-950 text-white`}
+        className={`${inter.variable} ${ibmPlexMono.variable} ${robotoMono.variable} ${rinter.variable} font-sans antialiased bg-[#0a0a0a] text-white`}
       >
         <ErrorBoundary>
           <MobileBlocker>
