@@ -46,7 +46,15 @@ export default function Header({ walletAddress, authenticated, solBalance, zcBal
       {/* Right side: Links */}
       <nav className="flex items-center gap-3 sm:gap-6">
         <a
-          href="https://www.zcombinator.io/presale/zcQPTGhdiTMFM6erwko2DWBTkN8nCnAGM7MUX9RpERC"
+          href="https://axiom.trade/meme/CCZdbVvDqPN8DmMLVELfnt9G1Q9pQNt3bTGifSpUY9Ad"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-gray-400 hover:text-white transition-colors"
+        >
+          <span className="text-sm">$ZC</span>
+        </a>
+        <a
+          href="https://jup.ag/tokens/zcQPTGhdiTMFM6erwko2DWBTkN8nCnAGM7MUX9RpERC"
           target="_blank"
           rel="noopener noreferrer"
           className="text-gray-400 hover:text-white transition-colors"
