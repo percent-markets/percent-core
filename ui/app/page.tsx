@@ -811,7 +811,7 @@ export default function HomePage() {
                         <div className="text-white flex flex-col gap-4">
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <div className="text-sm font-semibold">ZC-{proposal.id}</div>
+                              <div className="text-sm font-normal">ZC-{proposal.id}</div>
                               {proposal.status === 'Passed' && (
                                 <span className="flex items-center gap-1 px-2 py-0.5 text-xs font-normal rounded-full" style={{ backgroundColor: '#6ECC9433', color: '#6ECC94' }}>
                                   Pass
@@ -839,7 +839,7 @@ export default function HomePage() {
                             </div>
                           </div>
 
-                          <div className="text-lg font-semibold">{proposalContent.title}</div>
+                          <div className="text-lg font-normal">{proposalContent.title}</div>
 
                           {/* Show summary or full content based on hover */}
                           <div className="text-sm text-gray-300">

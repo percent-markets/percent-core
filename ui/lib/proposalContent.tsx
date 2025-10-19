@@ -17,14 +17,14 @@ export const proposalContentMap: Record<number, ProposalContent> = {
         </p>
 
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">How is volume calculated?</h3>
+          <h3 className="text-lg font-normal text-white mb-2">How is volume calculated?</h3>
           <p>
             All trading volume on the pass and fail markets occurring before the implied resolution on either the pass or fail markets is counted towards the reward calculation. Volume is calculated as if both pass and fail markets resolve.
           </p>
         </div>
 
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">What is implied resolution?</h3>
+          <h3 className="text-lg font-normal text-white mb-2">What is implied resolution?</h3>
           <p>
             Implied resolution occurs once the pass-fail gap is sufficiently large such that no additional price movement can change the outcome of the market. This is an anti-manipulation feature.
           </p>
@@ -35,7 +35,7 @@ export const proposalContentMap: Record<number, ProposalContent> = {
         </p>
 
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">I need help - who can I talk to?</h3>
+          <h3 className="text-lg font-normal text-white mb-2">I need help - who can I talk to?</h3>
           <p>
             Come join our telegram: <a href="https://t.me/oogwayexperimentportal" className="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">https://t.me/oogwayexperimentportal</a>
           </p>
@@ -49,14 +49,14 @@ export const proposalContentMap: Record<number, ProposalContent> = {
     content: (
       <div className="space-y-4 text-gray-300">
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">Executive Summary</h3>
+          <h3 className="text-lg font-normal text-white mb-2">Executive Summary</h3>
           <p>
             Adjust the $ZC staking vault to align incentives with longer-term staking and simplify user operations.
           </p>
         </div>
 
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">Changes Proposed</h3>
+          <h3 className="text-lg font-normal text-white mb-2">Changes Proposed</h3>
           <ul className="list-disc list-inside space-y-1">
             <li><strong>Epoch length:</strong> increase from 14 days to 30 days (monthly withdrawal period)</li>
             <li><strong>Emissions:</strong> increase from 14M $ZC / 14 days to 60M $ZC / 30 days</li>
@@ -67,7 +67,7 @@ export const proposalContentMap: Record<number, ProposalContent> = {
         </div>
 
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">Motivation</h3>
+          <h3 className="text-lg font-normal text-white mb-2">Motivation</h3>
           <ul className="list-disc list-inside space-y-1">
             <li><strong>Longer commitment, clearer cadence:</strong> monthly epochs reduce operational churn vs biweekly</li>
             <li><strong>Strengthen incentives:</strong> doubles daily emissions to reward long-term participation and increase the staked share</li>
@@ -80,7 +80,7 @@ export const proposalContentMap: Record<number, ProposalContent> = {
         </p>
 
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">I need help - who can I talk to?</h3>
+          <h3 className="text-lg font-normal text-white mb-2">I need help - who can I talk to?</h3>
           <p>
             Come join our Discord: <a href="https://discord.gg/Vf38Mqhxu5" className="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">https://discord.gg/Vf38Mqhxu5</a>
           </p>
@@ -94,14 +94,14 @@ export const proposalContentMap: Record<number, ProposalContent> = {
     content: (
       <div className="space-y-4 text-gray-300">
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">Executive Summary</h3>
+          <h3 className="text-lg font-normal text-white mb-2">Executive Summary</h3>
           <p>
             Adjust the $ZC staking vault to align incentives with longer-term staking and simplify user operations.
           </p>
         </div>
 
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">Changes Proposed</h3>
+          <h3 className="text-lg font-normal text-white mb-2">Changes Proposed</h3>
           <ul className="list-disc list-inside space-y-1">
             <li><strong>Epoch length:</strong> increase from 14 days to 30 days (monthly withdrawal period)</li>
             <li><strong>Emissions:</strong> increase from 14M $ZC / 14 days to 60M $ZC / 30 days</li>
@@ -112,7 +112,7 @@ export const proposalContentMap: Record<number, ProposalContent> = {
         </div>
 
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">Motivation</h3>
+          <h3 className="text-lg font-normal text-white mb-2">Motivation</h3>
           <ul className="list-disc list-inside space-y-1">
             <li><strong>Longer commitment, clearer cadence:</strong> monthly epochs reduce operational churn vs biweekly</li>
             <li><strong>Strengthen incentives:</strong> doubles daily emissions to reward long-term participation and increase the staked share</li>
@@ -125,7 +125,7 @@ export const proposalContentMap: Record<number, ProposalContent> = {
         </p>
 
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">I need help - who can I talk to?</h3>
+          <h3 className="text-lg font-normal text-white mb-2">I need help - who can I talk to?</h3>
           <p>
             Come join our Discord: <a href="https://discord.gg/Vf38Mqhxu5" className="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">https://discord.gg/Vf38Mqhxu5</a>
           </p>
@@ -139,14 +139,14 @@ export const proposalContentMap: Record<number, ProposalContent> = {
     content: (
       <div className="space-y-4 text-gray-300">
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">Executive Summary</h3>
+          <h3 className="text-lg font-normal text-white mb-2">Executive Summary</h3>
           <p>
             This proposal authorizes the ZCombinatorio Protocol to execute a controlled redistribution of the SolPay ($SP) token supply in response to a recent exploitative accumulation event. The goal is to preserve the integrity of the $SP network and restore fair ownership distribution.
           </p>
         </div>
 
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">Actions Authorized</h3>
+          <h3 className="text-lg font-normal text-white mb-2">Actions Authorized</h3>
           <p className="mb-2">If passed, this proposal permits the Protocol to:</p>
           <ul className="list-disc list-inside space-y-1">
             <li>Pull liquidity from the existing SP–SOL Meteora DAMM v2 pool to secure assets prior to redistribution.</li>
@@ -168,7 +168,7 @@ export const proposalContentMap: Record<number, ProposalContent> = {
         </div>
 
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">Rationale</h3>
+          <h3 className="text-lg font-normal text-white mb-2">Rationale</h3>
           <p className="mb-2">
             Following the SolPay launch, a significant percentage of $SP supply was acquired by a single actor through aggressive sniping behavior. This concentration of ownership undermines:
           </p>
@@ -187,7 +187,7 @@ export const proposalContentMap: Record<number, ProposalContent> = {
         </p>
 
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">I need help - who can I talk to?</h3>
+          <h3 className="text-lg font-normal text-white mb-2">I need help - who can I talk to?</h3>
           <p>
             Come join our Discord: <a href="https://discord.gg/Vf38Mqhxu5" className="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">https://discord.gg/Vf38Mqhxu5</a>
           </p>
@@ -201,14 +201,14 @@ export const proposalContentMap: Record<number, ProposalContent> = {
     content: (
       <div className="space-y-4 text-gray-300">
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">Executive Summary</h3>
+          <h3 className="text-lg font-normal text-white mb-2">Executive Summary</h3>
           <p>
             Due to higher-than-anticipated demand, the current pre-sale structure would result in an unsustainable 20x price appreciation with only 3% liquidity at launch. This proposal seeks market approval to modify the mechanics for a healthier market launch.
           </p>
         </div>
 
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">Current Situation</h3>
+          <h3 className="text-lg font-normal text-white mb-2">Current Situation</h3>
           <ul className="list-disc list-inside space-y-1">
             <li><strong>Problem:</strong> Pre-sale participants would see 20x returns, but the pool would be illiquid (3% liquidity)</li>
             <li><strong>Risk:</strong> Price volatility, difficulty in trading, potential cascade of sells with insufficient buy-side liquidity</li>
@@ -216,7 +216,7 @@ export const proposalContentMap: Record<number, ProposalContent> = {
         </div>
 
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">Proposed Solution</h3>
+          <h3 className="text-lg font-normal text-white mb-2">Proposed Solution</h3>
           <p className="mb-2">Adjust the pre-sale mechanics to:</p>
           <ul className="list-disc list-inside space-y-1">
             <li>Use pre-sale funds to pair with 20% of $PERC tokens on an Automated Market Maker (AMM)</li>
@@ -226,10 +226,10 @@ export const proposalContentMap: Record<number, ProposalContent> = {
         </div>
 
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">Examples (Assuming 70M ZC deposited in presale)</h3>
+          <h3 className="text-lg font-normal text-white mb-2">Examples (Assuming 70M ZC deposited in presale)</h3>
 
           <div className="mt-3">
-            <h4 className="font-semibold text-white mb-1">Proposed Mechanics:</h4>
+            <h4 className="font-normal text-white mb-1">Proposed Mechanics:</h4>
             <ul className="list-disc list-inside space-y-1 text-sm">
               <li>627,900,000 PERC sold for 70,000,000 ZC</li>
               <li>200,000,000 PERC deposited to AMM</li>
@@ -240,7 +240,7 @@ export const proposalContentMap: Record<number, ProposalContent> = {
           </div>
 
           <div className="mt-3">
-            <h4 className="font-semibold text-white mb-1">Current Mechanics:</h4>
+            <h4 className="font-normal text-white mb-1">Current Mechanics:</h4>
             <ul className="list-disc list-inside space-y-1 text-sm">
               <li>795,840,286 PERC sold for 70,000,000 ZC</li>
               <li>33,000,000 PERC deposited to AMM</li>
@@ -256,7 +256,7 @@ export const proposalContentMap: Record<number, ProposalContent> = {
         </p>
 
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">I need help - who can I talk to?</h3>
+          <h3 className="text-lg font-normal text-white mb-2">I need help - who can I talk to?</h3>
           <p>
             Come join our Discord: <a href="https://discord.gg/Vf38Mqhxu5" className="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">https://discord.gg/Vf38Mqhxu5</a>
           </p>
@@ -274,14 +274,14 @@ export const proposalContentMap: Record<number, ProposalContent> = {
         </p>
 
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">How is volume calculated?</h3>
+          <h3 className="text-lg font-normal text-white mb-2">How is volume calculated?</h3>
           <p>
             All trading volume on the pass and fail markets occurring before the implied resolution on either the pass or fail markets is counted towards the reward calculation. Volume is calculated as if both pass and fail markets resolve.
           </p>
         </div>
 
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">What is implied resolution?</h3>
+          <h3 className="text-lg font-normal text-white mb-2">What is implied resolution?</h3>
           <p>
             Implied resolution occurs once the pass-fail gap is sufficiently large such that no additional price movement can change the outcome of the market. This is an anti-manipulation feature.
           </p>
@@ -292,7 +292,7 @@ export const proposalContentMap: Record<number, ProposalContent> = {
         </p>
 
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">I need help - who can I talk to?</h3>
+          <h3 className="text-lg font-normal text-white mb-2">I need help - who can I talk to?</h3>
           <p>
             Come join our telegram: <a href="https://t.me/oogwayexperimentportal" className="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">https://t.me/oogwayexperimentportal</a>
           </p>
@@ -305,12 +305,12 @@ export const proposalContentMap: Record<number, ProposalContent> = {
     title: "What will the price of $ZC be after the OOG-2 market resolves?",
     content: (
       <div className="space-y-4 text-gray-300">
-        <p className="font-semibold">
+        <p className="font-normal">
           OOG-2: Create an $ZC-sZC LP via meteora DAMM V2
         </p>
 
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">Mint</h3>
+          <h3 className="text-lg font-normal text-white mb-2">Mint</h3>
           <ul className="list-disc list-inside space-y-1">
             <li>40,000,000 $ZC for the purpose of creating a liquid sZC token</li>
             <li>10,000,000 $ZC to be distributed to traders of this market. distribution will be volume based and in the form of staked ZC</li>
@@ -318,7 +318,7 @@ export const proposalContentMap: Record<number, ProposalContent> = {
         </div>
 
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">Pros:</h3>
+          <h3 className="text-lg font-normal text-white mb-2">Pros:</h3>
           <ul className="list-disc list-inside space-y-1">
             <li>$ZC stakers, who no longer want to signal commitment, can exit at a discount to $ZC.</li>
             <li>$ZC holders interested in signaling commitment, can purchase $ZC at discounts by purchasing staked $ZC</li>
@@ -330,7 +330,7 @@ export const proposalContentMap: Record<number, ProposalContent> = {
         </div>
 
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">Cons:</h3>
+          <h3 className="text-lg font-normal text-white mb-2">Cons:</h3>
           <ul className="list-disc list-inside space-y-1">
             <li>staking market becomes less restrictive</li>
             <li>complicated mechanisms increase overhead</li>
@@ -342,14 +342,14 @@ export const proposalContentMap: Record<number, ProposalContent> = {
         </p>
 
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">How is volume calculated?</h3>
+          <h3 className="text-lg font-normal text-white mb-2">How is volume calculated?</h3>
           <p>
             All trading volume on the pass and fail markets occurring before the implied resolution on either the pass or fail markets is counted towards the reward calculation. Volume is calculated as if both pass and fail markets resolve.
           </p>
         </div>
 
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">What is implied resolution?</h3>
+          <h3 className="text-lg font-normal text-white mb-2">What is implied resolution?</h3>
           <p>
             Implied resolution occurs once the pass-fail gap is sufficiently large such that no additional price movement can change the outcome of the market. This is an anti-manipulation feature.
           </p>
@@ -360,7 +360,7 @@ export const proposalContentMap: Record<number, ProposalContent> = {
         </p>
 
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">I need help - who can I talk to?</h3>
+          <h3 className="text-lg font-normal text-white mb-2">I need help - who can I talk to?</h3>
           <p>
             Come join our telegram: <a href="https://t.me/oogwayexperimentportal" className="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">https://t.me/oogwayexperimentportal</a>
           </p>
