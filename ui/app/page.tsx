@@ -842,24 +842,12 @@ export default function HomePage() {
                           <div className="text-lg font-semibold">{proposalContent.title}</div>
 
                           {/* Show summary or full content based on hover */}
-                          <div className="relative">
-                            {/* Summary preview - shown when not hovered */}
-                            <div
-                              className={`text-sm text-gray-300 transition-all duration-300 ease-in-out ${
-                                isHovered ? 'opacity-0 max-h-0 overflow-hidden' : 'opacity-100 max-h-[1000px]'
-                              }`}
-                            >
-                              {summaryPreview}
-                            </div>
-
-                            {/* Full content - shown when hovered */}
-                            <div
-                              className={`text-sm text-gray-300 transition-all duration-300 ease-in-out ${
-                                isHovered ? 'opacity-100 max-h-[5000px]' : 'opacity-0 max-h-0 overflow-hidden'
-                              }`}
-                            >
-                              {proposalContent.content || <p>{proposal.description}</p>}
-                            </div>
+                          <div className="text-sm text-gray-300">
+                            {isHovered ? (
+                              proposalContent.content || <p>{proposal.description}</p>
+                            ) : (
+                              summaryPreview
+                            )}
                           </div>
 
                           {/* Only show claim row if user has claimable rewards */}
