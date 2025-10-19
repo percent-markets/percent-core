@@ -1,6 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { Wallet, FileText } from 'lucide-react';
+import { useSolanaWallets } from '@privy-io/react-auth/solana';
 
 interface HeaderProps {
   walletAddress: string | null;
@@ -12,6 +14,8 @@ interface HeaderProps {
 }
 
 export default function Header({ walletAddress, authenticated, solBalance, zcBalance, login }: HeaderProps) {
+  const { exportWallet } = useSolanaWallets();
+  const [isHoveringWallet, setIsHoveringWallet] = useState(false);
   const walletPrefix = walletAddress ? walletAddress.slice(0, 6) : 'N/A';
 
   return (
@@ -42,11 +46,21 @@ export default function Header({ walletAddress, authenticated, solBalance, zcBal
         )}
         {authenticated && walletAddress && (
           <>
-            <div className="flex items-center gap-1.5">
+            <div
+              className="flex items-center gap-1.5 cursor-pointer transition-colors"
+              onMouseEnter={() => setIsHoveringWallet(true)}
+              onMouseLeave={() => setIsHoveringWallet(false)}
+              onClick={() => exportWallet()}
+            >
               <div className="w-5 h-5 rounded-full flex items-center justify-center border border-[#191919]" style={{ backgroundColor: '#121212' }}>
-                <Wallet className="w-3 h-3 text-white" />
+                <Wallet className="w-3 h-3 transition-colors" style={{ color: isHoveringWallet ? '#EF6300' : '#ffffff' }} />
               </div>
-              <span className="text-white text-sm font-mono font-medium">{walletPrefix}</span>
+              <span
+                className="text-sm font-mono font-medium transition-colors"
+                style={{ color: isHoveringWallet ? '#EF6300' : '#ffffff' }}
+              >
+                {isHoveringWallet ? 'Export PK' : walletPrefix}
+              </span>
             </div>
             <span className="text-2xl" style={{ color: '#2D2D2D' }}>/</span>
             <div className="flex items-center gap-1.5">
