@@ -35,9 +35,6 @@ export function useWalletBalances(walletAddress: string | null): WalletBalances 
         // Fetch SOL balance
         const solBalance = await connection.getBalance(pubKey);
         const solAmount = solBalance / LAMPORTS_PER_SOL;
-        console.log('[useWalletBalances] Fetched balances for', address);
-        console.log('[useWalletBalances] SOL balance (lamports):', solBalance);
-        console.log('[useWalletBalances] SOL balance (decimal):', solAmount);
 
         // Fetch $ZC token balance
         let zcAmount = 0;
@@ -51,10 +48,8 @@ export function useWalletBalances(walletAddress: string | null): WalletBalances 
             const zcAccount = await getAccount(connection, zcATA);
             // $ZC has 6 decimals
             zcAmount = Number(zcAccount.amount) / 1e6;
-            console.log('[useWalletBalances] ZC balance:', zcAmount);
         } catch (error) {
           // Token account might not exist if user has 0 balance - this is normal
-          console.log('[useWalletBalances] ZC token account not found (normal if balance is 0)');
         }
 
       setBalances({
@@ -64,7 +59,6 @@ export function useWalletBalances(walletAddress: string | null): WalletBalances 
         error: null,
       });
     } catch (error) {
-      console.error('[useWalletBalances] Error fetching balances:', error);
       setBalances({
         sol: 0,
         zc: 0,
