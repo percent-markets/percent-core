@@ -45,11 +45,11 @@ export const proposalContentMap: Record<number, ProposalContent> = {
   },
   2: {
     id: 2,
-    title: "ZC-1: Update Staking Vault Rewards & Parameters",
+    title: "Update Staking Vault Rewards & Parameters",
     content: (
       <div className="space-y-4 text-gray-300">
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">Summary</h3>
+          <h3 className="text-lg font-semibold text-white mb-2">Executive Summary</h3>
           <p>
             Adjust the $ZC staking vault to align incentives with longer-term staking and simplify user operations.
           </p>
@@ -90,11 +90,11 @@ export const proposalContentMap: Record<number, ProposalContent> = {
   },
   3: {
     id: 3,
-    title: "ZC-1: Update Staking Vault Rewards & Parameters",
+    title: "Update Staking Vault Rewards & Parameters",
     content: (
       <div className="space-y-4 text-gray-300">
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">Summary</h3>
+          <h3 className="text-lg font-semibold text-white mb-2">Executive Summary</h3>
           <p>
             Adjust the $ZC staking vault to align incentives with longer-term staking and simplify user operations.
           </p>
@@ -135,11 +135,11 @@ export const proposalContentMap: Record<number, ProposalContent> = {
   },
   4: {
     id: 4,
-    title: "SolPay Retroactive Holder Redistribution (ZC-2)",
+    title: "SolPay Retroactive Holder Redistribution",
     content: (
       <div className="space-y-4 text-gray-300">
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">Summary</h3>
+          <h3 className="text-lg font-semibold text-white mb-2">Executive Summary</h3>
           <p>
             This proposal authorizes the ZCombinatorio Protocol to execute a controlled redistribution of the SolPay ($SP) token supply in response to a recent exploitative accumulation event. The goal is to preserve the integrity of the $SP network and restore fair ownership distribution.
           </p>
@@ -197,7 +197,7 @@ export const proposalContentMap: Record<number, ProposalContent> = {
   },
   5: {
     id: 5,
-    title: "Decision Market Proposal: Percent Pre-Sale Mechanics Adjustment (ZC-3)",
+    title: "Decision Market Proposal: Percent Pre-Sale Mechanics Adjustment",
     content: (
       <div className="space-y-4 text-gray-300">
         <div>

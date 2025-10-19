@@ -15,11 +15,17 @@ import MarketChart from '@/components/MarketChart';
 import { useProposals } from '@/hooks/useProposals';
 import { useTradeHistory } from '@/hooks/useTradeHistory';
 import { useUserBalances } from '@/hooks/useUserBalances';
+import { useClaimablePositions } from '@/hooks/useClaimablePositions';
 import { useVisualFocus } from '@/hooks/useVisualFocus';
 import { formatNumber, formatVolume, formatCurrency } from '@/lib/formatters';
 import { useSolanaWallets } from '@privy-io/react-auth/solana';
 import { Transaction } from '@solana/web3.js';
 import toast from 'react-hot-toast';
+import { getProposalContent } from '@/lib/proposalContent';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { CheckCircle2, XCircle } from 'lucide-react';
+import { api } from '@/lib/api';
+import { claimWinnings } from '@/lib/trading';
 
 const LivePriceDisplay = dynamic(() => import('@/components/LivePriceDisplay').then(mod => mod.LivePriceDisplay), {
   ssr: false,
@@ -48,6 +54,9 @@ export default function HomePage() {
   const [selectedToken, setSelectedToken] = useState<'sol' | 'zc'>('sol');
   const [isEntering, setIsEntering] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
+  const [hoveredProposalId, setHoveredProposalId] = useState<number | null>(null);
+  const [proposalPfgs, setProposalPfgs] = useState<Record<number, number>>({});
+  const [claimingProposalId, setClaimingProposalId] = useState<number | null>(null);
 
   // Fetch wallet balances
   const { sol: solBalance, zc: zcBalance } = useWalletBalances(walletAddress);
@@ -58,11 +67,93 @@ export default function HomePage() {
   // Get Solana wallets for transaction signing
   const { wallets } = useSolanaWallets();
 
+  // Fetch claimable positions for history view
+  const { positions: claimablePositions } = useClaimablePositions(walletAddress);
+
+  // Transaction signer helper for claiming
+  const createTransactionSigner = useCallback(() => {
+    return async (transaction: Transaction) => {
+      const wallet = wallets[0];
+      if (!wallet) throw new Error('No Solana wallet found');
+      return await wallet.signTransaction(transaction);
+    };
+  }, [wallets]);
+
+  // Handle claim from history card
+  const handleClaimFromHistory = useCallback(async (
+    proposalId: number,
+    proposalStatus: 'Passed' | 'Failed',
+    proposalRewards: Array<{ claimableToken: 'sol' | 'zc', claimableAmount: number, positionType: 'pass' | 'fail' }>
+  ) => {
+    if (!authenticated) {
+      login();
+      return;
+    }
+
+    if (!walletAddress) {
+      toast.error('No wallet address found');
+      return;
+    }
+
+    if (proposalRewards.length === 0) {
+      toast.error('No position to claim');
+      return;
+    }
+
+    // Determine user position type from rewards
+    const userPositionType = proposalRewards[0].positionType;
+    const userPosition = { type: userPositionType };
+
+    setClaimingProposalId(proposalId);
+
+    try {
+      await claimWinnings({
+        proposalId,
+        proposalStatus,
+        userPosition,
+        userAddress: walletAddress,
+        signTransaction: createTransactionSigner()
+      });
+
+      // The claimable positions will automatically refresh since they depend on wallet balances
+      // which are refetched by the useClaimablePositions hook
+
+    } catch (error) {
+      console.error('Claim failed:', error);
+      // Error toast is already shown by claimWinnings function
+    } finally {
+      setClaimingProposalId(null);
+    }
+  }, [authenticated, login, walletAddress, createTransactionSigner]);
+
   // Memoize sorted proposals
   const sortedProposals = useMemo(() =>
     [...proposals].sort((a, b) => b.finalizedAt - a.finalizedAt),
     [proposals]
   );
+
+  // Fetch TWAP data for all finalized proposals when on history tab
+  useEffect(() => {
+    if (navTab === 'history' && sortedProposals.length > 0) {
+      const fetchPfgs = async () => {
+        const pfgMap: Record<number, number> = {};
+
+        for (const proposal of sortedProposals) {
+          if (proposal.status === 'Passed' || proposal.status === 'Failed') {
+            const twapData = await api.getTWAP(proposal.id);
+            if (twapData && twapData.failTwap > 0) {
+              const pfg = ((twapData.passTwap - twapData.failTwap) / twapData.failTwap) * 100;
+              pfgMap[proposal.id] = pfg;
+            }
+          }
+        }
+
+        setProposalPfgs(pfgMap);
+      };
+
+      fetchPfgs();
+    }
+  }, [navTab, sortedProposals]);
 
   const [selectedProposalId, setSelectedProposalId] = useState<number | null>(null);
 
@@ -473,6 +564,8 @@ export default function HomePage() {
 
         {/* Content Area */}
         <div className="flex-1 flex overflow-hidden">
+          {navTab === 'live' && (
+            <>
           <div className="flex-1 p-8 pr-10 overflow-y-auto border-r border-[#2A2A2A]">
             <ProposalHeader
               proposalId={proposal.id}
@@ -647,6 +740,165 @@ export default function HomePage() {
               />
             </div>
           </div>
+            </>
+          )}
+
+          {navTab === 'history' && (
+            <div className="flex-1 flex justify-center overflow-y-auto">
+              <div className="w-full max-w-[1332px] 2xl:max-w-[1512px] pt-8">
+                <div className="text-white mb-6">
+                  <h2 className="text-2xl font-medium">History</h2>
+                </div>
+                <div className="grid grid-cols-3 gap-4 auto-rows-auto items-start pb-8">
+                  {sortedProposals.map((proposal) => {
+                    const proposalContent = getProposalContent(proposal.id, proposal.description);
+                    const isHovered = hoveredProposalId === proposal.id;
+
+                    // Extract first section (Executive Summary) for preview
+                    let summaryPreview = proposal.description;
+                    if (proposalContent.content) {
+                      try {
+                        const htmlString = renderToStaticMarkup(proposalContent.content as React.ReactElement);
+                        // Extract content between first and second <h3> tags (the first section)
+                        const sections = htmlString.split(/<h3/);
+                        if (sections.length > 1) {
+                          // Get the first section with its heading
+                          const firstSectionWithHeading = '<h3' + sections[1];
+                          // Extract up to the closing tag of the section or next heading
+                          const sectionEnd = sections.length > 2 ? firstSectionWithHeading.indexOf('</div>') : firstSectionWithHeading.length;
+                          const firstSection = sectionEnd > 0 ? firstSectionWithHeading.substring(0, sectionEnd) : firstSectionWithHeading;
+
+                          summaryPreview = firstSection
+                            .replace(/<[^>]*>/g, ' ')
+                            .replace(/&gt;/g, '>')
+                            .replace(/&lt;/g, '<')
+                            .replace(/&amp;/g, '&')
+                            .replace(/&apos;/g, "'")
+                            .replace(/&quot;/g, '"')
+                            .replace(/\s+/g, ' ')
+                            .trim()
+                            // Remove "Executive Summary" or "Summary" heading text
+                            .replace(/^(Executive Summary|Summary)\s+/i, '');
+                        }
+                      } catch (e) {
+                        summaryPreview = proposal.description;
+                      }
+                    }
+
+                    // Get claimable rewards for this proposal
+                    const proposalRewards = claimablePositions.filter(pos => pos.proposalId === proposal.id);
+                    const hasClaimableRewards = proposalRewards.length > 0;
+                    const isCurrentlyClaiming = claimingProposalId === proposal.id;
+
+                    return (
+                      <div
+                        key={proposal.id}
+                        onMouseEnter={() => setHoveredProposalId(proposal.id)}
+                        onMouseLeave={() => setHoveredProposalId(null)}
+                        onClick={() => {
+                          if (hasClaimableRewards && !isCurrentlyClaiming) {
+                            handleClaimFromHistory(
+                              proposal.id,
+                              proposal.status as 'Passed' | 'Failed',
+                              proposalRewards
+                            );
+                          }
+                        }}
+                        className={`bg-[#121212] border border-[#191919] rounded-[9px] p-3 hover:border-[#2A2A2A] transition-all duration-300 ${
+                          hasClaimableRewards ? 'cursor-pointer' : ''
+                        } ${isCurrentlyClaiming ? 'opacity-60 pointer-events-none' : ''}`}
+                      >
+                        <div className="text-white flex flex-col gap-4">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <div className="text-sm font-semibold">ZC-{proposal.id}</div>
+                              {proposal.status === 'Passed' && (
+                                <span className="flex items-center gap-1 px-2 py-0.5 text-xs font-normal rounded-full" style={{ backgroundColor: '#6ECC9433', color: '#6ECC94' }}>
+                                  Pass
+                                  <CheckCircle2 className="w-3 h-3" />
+                                </span>
+                              )}
+                              {proposal.status === 'Failed' && (
+                                <span className="flex items-center gap-1 px-2 py-0.5 text-xs font-normal rounded-full" style={{ backgroundColor: '#FF6F9433', color: '#FF6F94' }}>
+                                  Fail
+                                  <XCircle className="w-3 h-3" />
+                                </span>
+                              )}
+                              {proposalPfgs[proposal.id] !== undefined && (
+                                <span className="px-2 py-0.5 text-xs font-normal rounded-full bg-gray-500/20 text-gray-300">
+                                  Final PFG: {proposalPfgs[proposal.id].toFixed(1)}%
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-sm text-[#B0AFAB]">
+                              {new Date(proposal.finalizedAt).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                              })}
+                            </div>
+                          </div>
+
+                          <div className="text-lg font-semibold">{proposalContent.title}</div>
+
+                          {/* Show summary or full content based on hover */}
+                          <div className="relative">
+                            {/* Summary preview - shown when not hovered */}
+                            <div
+                              className={`text-sm text-gray-300 transition-all duration-300 ease-in-out ${
+                                isHovered ? 'opacity-0 max-h-0 overflow-hidden' : 'opacity-100 max-h-[1000px]'
+                              }`}
+                            >
+                              {summaryPreview}
+                            </div>
+
+                            {/* Full content - shown when hovered */}
+                            <div
+                              className={`text-sm text-gray-300 transition-all duration-300 ease-in-out ${
+                                isHovered ? 'opacity-100 max-h-[5000px]' : 'opacity-0 max-h-0 overflow-hidden'
+                              }`}
+                            >
+                              {proposalContent.content || <p>{proposal.description}</p>}
+                            </div>
+                          </div>
+
+                          {/* Only show claim row if user has claimable rewards */}
+                          {proposalRewards.length > 0 && (
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-1.5">
+                                <div className="relative flex items-center justify-center">
+                                  <div className="w-2 h-2 rounded-full absolute" style={{ backgroundColor: '#EF6300', opacity: 0.75, animation: 'ping 3s cubic-bezier(0, 0, 0.2, 1) infinite' }}></div>
+                                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#EF6300' }}></div>
+                                </div>
+                                <span className="text-sm font-normal" style={{ color: '#EF6300' }}>Click to claim</span>
+                              </div>
+
+                              {/* Rewards display */}
+                              <div className="flex items-center gap-2 text-sm text-white">
+                                {proposalRewards.map((reward, idx) => (
+                                  <div key={idx} className="flex items-center gap-2">
+                                    {idx > 0 && (
+                                      <div className="w-px h-4 bg-[#2A2A2A]"></div>
+                                    )}
+                                    <span className="font-medium">
+                                      {reward.claimableToken === 'zc'
+                                        ? formatNumber(reward.claimableAmount, 0)
+                                        : reward.claimableAmount.toFixed(4)
+                                      } {reward.claimableToken === 'zc' ? 'ZC' : 'SOL'}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
