@@ -19,6 +19,25 @@ export interface IExecutionService {
     signer?: Keypair,
     additionalSigners?: Keypair[]
   ): Promise<IExecutionResult>;
+
+  /**
+   * Add compute budget instructions to the beginning of a transaction
+   * MUST be called before signing the transaction
+   * @param transaction - Transaction to add compute budget to
+   * @returns Promise that resolves when instructions are added
+   */
+  addComputeBudgetInstructions(transaction: Transaction): Promise<void>;
+}
+
+/**
+ * Priority fee mode for transaction execution
+ */
+export enum PriorityFeeMode {
+  None = 'none',
+  Low = 'low',
+  Medium = 'medium',
+  High = 'high',
+  Dynamic = 'dynamic'
 }
 
 /**
@@ -49,6 +68,9 @@ export interface IExecutionConfig {
   commitment?: 'processed' | 'confirmed' | 'finalized';  // Commitment level
   maxRetries?: number;        // Max retry attempts on failure
   skipPreflight?: boolean;    // Skip preflight simulation
+  priorityFeeMode?: PriorityFeeMode;  // Priority fee strategy
+  maxPriorityFeeLamports?: number;  // Max priority fee in microlamports per CU (default 25000)
+  computeUnitLimit?: number;  // Override compute unit limit (default auto-calculated)
 }
 
 /**

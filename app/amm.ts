@@ -156,6 +156,9 @@ export class AMM implements IAMM {
     tx.recentBlockhash = blockhash;
     tx.feePayer = this.authority.publicKey;
 
+    // Add compute budget instructions before signing
+    await this.executionService.addComputeBudgetInstructions(tx);
+
     // Pre-sign the transaction with authority and position NFT keypair
     tx.sign(this.authority, positionNftKeypair);
 
@@ -273,6 +276,9 @@ export class AMM implements IAMM {
     const { blockhash } = await this.executionService.connection.getLatestBlockhash();
     tx.recentBlockhash = blockhash;
     tx.feePayer = this.authority.publicKey;
+
+    // Add compute budget instructions before signing
+    await this.executionService.addComputeBudgetInstructions(tx);
 
     // Pre-sign the transaction with authority
     tx.sign(this.authority);
@@ -449,6 +455,9 @@ export class AMM implements IAMM {
     const { blockhash } = await this.executionService.connection.getLatestBlockhash();
     swapTx.recentBlockhash = blockhash;
     swapTx.feePayer = user;
+
+    // Add compute budget instructions (swap needs high priority)
+    await this.executionService.addComputeBudgetInstructions(swapTx);
 
     return swapTx;
   }

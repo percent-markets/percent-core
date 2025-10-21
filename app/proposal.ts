@@ -1,17 +1,14 @@
-import { Transaction, PublicKey, Keypair, SystemProgram } from '@solana/web3.js';
+import { Transaction, PublicKey, Keypair } from '@solana/web3.js';
 import { IProposal, IProposalConfig } from './types/proposal.interface';
 import { IAMM } from './types/amm.interface';
-import { IVault, VaultType, VaultState } from './types/vault.interface';
+import { IVault, VaultType } from './types/vault.interface';
 import { ITWAPOracle, TWAPStatus } from './types/twap-oracle.interface';
 import { ProposalStatus } from './types/moderator.interface';
 import { TWAPOracle } from './twap-oracle';
 import { ExecutionService } from './services/execution.service';
-import { IExecutionResult, IExecutionConfig } from './types/execution.interface';
+import { IExecutionResult, IExecutionConfig, PriorityFeeMode } from './types/execution.interface';
 import { Vault } from './vault';
 import { AMM } from './amm';
-import { AMMState } from './types/amm.interface';
-import { createMemoIx } from './utils/memo';
-import bs58 from 'bs58';
 
 /**
  * Proposal class representing a governance proposal in the protocol
@@ -107,7 +104,8 @@ export class Proposal implements IProposal {
       rpcEndpoint: this.config.connection.rpcEndpoint,
       commitment: 'confirmed',
       maxRetries: 3,
-      skipPreflight: false
+      skipPreflight: false,
+      priorityFeeMode: PriorityFeeMode.Dynamic
     };
     
     // Initialize pass AMM (trades pBase/pQuote tokens)
@@ -305,6 +303,7 @@ export class Proposal implements IProposal {
         const executionService = new ExecutionService(executionConfig);
 
         console.log('Executing transaction to execute proposal');
+        await executionService.addComputeBudgetInstructions(this.transaction);
         const result = await executionService.executeTx(
           this.transaction,
           signer

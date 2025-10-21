@@ -17,7 +17,7 @@ import { ProposalStatus } from './types/moderator.interface';
 import { SPLTokenService, NATIVE_MINT } from './services/spl-token.service';
 import { ISPLTokenService } from './types/spl-token.interface';
 import { ExecutionService } from './services/execution.service';
-import { IExecutionService, IExecutionConfig } from './types/execution.interface';
+import { IExecutionService, IExecutionConfig, PriorityFeeMode } from './types/execution.interface';
 import { createMemoIx } from './utils/memo';
 import { getNetworkFromConnection, Network } from './utils/network';
 
@@ -81,7 +81,8 @@ export class Vault implements IVault {
       rpcEndpoint: config.connection.rpcEndpoint,
       commitment: 'confirmed',
       maxRetries: 3,
-      skipPreflight: false
+      skipPreflight: false,
+      priorityFeeMode: PriorityFeeMode.Medium  // Vault operations use medium priority
     };
     
     this.executionService = new ExecutionService(executionConfig);
@@ -177,13 +178,16 @@ export class Vault implements IVault {
     )
 
     // Add memo for transaction identification
-    const memoMessage = `%[Initialize] Vault ${this.vaultType} | Proposal #${this.proposalId} | Authority: ${this.authority.publicKey.toBase58()}`;
+    const memoMessage = `%[Vault/${this.vaultType}] Init Proposal #${this.proposalId}`;
     transaction.add(createMemoIx(memoMessage));
 
     // Add blockhash and fee payer
     const { blockhash } = await this.connection.getLatestBlockhash();
     transaction.recentBlockhash = blockhash;
     transaction.feePayer = this.authority.publicKey;
+
+    // Add compute budget instructions before signing
+    await this.executionService.addComputeBudgetInstructions(transaction);
 
     // Pre-sign the transaction with all required signers
     transaction.partialSign(this.authority, passMintKeypair, failMintKeypair);
@@ -202,14 +206,14 @@ export class Vault implements IVault {
     const transaction = await this.buildInitializeTx();
 
     // Execute the transaction (already has all signatures)
-    console.log(`Initializing vault for proposal #${this.proposalId}, vault type: ${this.vaultType}`);
+    console.log(`Initializing ${this.vaultType} vault for proposal #${this.proposalId}`);
     const result = await this.executionService.executeTx(transaction);
 
     if (result.status === 'failed') {
-      throw new Error(`Vault initialization failed: ${result.error}`);
+      throw new Error(`${this.vaultType} vault initialization failed: ${result.error}`);
     }
 
-    console.log(`Vault initialized successfully. Transaction: ${result.signature}`);
+    console.log(`${this.vaultType} vault initialized successfully. Tx: ${result.signature}`);
 
     // Update state to Active
     this.setState(VaultState.Active);
@@ -343,6 +347,9 @@ export class Vault implements IVault {
     const { blockhash } = await this.connection.getLatestBlockhash();
     tx.recentBlockhash = blockhash;
     tx.feePayer = user;
+
+    // Add compute budget instructions before any signing
+    await this.executionService.addComputeBudgetInstructions(tx);
 
     // Pre-sign with authority for minting operations if requested
     if (presign) {
@@ -491,6 +498,9 @@ export class Vault implements IVault {
     const { blockhash } = await this.connection.getLatestBlockhash();
     tx.recentBlockhash = blockhash;
     tx.feePayer = user;
+
+    // Add compute budget instructions before any signing
+    await this.executionService.addComputeBudgetInstructions(tx);
 
     // Pre-sign with escrow for transferring regular tokens back to user if requested
     if (presign) {
@@ -765,6 +775,9 @@ export class Vault implements IVault {
     const { blockhash } = await this.connection.getLatestBlockhash();
     tx.recentBlockhash = blockhash;
     tx.feePayer = user;
+
+    // Add compute budget instructions before any signing
+    await this.executionService.addComputeBudgetInstructions(tx);
 
     // Pre-sign with escrow for transferring regular tokens to winner if requested
     if (presign) {
