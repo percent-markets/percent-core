@@ -62,15 +62,6 @@ export interface IProposal {
   initialize(): Promise<void>;
 
   /**
-   * Initializes the proposal using Jito bundles for atomic execution
-   * Batches all initialization transactions into a single bundle
-   * Ensures all components are created atomically with MEV protection
-   * Only works on mainnet where Jito is available
-   * @param jito - Jito service instance
-   */
-  initializeViaBundle?(jito: JitoService): Promise<void>;
-
-  /**
    * Gets both AMMs for the proposal
    * @returns Tuple of [pAMM, fAMM]
    * @throws Error if AMMs are uninitialized
@@ -90,16 +81,6 @@ export interface IProposal {
    * @returns The final status after checking time and votes
    */
   finalize(): Promise<ProposalStatus>;
-
-  /**
-   * Finalizes the proposal using Jito bundles for atomic execution
-   * Removes liquidity from AMMs and redeems authority's winning tokens
-   * All operations execute atomically in a single bundle
-   * Only works on mainnet where Jito is available
-   * @param jito - Jito service instance
-   * @returns The final status after checking time and votes
-   */
-  finalizeViaBundle(jito: JitoService): Promise<ProposalStatus>;
 
   /**
    * Executes the proposal's transaction

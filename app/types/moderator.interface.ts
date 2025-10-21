@@ -16,6 +16,30 @@ export enum ProposalStatus {
 }
 
 /**
+ * Moderator information structure
+ */
+export interface IModeratorInfo {
+  proposalIdCounter: number;
+  baseToken: {
+    mint: string;
+    decimals: number;
+  };
+  quoteToken: {
+    mint: string;
+    decimals: number;
+  };
+  authority: string;
+  network: {
+    rpcEndpoint: string;
+    type: string;
+  };
+  jito?: {
+    uuid: string;
+    bundleEndpoint: string;
+  };
+}
+
+/**
  * Parameters for creating a new proposal
  */
 export interface ICreateProposalParams {
@@ -49,7 +73,13 @@ export interface IModeratorConfig {
  */
 export interface IModerator {
   config: IModeratorConfig;                    // Configuration parameters
-  
+
+  /**
+   * Returns a JSON object with all moderator configuration and state information
+   * @returns Object containing moderator info
+   */
+  info(): IModeratorInfo;
+
   /**
    * Creates a new proposal
    * @param params - Parameters for creating the proposal including AMM configuration

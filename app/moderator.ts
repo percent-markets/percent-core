@@ -1,13 +1,12 @@
 import { Keypair } from '@solana/web3.js';
-import { IModerator, IModeratorConfig, ProposalStatus, ICreateProposalParams } from './types/moderator.interface';
+import { IModerator, IModeratorConfig, IModeratorInfo, ProposalStatus, ICreateProposalParams } from './types/moderator.interface';
 import { IExecutionConfig, IExecutionResult } from './types/execution.interface';
 import { IProposal, IProposalConfig } from './types/proposal.interface';
 import { Proposal } from './proposal';
 import { SchedulerService } from './services/scheduler.service';
 import { PersistenceService } from './services/persistence.service';
-import { getNetworkFromConnection, Network } from './utils/network';
+import { getNetworkFromConnection} from './utils/network';
 import { BlockEngineUrl, JitoService } from '@slateos/jito';
-import { ExecutionService } from './services/execution.service';
 
 /**
  * Moderator class that manages governance proposals for the protocol
@@ -18,7 +17,7 @@ export class Moderator implements IModerator {
   private _proposalIdCounter: number = 0;                  // Auto-incrementing ID counter for proposals
   private scheduler: SchedulerService;                     // Scheduler for automatic tasks
   private persistenceService: PersistenceService;          // Database persistence service
-  private jitoService?: JitoService;
+  private jitoService?: JitoService;                      // Jito service @deprecated
 
   /**
    * Creates a new Moderator instance
@@ -33,7 +32,40 @@ export class Moderator implements IModerator {
       this.jitoService = new JitoService(BlockEngineUrl.MAINNET, this.config.jitoUuid);
     }
   }
-  
+
+  /**
+   * Returns a JSON object with all moderator configuration and state information
+   * @returns Object containing moderator info
+   */
+  info(): IModeratorInfo {
+    const info: IModeratorInfo = {
+      proposalIdCounter: this._proposalIdCounter,
+      baseToken: {
+        mint: this.config.baseMint.toBase58(),
+        decimals: this.config.baseDecimals
+      },
+      quoteToken: {
+        mint: this.config.quoteMint.toBase58(),
+        decimals: this.config.quoteDecimals
+      },
+      authority: this.config.authority.publicKey.toBase58(),
+      network: {
+        rpcEndpoint: this.config.connection.rpcEndpoint,
+        type: getNetworkFromConnection(this.config.connection)
+      }
+    };
+
+    // Add Jito config if present
+    if (this.config.jitoUuid) {
+      info.jito = {
+        uuid: this.config.jitoUuid,
+        bundleEndpoint: BlockEngineUrl.MAINNET
+      };
+    }
+
+    return info;
+  }
+
   /**
    * Getter for the current proposal ID counter
    */
@@ -96,15 +128,9 @@ export class Moderator implements IModerator {
       // Create new proposal with config object
       const proposal = new Proposal(proposalConfig);
 
-      // Initialize the proposal (use Jito bundles on mainnet if UUID provided)
-      const network = getNetworkFromConnection(this.config.connection);
-      if (false && network === Network.MAINNET && this.config.jitoUuid) {
-        console.log(`Initializing proposal on ${network} using Jito ...`);
-        await proposal.initializeViaBundle(this.jitoService!);
-      } else {
-        console.log(`Initializing proposal on ${network} ...`);
-        await proposal.initialize();
-      }
+      // Initialize the proposal
+      console.log(`Initializing proposal ${proposal.id} ...`);
+      await proposal.initialize();
       
       // Save to database FIRST (database is source of truth)
       await this.saveProposal(proposal);
@@ -127,7 +153,7 @@ export class Moderator implements IModerator {
       }
 
       // Schedule automatic finalization 1 second after the proposal's end time
-      // This buffer ensures all TWAP data is collected and avoids race conditions
+      // This buffer ensures all TWAP data is collected and attempts to avoid race conditions
       this.scheduler.scheduleProposalFinalization(proposal.id, proposal.finalizedAt + 1000);
       
       return proposal;
@@ -147,36 +173,21 @@ export class Moderator implements IModerator {
    */
   async finalizeProposal(id: number): Promise<ProposalStatus> {
     // Get proposal from cache or database
+    console.log(`Attempting to finalize proposal #${id} ...`);
     const proposal = await this.getProposal(id);
     if (!proposal) {
       throw new Error(`Proposal with ID ${id} does not exist`);
     }
 
-    if (proposal.status === ProposalStatus.Uninitialized) {
-      throw new Error(`Proposal #${id} is not initialized - cannot finalize`);
+    // Only Passed status can be finalized
+    if (proposal.status !== ProposalStatus.Passed) {
+      throw new Error(`Unable to finalize Proposal #${id} — status is ${proposal.status}`);
     }
 
-    if (proposal.status === ProposalStatus.Failed || proposal.status === ProposalStatus.Executed) {
-      return proposal.status;
-    }
-
-    // Finalize using Jito bundles on mainnet if UUID provided, otherwise use regular finalization
-    const network = getNetworkFromConnection(this.config.connection);
-    let status: ProposalStatus;
-
-    if (network === Network.MAINNET && this.config.jitoUuid) {
-      console.log(`Finalizing proposal #${id} on mainnet using Jito bundles (UUID: ${this.config.jitoUuid})`);
-      status = await proposal.finalizeViaBundle(this.jitoService!);
-    } else {
-      console.log(`Finalizing proposal #${id} on ${network} using regular transactions`);
-      status = await proposal.finalize();
-    }
-
-    // Save updated state to database (database is source of truth)
-    await this.persistenceService.saveProposal(proposal);
-
-    console.log(`Proposal #${id} finalized with status ${status}, saved to database`);
-
+    console.log(`Finalizing proposal #${id} ...`);
+    const status = await proposal.finalize();
+    await this.saveProposal(proposal);
+    console.log(`Proposal #${id} finalized as ${status}, saved to database`);
     return status;
   }
 
@@ -195,40 +206,26 @@ export class Moderator implements IModerator {
     executionConfig: IExecutionConfig
   ): Promise<IExecutionResult> {
     // Get proposal from cache or database
-    console.log(`Executing proposal #${id} ...`);
+    console.log(`Attempting to execute proposal #${id} ...`);
     const proposal = await this.getProposal(id);
     if (!proposal) {
       throw new Error(`Proposal with ID ${id} does not exist`);
     }
-    
-    switch (proposal.status) {
-      case ProposalStatus.Uninitialized:
-        throw new Error(`Proposal ${id} is not initialized - cannot execute`);
-      
-      case ProposalStatus.Pending:
-        throw new Error(`Proposal ${id} is still pending`);
-      
-      case ProposalStatus.Failed:
-        throw new Error(`Proposal ${id} has failed`);
-      
-      case ProposalStatus.Executed:
-        throw new Error(`Proposal ${id} has already been executed`);
-      
-      case ProposalStatus.Passed:
-        // Log proposal being executed
-        console.log(`Executing proposal #${id}: "${proposal.description}"`);
-        const result = await proposal.execute(signer, executionConfig);
-        
-        // Save updated state to database (database is source of truth)
-        await this.saveProposal(proposal);
-        
-        
-        console.log(`Proposal #${id} executed`);
-        
-        return result;
-      
-      default:
-        throw new Error(`Unknown proposal status: ${proposal.status} for proposal ${id}`);
+
+    // Only Passed status can be executed
+    if (proposal.status !== ProposalStatus.Passed) {
+      throw new Error(`Unable to execute Proposal #${id} — status is ${proposal.status}`);
     }
+
+    // Log proposal being executed
+    console.log(`Executing proposal #${id}: "${proposal.description}"`);
+    const result = await proposal.execute(signer, executionConfig);
+
+    // Save updated state to database (database is source of truth)
+    await this.saveProposal(proposal);
+
+    console.log(`Proposal #${id} executed`);
+
+    return result;
   }
 }
