@@ -1,14 +1,14 @@
-import { Transaction, PublicKey, Keypair } from '@solana/web3.js';
+import { Keypair } from '@solana/web3.js';
 import { IProposal, IProposalConfig } from './types/proposal.interface';
 import { IAMM } from './types/amm.interface';
 import { IVault, VaultType } from './types/vault.interface';
 import { ITWAPOracle, TWAPStatus } from './types/twap-oracle.interface';
 import { ProposalStatus } from './types/moderator.interface';
 import { TWAPOracle } from './twap-oracle';
-import { ExecutionService } from './services/execution.service';
-import { IExecutionResult, IExecutionConfig, PriorityFeeMode } from './types/execution.interface';
+import { IExecutionResult, IExecutionService } from './types/execution.interface';
 import { Vault } from './vault';
 import { AMM } from './amm';
+import { LoggerService } from '../src/services/logger.service';
 
 /**
  * Proposal class representing a governance proposal in the protocol
@@ -16,25 +16,17 @@ import { AMM } from './amm';
  * Manages prediction markets through AMMs and vaults
  */
 export class Proposal implements IProposal {
-  public readonly id: number;
-  public description: string;
-  public transaction: Transaction;
-  public __pAMM: IAMM | null = null;
-  public __fAMM: IAMM | null = null;
-  public __baseVault: IVault | null = null;
-  public __quoteVault: IVault | null = null;
+  public readonly config: IProposalConfig;
+  public pAMM: IAMM;
+  public fAMM: IAMM;
+  public baseVault: IVault;
+  public quoteVault: IVault;
   public readonly twapOracle: ITWAPOracle;
-  public readonly createdAt: number;
   public readonly finalizedAt: number;
-  public readonly baseMint: PublicKey;
-  public readonly quoteMint: PublicKey;
-  public readonly proposalLength: number;
-  public readonly ammConfig: IProposalConfig['ammConfig'];
-  public readonly spotPoolAddress?: string;
-  public readonly totalSupply: number;
 
   private _status: ProposalStatus = ProposalStatus.Uninitialized;
-  private readonly config: IProposalConfig;
+  private readonly executionService: IExecutionService;
+  private logger: LoggerService;
 
   /**
    * Getter for proposal status (read-only access)
@@ -49,23 +41,55 @@ export class Proposal implements IProposal {
    */
   constructor(config: IProposalConfig) {
     this.config = config;
-    this.id = config.id;
-    this.description = config.description;
-    this.transaction = config.transaction;
-    this.createdAt = config.createdAt;
     this.finalizedAt = config.createdAt + (config.proposalLength * 1000);
-    this.baseMint = config.baseMint;
-    this.quoteMint = config.quoteMint;
-    this.proposalLength = config.proposalLength;
-    this.ammConfig = config.ammConfig;
-    this.spotPoolAddress = config.spotPoolAddress;
-    this.totalSupply = config.totalSupply;
+    this.executionService = config.executionService;
+    this.logger = config.logger;
 
+    // Create TWAP oracle
     this.twapOracle = new TWAPOracle(
       config.id,
       config.twap,
       config.createdAt,
       this.finalizedAt
+    );
+
+    // Create vaults
+    this.baseVault = new Vault({
+      proposalId: config.id,
+      vaultType: VaultType.Base,
+      regularMint: config.baseMint,
+      decimals: config.baseDecimals,
+      authority: config.authority,
+      executionService: config.executionService
+    });
+
+    this.quoteVault = new Vault({
+      proposalId: config.id,
+      vaultType: VaultType.Quote,
+      regularMint: config.quoteMint,
+      decimals: config.quoteDecimals,
+      authority: config.authority,
+      executionService: config.executionService
+    });
+
+    // Initialize pass AMM (trades pBase/pQuote tokens)
+    this.pAMM = new AMM(
+      this.baseVault.passConditionalMint,
+      this.quoteVault.passConditionalMint,
+      config.baseDecimals,
+      config.quoteDecimals,
+      config.authority,
+      config.executionService
+    );
+    
+    // Initialize fail AMM (trades fBase/fQuote tokens)
+    this.fAMM = new AMM(
+      this.baseVault.failConditionalMint,
+      this.quoteVault.failConditionalMint,
+      config.baseDecimals,
+      config.quoteDecimals,
+      config.authority,
+      config.executionService
     );
   }
 
@@ -76,97 +100,54 @@ export class Proposal implements IProposal {
    * Uses connection, authority, and decimals from constructor config
    */
   async initialize(): Promise<void> {
-    // Initialize vaults for base and quote tokens
-    this.__baseVault = new Vault({
-      proposalId: this.id,
-      vaultType: VaultType.Base,
-      regularMint: this.baseMint,
-      decimals: this.config.baseDecimals,
-      connection: this.config.connection,
-      authority: this.config.authority
-    });
-
-    this.__quoteVault = new Vault({
-      proposalId: this.id,
-      vaultType: VaultType.Quote,
-      regularMint: this.quoteMint,
-      decimals: this.config.quoteDecimals,
-      connection: this.config.connection,
-      authority: this.config.authority
-    });
-    
-    // Initialize vaults (creates conditional token mints and escrow accounts)
-    await this.__baseVault.initialize();
-    await this.__quoteVault.initialize();
-    
-    // Create execution config for AMMs
-    const executionConfig: IExecutionConfig = {
-      rpcEndpoint: this.config.connection.rpcEndpoint,
-      commitment: 'confirmed',
-      maxRetries: 3,
-      skipPreflight: false,
-      priorityFeeMode: PriorityFeeMode.Dynamic
-    };
-    
-    // Initialize pass AMM (trades pBase/pQuote tokens)
-    this.__pAMM = new AMM(
-      this.__baseVault.passConditionalMint,
-      this.__quoteVault.passConditionalMint,
-      this.config.baseDecimals,
-      this.config.quoteDecimals,
-      this.config.authority,
-      executionConfig
-    );
-
-    // Initialize fail AMM (trades fBase/fQuote tokens)
-    this.__fAMM = new AMM(
-      this.__baseVault.failConditionalMint,
-      this.__quoteVault.failConditionalMint,
-      this.config.baseDecimals,
-      this.config.quoteDecimals,
-      this.config.authority,
-      executionConfig
-    );
+    this.logger.info('Initializing proposal');
+    // Initialize vaults
+    this.logger.info('Initializing vaults');
+    await this.baseVault.initialize();
+    await this.quoteVault.initialize();
     
     // Split regular tokens through vaults to get conditional tokens for AMM seeding
     // The authority needs to have regular tokens to split
     // Splitting gives equal amounts of pass and fail tokens
-    
     const baseTokensToSplit = BigInt(this.config.ammConfig.initialBaseAmount.toString());
     const quoteTokensToSplit = BigInt(this.config.ammConfig.initialQuoteAmount.toString());
     
     // Build and execute split transactions for both vaults
-    const baseSplitTx = await this.__baseVault.buildSplitTx(
+    this.logger.info('Building split transactions');
+    const baseSplitTx = await this.baseVault.buildSplitTx(
       this.config.authority.publicKey,
       baseTokensToSplit
     );
 
-    const quoteSplitTx = await this.__quoteVault.buildSplitTx(
+    const quoteSplitTx = await this.quoteVault.buildSplitTx(
       this.config.authority.publicKey,
       quoteTokensToSplit
     );
     
     // Execute splits using vault's executeSplitTx method
-    await this.__baseVault.executeSplitTx(baseSplitTx);
-    await this.__quoteVault.executeSplitTx(quoteSplitTx);
+    this.logger.info('Executing split transactions');
+    await this.baseVault.executeSplitTx(baseSplitTx);
+    await this.quoteVault.executeSplitTx(quoteSplitTx);
     
     // Initialize AMMs with initial liquidity
     // Both AMMs get the same amounts since splitting gives equal pass and fail tokens
-    await this.__pAMM.initialize(
+    this.logger.info('Initializing AMMs');
+    await this.pAMM.initialize(
       this.config.ammConfig.initialBaseAmount,
       this.config.ammConfig.initialQuoteAmount
     );
     
-    await this.__fAMM.initialize(
+    await this.fAMM.initialize(
       this.config.ammConfig.initialBaseAmount,
       this.config.ammConfig.initialQuoteAmount
     );
     
     // Set AMMs in TWAP oracle so it can track prices
-    this.twapOracle.setAMMs(this.__pAMM, this.__fAMM);
+    this.twapOracle.setAMMs(this.pAMM, this.fAMM);
     
     // Update status to Pending now that everything is initialized
     this._status = ProposalStatus.Pending;
+    this.logger.info('Proposal initialized and set to pending');
   }
 
   /**
@@ -176,12 +157,10 @@ export class Proposal implements IProposal {
    */
   getAMMs(): [IAMM, IAMM] {
     if (this._status === ProposalStatus.Uninitialized) {
-      throw new Error(`Proposal #${this.id}: Not initialized - call initialize() first`);
+      throw new Error(`Proposal #${this.config.id}: Not initialized - call initialize() first`);
     }
-    if (!this.__pAMM || !this.__fAMM) {
-      throw new Error(`Proposal #${this.id}: AMMs are uninitialized`);
-    }
-    return [this.__pAMM, this.__fAMM];
+
+    return [this.pAMM, this.fAMM];
   }
 
   /**
@@ -191,12 +170,9 @@ export class Proposal implements IProposal {
    */
   getVaults(): [IVault, IVault] {
     if (this._status === ProposalStatus.Uninitialized) {
-      throw new Error(`Proposal #${this.id}: Not initialized - call initialize() first`);
+      throw new Error(`Proposal #${this.config.id}: Not initialized - call initialize() first`);
     }
-    if (!this.__baseVault || !this.__quoteVault) {
-      throw new Error(`Proposal #${this.id}: Vaults are uninitialized`);
-    }
-    return [this.__baseVault, this.__quoteVault];
+    return [this.baseVault, this.quoteVault];
   }
 
   /**
@@ -206,8 +182,9 @@ export class Proposal implements IProposal {
    * @returns The current or updated proposal status
    */
   async finalize(): Promise<ProposalStatus> {
+    this.logger.info('Finalizing proposal');
     if (this._status === ProposalStatus.Uninitialized) {
-      throw new Error(`Proposal #${this.id}: Not initialized - call initialize() first`);
+      throw new Error(`Proposal #${this.config.id}: Not initialized - call initialize() first`);
     }
     
     // Still pending if before finalization time
@@ -218,58 +195,82 @@ export class Proposal implements IProposal {
     // Update status if still pending after finalization time
     if (this._status === ProposalStatus.Pending) {
       // Perform final TWAP crank to ensure we have the most up-to-date data
+      this.logger.info('Cranking TWAP');
       await this.twapOracle.crankTWAP();
-      
+
       // Use TWAP oracle to determine pass/fail with fresh data
       const twapStatus = await this.twapOracle.fetchStatus();
+      this.logger.info(`TWAP status is ${twapStatus}`);
       const passed = twapStatus === TWAPStatus.Passing;
       this._status = passed ? ProposalStatus.Passed : ProposalStatus.Failed;
       
       // Remove liquidity from AMMs before finalizing vaults
-      if (this.__pAMM && !this.__pAMM.isFinalized) {
+      if (!this.pAMM.isFinalized) {
+        this.logger.info('Removing liquidity from pAMM', {
+          ammType: 'pass'
+        });
         try {
-          await this.__pAMM.removeLiquidity();
+          await this.pAMM.removeLiquidity();
         } catch (error) {
-          console.error('Error removing liquidity from pAMM:', error);
+          this.logger.error('Error removing liquidity from pAMM', {
+            ammType: 'pass',
+            error
+          });
         }
       }
-      if (this.__fAMM && !this.__fAMM.isFinalized) {
+      if (!this.fAMM.isFinalized) {
+        this.logger.info('Removing liquidity from fAMM', {
+          ammType: 'fail'
+        });
         try {
-          await this.__fAMM.removeLiquidity();
+          await this.fAMM.removeLiquidity();
         } catch (error) {
-          console.error('Error removing liquidity from fAMM:', error);
+          this.logger.error('Error removing liquidity from fAMM', {
+            ammType: 'fail',
+            error
+          });
         }
       }
       
       // Finalize both vaults with the proposal status
-      if (this.__baseVault && this.__quoteVault) {
-        await this.__baseVault.finalize(this._status);
-        await this.__quoteVault.finalize(this._status);
-        
-        // Redeem authority's winning tokens after finalization
-        // This converts winning conditional tokens back to regular tokens
-        try {
-          const baseRedeemTx = await this.__baseVault.buildRedeemWinningTokensTx(
-            this.config.authority.publicKey
-          );
-          baseRedeemTx.sign(this.config.authority);
-          await this.__baseVault.executeRedeemWinningTokensTx(baseRedeemTx);
-        } catch (error) {
-          console.error('Error redeeming base vault winning tokens:', error);
-        }
+      this.logger.info('Finalizing vaults');
+      await this.baseVault.finalize(this._status);
+      await this.quoteVault.finalize(this._status);
+      
+      // Redeem authority's winning tokens after finalization
+      // This converts winning conditional tokens back to regular tokens
+      try {
+        this.logger.info('Building redeem winning tokens transaction for base vault');
+        const baseRedeemTx = await this.baseVault.buildRedeemWinningTokensTx(
+          this.config.authority.publicKey
+        );
+        this.logger.info('Executing redeem winning tokens transaction for base vault');
+        baseRedeemTx.sign(this.config.authority);
+        await this.baseVault.executeRedeemWinningTokensTx(baseRedeemTx);
+      } catch (error) {
+        this.logger.warn('Error redeeming base vault winning tokens', {
+          vaultType: 'base',
+          error
+        });
+      }
 
-        try {
-          const quoteRedeemTx = await this.__quoteVault.buildRedeemWinningTokensTx(
-            this.config.authority.publicKey
-          );
-          quoteRedeemTx.sign(this.config.authority);
-          await this.__quoteVault.executeRedeemWinningTokensTx(quoteRedeemTx);
-        } catch (error) {
-          console.error('Error redeeming quote vault winning tokens:', error);
-        }
+      try {
+        this.logger.info('Building redeem winning tokens transaction for quote vault');
+        const quoteRedeemTx = await this.quoteVault.buildRedeemWinningTokensTx(
+          this.config.authority.publicKey
+        );
+        this.logger.info('Executing redeem winning tokens transaction for quote vault');
+        quoteRedeemTx.sign(this.config.authority);
+        await this.quoteVault.executeRedeemWinningTokensTx(quoteRedeemTx);
+      } catch (error) {
+        this.logger.warn('Error redeeming quote vault winning tokens', {
+          vaultType: 'quote',
+          error
+        });
       }
     }
-    
+
+    this.logger.info('Proposal finalization returned', { status: this._status });
     return this._status;
   }
 
@@ -277,45 +278,27 @@ export class Proposal implements IProposal {
    * Executes the proposal's Solana transaction
    * Only callable for proposals with Passed status
    * @param signer - Keypair to sign and execute the transaction
-   * @param executionConfig - Configuration for transaction execution
    * @returns Execution result with signature and status
    * @throws Error if proposal is pending, already executed, or failed
    */
-  async execute(
-    signer: Keypair,
-    executionConfig: IExecutionConfig
-  ): Promise<IExecutionResult> {
-    switch (this._status) {
-      case ProposalStatus.Uninitialized:
-        throw new Error(`Proposal #${this.id}: Not initialized - call initialize() first`);
-
-      case ProposalStatus.Pending:
-        throw new Error(`Cannot execute proposal #${this.id} - not finalized`);
-
-      case ProposalStatus.Failed:
-        throw new Error(`Cannot execute proposal #${this.id} - proposal failed`);
-
-      case ProposalStatus.Executed:
-        throw new Error(`Proposal #${this.id} has already been executed`);
-
-      case ProposalStatus.Passed:
-        // Execute the Solana transaction
-        const executionService = new ExecutionService(executionConfig);
-
-        console.log('Executing transaction to execute proposal');
-        await executionService.addComputeBudgetInstructions(this.transaction);
-        const result = await executionService.executeTx(
-          this.transaction,
-          signer
-        );
-
-        // Update status to Executed regardless of transaction result
-        this._status = ProposalStatus.Executed;
-
-        return result;
-
-      default:
-        throw new Error(`Unknown proposal status: ${this._status}`);
+  async execute(signer: Keypair): Promise<IExecutionResult> {
+    this.logger.info('Executing proposal');
+    if (this._status !== ProposalStatus.Passed) {
+      throw new Error('Failed to execute - proposal not passed');
     }
+
+    // Execute the Solana transaction
+    this.logger.info('Adding compute budget instructions');
+    await this.executionService.addComputeBudgetInstructions(this.config.transaction);
+    this.logger.info('Executing transaction');
+    const result = await this.executionService.executeTx(
+      this.config.transaction,
+      signer
+    );
+
+    // Update status to Executed regardless of transaction result
+    this._status = ProposalStatus.Executed;
+    this.logger.info('Proposal execution returned', { result: result });
+    return result;
   }
 }

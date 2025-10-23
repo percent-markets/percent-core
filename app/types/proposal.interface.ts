@@ -1,18 +1,21 @@
-import { Transaction, PublicKey, Keypair, Connection } from '@solana/web3.js';
+import { Transaction, PublicKey, Keypair } from '@solana/web3.js';
 import { BN } from '@coral-xyz/anchor';
 import { IAMM } from './amm.interface';
 import { IVault } from './vault.interface';
 import { ITWAPOracle, ITWAPConfig } from './twap-oracle.interface';
 import { ProposalStatus } from './moderator.interface';
-import { IExecutionResult, IExecutionConfig } from './execution.interface';
+import { IExecutionResult, IExecutionService } from './execution.interface';
 import { JitoService } from '@slateos/jito';
+import { LoggerService } from '../../src/services/logger.service';
 
 /**
  * Configuration for creating a new proposal
  */
 export interface IProposalConfig {
   id: number;                                   // Unique proposal identifier
-  description: string;                          // Human-readable description
+  moderatorId: number;                          // Moderator ID
+  title: string;                                // Proposal title (required)
+  description?: string;                         // Human-readable description (optional)
   transaction: Transaction;                     // Solana transaction to execute if passed
   createdAt: number;                           // Creation timestamp in milliseconds
   proposalLength: number;                      // Duration of voting period in seconds
@@ -21,7 +24,7 @@ export interface IProposalConfig {
   baseDecimals: number;                        // Number of decimals for base token conditional mints
   quoteDecimals: number;                       // Number of decimals for quote token conditional mints
   authority: Keypair;                          // Authority keypair (payer and mint authority)
-  connection: Connection;                      // Solana connection for blockchain interactions
+  executionService: IExecutionService;         // Execution service for transactions
   twap: ITWAPConfig;                           // TWAP oracle configuration
   spotPoolAddress?: string;                    // Optional Meteora pool address for spot market price (for charts)
   totalSupply: number;                         // Total supply of conditional tokens for market cap calculation
@@ -29,6 +32,7 @@ export interface IProposalConfig {
     initialBaseAmount: BN;                      // Initial base token liquidity (same for both AMMs)
     initialQuoteAmount: BN;                     // Initial quote token liquidity (same for both AMMs)
   };
+  logger: LoggerService;
 }
 
 /**
@@ -36,22 +40,13 @@ export interface IProposalConfig {
  * Manages AMMs, vaults, and TWAP oracle for price discovery
  */
 export interface IProposal {
-  readonly id: number;                 // Unique proposal identifier (immutable)
-  description: string;                 // Human-readable description of the proposal
-  transaction: Transaction;            // Solana transaction to execute if passed
-  __pAMM: IAMM | null;                // Pass AMM (initialized during proposal setup)
-  __fAMM: IAMM | null;                // Fail AMM (initialized during proposal setup)
-  __baseVault: IVault | null;         // Base vault managing both pBase and fBase tokens
-  __quoteVault: IVault | null;        // Quote vault managing both pQuote and fQuote tokens
+  readonly config: IProposalConfig;    // Configuration object containing all proposal parameters
+  pAMM: IAMM;                          // Pass AMM (initialized during proposal setup)
+  fAMM: IAMM;                          // Fail AMM (initialized during proposal setup)
+  baseVault: IVault;                  // Base vault managing both pBase and fBase tokens
+  quoteVault: IVault;                 // Quote vault managing both pQuote and fQuote tokens
   readonly twapOracle: ITWAPOracle;   // Time-weighted average price oracle (immutable)
-  readonly createdAt: number;         // Timestamp when proposal was created (ms, immutable)
   readonly finalizedAt: number;       // Timestamp when voting ends (ms, immutable)
-  readonly baseMint: PublicKey;       // Public key of base token mint (immutable)
-  readonly quoteMint: PublicKey;      // Public key of quote token mint (immutable)
-  readonly proposalLength: number;    // Duration of voting period in seconds (immutable)
-  readonly ammConfig: IProposalConfig['ammConfig']; // AMM configuration (immutable)
-  readonly spotPoolAddress?: string;  // Optional Meteora pool address for spot market price (immutable)
-  readonly totalSupply: number;       // Total supply of conditional tokens for market cap calculation (immutable)
   readonly status: ProposalStatus;    // Current status (Pending, Passed, Failed, Executed)
   
   /**
@@ -85,9 +80,8 @@ export interface IProposal {
   /**
    * Executes the proposal's transaction
    * @param signer - Keypair to sign and execute the transaction
-   * @param executionConfig - Configuration for transaction execution
    * @returns Execution result with signature and status
    * @throws Error if proposal hasn't passed or already executed
    */
-  execute(signer: Keypair, executionConfig: IExecutionConfig): Promise<IExecutionResult>;
+  execute(signer: Keypair): Promise<IExecutionResult>;
 }

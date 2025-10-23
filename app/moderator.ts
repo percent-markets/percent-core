@@ -205,7 +205,13 @@ export class Moderator implements IModerator {
 
     const status = await proposal.finalize();
     await this.saveProposal(proposal);
-    this.logger.info('Proposal finalized and saved', { status: status });
+    if (status === ProposalStatus.Passed) {
+      this.logger.info('Proposal finalized and passed');
+    } else if (status === ProposalStatus.Failed) {
+      this.logger.info('Proposal finalized and failed');
+    } else {
+      this.logger.warn('Proposal failed to finalize', { status: status });
+    }
     return status;
   }
 
