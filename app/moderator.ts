@@ -19,7 +19,7 @@ export class Moderator implements IModerator {
   public protocolName?: string;                            // Protocol name (optional)
   public config: IModeratorConfig;                         // Configuration parameters for the moderator
   public scheduler: SchedulerService;                     // Scheduler for automatic tasks
-  private persistenceService: PersistenceService;          // Database persistence service
+  public persistenceService: PersistenceService;          // Database persistence service
   private executionService: ExecutionService;              // Execution service for transactions
   private logger: LoggerService;                           // Logger service for this moderator
   //private jitoService?: JitoService;                       // Jito service @deprecated

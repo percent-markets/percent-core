@@ -3,6 +3,7 @@ import { BN } from '@coral-xyz/anchor';
 import { IExecutionResult, Commitment } from './execution.interface';
 import { IProposal } from './proposal.interface';
 import { ITWAPConfig } from './twap-oracle.interface';
+import { PersistenceService } from '@app/services/persistence.service';
 
 /**
  * Enum representing the possible states of a proposal
@@ -76,6 +77,7 @@ export interface IModerator {
   protocolName?: string;                       // Protocol name (optional)
   config: IModeratorConfig;                    // Configuration parameters
   scheduler: any;                               // Scheduler for automatic tasks (SchedulerService)
+  persistenceService: PersistenceService;       // Database persistence service
 
   /**
    * Returns a JSON object with all moderator configuration and state information

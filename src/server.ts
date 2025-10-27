@@ -1,9 +1,9 @@
-import express from 'express';
+import express, { Router } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import routes from './routes';
 import { errorHandler } from './middleware/errorHandler';
-import ModeratorService from './services/moderator.service';
+import RouterService from '../app/services/router.service';
 
 dotenv.config();
 
@@ -20,9 +20,9 @@ app.use(errorHandler);
 const startServer = async () => {
   try {
     console.log('Starting server ...');
-    const moderator = await ModeratorService.getInstance();
-    console.log('Moderator service initialized');
-    console.log(`Authority: ${moderator.config.authority.publicKey.toBase58()}`);
+    // Load moderators from database
+    const router = RouterService.getInstance();
+    await router.loadModerators();
     
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);

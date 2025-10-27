@@ -7,6 +7,7 @@ import swapRoutes from './swap';
 import historyRoutes from './history';
 import networkRoutes from './network';
 import poolRoutes from './pools';
+import routerRoutes from './router';
 
 const router = Router();
 
@@ -22,5 +23,6 @@ router.use('/swap', swapRoutes);
 router.use('/history', historyRoutes);
 router.use('/network', networkRoutes);
 router.use('/pools', poolRoutes);
+router.use('/router', routerRoutes);
 
 export default router;
