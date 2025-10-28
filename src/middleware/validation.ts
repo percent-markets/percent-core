@@ -5,11 +5,12 @@ import { LoggerService } from '../../app/services/logger.service';
 
 const logger = new LoggerService('api');
 
-// Extend Express Request type to include moderatorId
+// Extend Express Request type to include moderatorId and proposalId
 declare global {
   namespace Express {
     interface Request {
       moderatorId: number;
+      proposalId?: number;
     }
   }
 }
@@ -89,6 +90,44 @@ export const requireModeratorId = async (
 
   // Delegate to attachModerator for actual resolution
   await attachModerator(req, res, next);
+};
+
+/**
+ * Middleware that requires and validates proposalId from route params
+ * No fallback - always requires a valid proposalId
+ * Used for routes with :id parameter that represent proposal IDs
+ */
+export const requireProposalId = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const proposalId = parseInt(req.params.id);
+
+    // Validate proposalId
+    if (isNaN(proposalId) || proposalId < 0) {
+      logger.warn(`[${req.method} ${req.path}] Invalid proposalId`, {
+        providedId: req.params.id
+      });
+      res.status(400).json({ error: 'Invalid proposal ID' });
+      return;
+    }
+
+    // Attach the proposalId to the request
+    req.proposalId = proposalId;
+
+    logger.debug(`[${req.method} ${req.path}] ProposalId validated`, {
+      proposalId
+    });
+
+    next();
+  } catch (error) {
+    logger.error(`[${req.method} ${req.path}] Error in requireProposalId middleware`, {
+      error: error instanceof Error ? error.message : String(error)
+    });
+    res.status(500).json({ error: 'Failed to validate proposal ID' });
+  }
 };
 
 /**
