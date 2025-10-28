@@ -85,8 +85,8 @@ export class Vault implements IVault {
 
     // Initialize services with ExecutionService
     this.tokenService = new SPLTokenService(
-      this.executionService.connection,
-      this.executionService.connection.rpcEndpoint
+      this.executionService,
+      config.logger.createChild('spl-token')
     );
 
     this.logger = config.logger;

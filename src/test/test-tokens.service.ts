@@ -1,7 +1,10 @@
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { SPLTokenService } from '../../app/services/spl-token.service';
+import { ExecutionService } from '../../app/services/execution.service';
+import { LoggerService } from '../../app/services/logger.service';
 import { getAssociatedTokenAddress } from '@solana/spl-token';
 import { TestWallets } from './config';
+import { Commitment } from '../../app/types/execution.interface';
 
 export interface TestTokenMints {
   baseMint: PublicKey;
@@ -12,12 +15,31 @@ export interface TestTokenMints {
 
 export class TestTokenSetupService {
   private tokenService: SPLTokenService;
-  
+  private executionService: ExecutionService;
+  private logger: LoggerService;
+
   constructor(
     private connection: Connection,
     private wallets: TestWallets
   ) {
-    this.tokenService = new SPLTokenService(connection, connection.rpcEndpoint);
+    // Create logger for test token setup
+    this.logger = LoggerService.getInstance('test-tokens');
+
+    // Create execution service
+    this.executionService = new ExecutionService(
+      {
+        rpcEndpoint: this.connection.rpcEndpoint,
+        commitment: Commitment.Confirmed,
+        skipPreflight: true
+      },
+      this.logger.createChild('execution')
+    );
+
+    // Create token service with proper dependencies
+    this.tokenService = new SPLTokenService(
+      this.executionService,
+      this.logger.createChild('spl-token')
+    );
   }
 
   /**

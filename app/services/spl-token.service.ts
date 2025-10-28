@@ -1,5 +1,4 @@
 import {
-  Connection,
   PublicKey,
   Keypair,
   Transaction,
@@ -26,9 +25,9 @@ import {
   MINT_SIZE,
   getMinimumBalanceForRentExemptMint,
 } from '@solana/spl-token';
-import { ExecutionService } from './execution.service';
-import { IExecutionConfig } from '../types/execution.interface';
+import { IExecutionService } from '../types/execution.interface';
 import { ISPLTokenService, ITokenAccountInfo } from '../types/spl-token.interface';
+import { LoggerService } from './logger.service';
 
 // Re-export AuthorityType and NATIVE_MINT for external use
 export { AuthorityType, NATIVE_MINT } from '@solana/spl-token';
@@ -38,19 +37,12 @@ export { AuthorityType, NATIVE_MINT } from '@solana/spl-token';
  * Provides both transaction building and execution methods
  */
 export class SPLTokenService implements ISPLTokenService {
-  private connection: Connection;
-  private executionService: ExecutionService;
+  private executionService: IExecutionService;
+  private logger: LoggerService;
 
-  constructor(connection: Connection, rpcEndpoint?: string) {
-    this.connection = connection;
-    const executionConfig: IExecutionConfig = {
-      rpcEndpoint: rpcEndpoint || connection.rpcEndpoint,
-      commitment: 'confirmed',
-      maxRetries: 3,
-      skipPreflight: false
-    };
-    // Pass the same connection to ExecutionService to ensure consistency
-    this.executionService = new ExecutionService(executionConfig, connection);
+  constructor(executionService: IExecutionService, logger: LoggerService) {
+    this.logger = logger;
+    this.executionService = executionService;
   }
 
   /**
@@ -67,7 +59,7 @@ export class SPLTokenService implements ISPLTokenService {
     mintAuthority: PublicKey,
     payer: PublicKey
   ): Promise<TransactionInstruction[]> {
-    const lamports = await getMinimumBalanceForRentExemptMint(this.connection);
+    const lamports = await getMinimumBalanceForRentExemptMint(this.executionService.connection);
 
     return [
       SystemProgram.createAccount({
@@ -102,8 +94,11 @@ export class SPLTokenService implements ISPLTokenService {
     const mintKeypair = Keypair.generate();
 
     // Log rent cost for transparency
-    const lamports = await getMinimumBalanceForRentExemptMint(this.connection);
-    console.log(`Creating SPL token mint - Rent cost: ${lamports} lamports (${lamports / 1e9} SOL)`);
+    const lamports = await getMinimumBalanceForRentExemptMint(this.executionService.connection);
+    this.logger.info('Creating SPL token mint', {
+      rentCost: lamports,
+      rentCostSol: lamports / 1e9
+    });
 
     const ixs = await this.buildCreateMintIxs(
       mintKeypair,
@@ -113,7 +108,7 @@ export class SPLTokenService implements ISPLTokenService {
     );
 
     const transaction = new Transaction().add(...ixs);
-    console.log('Executing transaction to create mint');
+    this.logger.debug('Executing transaction to create mint');
     const result = await this.executionService.executeTx(
       transaction,
       payer,
@@ -121,9 +116,11 @@ export class SPLTokenService implements ISPLTokenService {
     );
 
     if (result.status === 'failed') {
+      this.logger.error('Failed to create mint', { error: result.error });
       throw new Error(`Failed to create mint: ${result.error}`);
     }
 
+    this.logger.info('Mint created successfully', { mint: mintKeypair.publicKey });
     return mintKeypair.publicKey;
   }
 
@@ -172,16 +169,25 @@ export class SPLTokenService implements ISPLTokenService {
       mintAuthority.publicKey
     );
     const transaction = new Transaction().add(ix);
-    console.log('Executing transaction to mint tokens');
+    this.logger.debug('Executing transaction to mint tokens', {
+      mint,
+      destination,
+      amount: amount.toString()
+    });
     const result = await this.executionService.executeTx(
       transaction,
       mintAuthority
     );
 
     if (result.status === 'failed') {
+      this.logger.error('Mint failed', { error: result.error });
       throw new Error(`Mint failed: ${result.error}`);
     }
 
+    this.logger.info('Tokens minted successfully', {
+      signature: result.signature,
+      amount: amount.toString()
+    });
     return result.signature;
   }
 
@@ -230,16 +236,25 @@ export class SPLTokenService implements ISPLTokenService {
       owner.publicKey
     );
     const transaction = new Transaction().add(ix);
-    console.log('Executing transaction to burn tokens');
+    this.logger.debug('Executing transaction to burn tokens', {
+      mint,
+      account,
+      amount: amount.toString()
+    });
     const result = await this.executionService.executeTx(
       transaction,
       owner
     );
 
     if (result.status === 'failed') {
+      this.logger.error('Burn failed', { error: result.error });
       throw new Error(`Burn failed: ${result.error}`);
     }
 
+    this.logger.info('Tokens burned successfully', {
+      signature: result.signature,
+      amount: amount.toString()
+    });
     return result.signature;
   }
 
@@ -288,16 +303,25 @@ export class SPLTokenService implements ISPLTokenService {
       owner.publicKey
     );
     const transaction = new Transaction().add(ix);
-    console.log('Executing transaction to transfer tokens');
+    this.logger.debug('Executing transaction to transfer tokens', {
+      source,
+      destination,
+      amount: amount.toString()
+    });
     const result = await this.executionService.executeTx(
       transaction,
       owner
     );
 
     if (result.status === 'failed') {
+      this.logger.error('Transfer failed', { error: result.error });
       throw new Error(`Transfer failed: ${result.error}`);
     }
 
+    this.logger.info('Tokens transferred successfully', {
+      signature: result.signature,
+      amount: amount.toString()
+    });
     return result.signature;
   }
 
@@ -340,16 +364,24 @@ export class SPLTokenService implements ISPLTokenService {
       owner.publicKey
     );
     const transaction = new Transaction().add(ix);
-    console.log('Executing transaction to close account');
+    this.logger.debug('Executing transaction to close account', {
+      account,
+      destination
+    });
     const result = await this.executionService.executeTx(
       transaction,
       owner
     );
 
     if (result.status === 'failed') {
+      this.logger.error('Close account failed', { error: result.error });
       throw new Error(`Close account failed: ${result.error}`);
     }
 
+    this.logger.info('Account closed successfully', {
+      signature: result.signature,
+      account
+    });
     return result.signature;
   }
 
@@ -375,7 +407,7 @@ export class SPLTokenService implements ISPLTokenService {
     );
 
     try {
-      await getAccount(this.connection, associatedToken);
+      await getAccount(this.executionService.connection, associatedToken);
       return associatedToken;
     } catch {
       // Account doesn't exist, create it
@@ -389,16 +421,22 @@ export class SPLTokenService implements ISPLTokenService {
           ASSOCIATED_TOKEN_PROGRAM_ID
         )
       );
-      console.log('Executing transaction to create associated token account');
+      this.logger.debug('Creating associated token account', {
+        mint,
+        owner,
+        associatedToken
+      });
       const result = await this.executionService.executeTx(
         transaction,
         payer
       );
 
       if (result.status === 'failed') {
+        this.logger.error('Failed to create associated token account', { error: result.error });
         throw new Error(`Failed to create associated token account: ${result.error}`);
       }
 
+      this.logger.info('Associated token account created', { associatedToken });
       return associatedToken;
     }
   }
@@ -410,7 +448,7 @@ export class SPLTokenService implements ISPLTokenService {
    */
   async getTokenAccountInfo(address: PublicKey): Promise<ITokenAccountInfo | null> {
     try {
-      const account = await getAccount(this.connection, address);
+      const account = await getAccount(this.executionService.connection, address);
       return {
         address,
         mint: account.mint,
@@ -440,7 +478,7 @@ export class SPLTokenService implements ISPLTokenService {
    */
   async getTotalSupply(mint: PublicKey): Promise<bigint> {
     try {
-      const mintInfo = await getMint(this.connection, mint);
+      const mintInfo = await getMint(this.executionService.connection, mint);
       return BigInt(mintInfo.supply.toString());
     } catch {
       return 0n;
@@ -492,16 +530,26 @@ export class SPLTokenService implements ISPLTokenService {
       currentAuthority.publicKey
     );
     const transaction = new Transaction().add(ix);
-    console.log('Executing transaction to set authority');
+    this.logger.debug('Executing transaction to set authority', {
+      mint,
+      newAuthority,
+      authorityType
+    });
     const result = await this.executionService.executeTx(
       transaction,
       currentAuthority
     );
 
     if (result.status === 'failed') {
+      this.logger.error('Failed to set authority', { error: result.error });
       throw new Error(`Failed to set authority: ${result.error}`);
     }
 
+    this.logger.info('Authority set successfully', {
+      signature: result.signature,
+      authorityType,
+      newAuthority
+    });
     return result.signature;
   }
 
