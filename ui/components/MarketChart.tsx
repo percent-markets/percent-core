@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ProposalMarketDatafeed } from '@/services/tradingview-datafeed';
 import { api } from '@/lib/api';
-import { formatUSD } from '@/lib/format';
+import { formatUSD } from '@/lib/formatters';
 
 declare global {
   interface Window {

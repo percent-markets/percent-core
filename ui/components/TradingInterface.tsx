@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo, memo, useEffect, useRef } from 'react';
 import { usePrivyWallet } from '@/hooks/usePrivyWallet';
 import { useTokenPrices } from '@/hooks/useTokenPrices';
 import { formatNumber, formatCurrency } from '@/lib/formatters';
-import { openPosition, closePosition, claimWinnings } from '@/lib/trading';
+import { openPosition, claimWinnings } from '@/lib/trading';
 import { useSolanaWallets } from '@privy-io/react-auth/solana';
 import { Transaction } from '@solana/web3.js';
 import { api } from '@/lib/api';

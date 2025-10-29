@@ -31,20 +31,45 @@ export function formatCurrency(value: number | string, decimals: number = 2): st
 }
 
 /**
- * Format large numbers with K, M, B suffixes
- * @param value - The number to format
- * @returns Formatted string with suffix
+ * Format a USD amount with $ prefix and K/M/B abbreviations
+ * @param value - The numeric value to format
+ * @param decimals - Number of decimal places (default: 2)
+ * @returns Formatted string like "$1.23M"
  */
-export function formatCompact(value: number | string): string {
-  const num = typeof value === 'string' ? parseFloat(value) : value;
+export function formatUSD(value: number, decimals: number = 2): string {
+  return `$${formatWithAbbreviation(value, decimals)}`;
+}
 
-  if (isNaN(num)) return '0';
+/**
+ * Format a number with K/M/B abbreviations (helper function for formatUSD)
+ * @param value - The numeric value to format
+ * @param decimals - Number of decimal places (default: 2)
+ * @returns Formatted string with abbreviation
+ */
+function formatWithAbbreviation(value: number, decimals: number = 2): string {
+  if (value === 0) return '0';
 
-  if (num >= 1e9) return `${(num / 1e9).toFixed(1)}B`;
-  if (num >= 1e6) return `${(num / 1e6).toFixed(1)}M`;
-  if (num >= 1e3) return `${(num / 1e3).toFixed(1)}K`;
+  const absValue = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
 
-  return formatNumber(num, 2);
+  // Helper to remove trailing zeros
+  const removeTrailingZeros = (num: string): string => {
+    return num.replace(/\.?0+$/, '');
+  };
+
+  if (absValue >= 1_000_000_000) {
+    // Billions
+    return `${sign}${removeTrailingZeros((absValue / 1_000_000_000).toFixed(decimals))}B`;
+  } else if (absValue >= 1_000_000) {
+    // Millions
+    return `${sign}${removeTrailingZeros((absValue / 1_000_000).toFixed(decimals))}M`;
+  } else if (absValue >= 1_000) {
+    // Thousands
+    return `${sign}${removeTrailingZeros((absValue / 1_000).toFixed(decimals))}K`;
+  } else {
+    // Less than 1000, show up to decimals places
+    return `${sign}${removeTrailingZeros(absValue.toFixed(decimals))}`;
+  }
 }
 
 /**
