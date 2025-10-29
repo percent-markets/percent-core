@@ -16,14 +16,6 @@ export interface ITransactionInstructionData {
 }
 
 /**
- * Serialized transaction data for storage
- */
-export interface ITransactionData {
-  instructions: ITransactionInstructionData[];
-  feePayer: string | null;
-}
-
-/**
  * Database representation of a proposal (new schema)
  */
 export interface IProposalDB {
@@ -37,7 +29,7 @@ export interface IProposalDB {
   finalized_at: Date;
   proposal_length: string;              // bigint stored as string
 
-  // Transaction data (new format)
+  // Transaction data
   transaction_instructions: string | ITransactionInstructionData[]; // JSON string or parsed array
   transaction_fee_payer?: string;       // Optional fee payer
 
@@ -56,7 +48,7 @@ export interface IProposalDB {
   // TWAP configuration
   twap_config: string | ITWAPConfig;    // JSON string or parsed object
 
-  // Serialized component data (new format)
+  // Serialized component data
   pass_amm_data: string | any;          // JSON string or parsed object
   fail_amm_data: string | any;          // JSON string or parsed object
   base_vault_data: string | any;        // JSON string or parsed object
