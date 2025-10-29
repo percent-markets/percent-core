@@ -32,10 +32,6 @@ export interface IModeratorInfo {
     decimals: number;
   };
   authority: string;
-  network: {
-    rpcEndpoint: string;
-    type: string;
-  };
 }
 
 /**

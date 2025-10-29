@@ -83,10 +83,6 @@ export class Moderator implements IModerator {
         decimals: this.config.quoteDecimals
       },
       authority: this.config.authority.publicKey.toBase58(),
-      network: {
-        rpcEndpoint: this.config.rpcEndpoint,
-        type: getNetworkFromConnection(this.executionService.connection)
-      }
     };
 
     return info;
