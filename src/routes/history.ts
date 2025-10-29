@@ -1,68 +1,10 @@
 import { Router } from 'express';
 import { HistoryService } from '../../app/services/history.service';
+import { requireModeratorId, getProposalId } from '@src/middleware/validation';
+import { PersistenceService } from '@app/services/persistence.service';
 
 const router = Router();
-
-/**
- * Get price history for a proposal
- * GET /:id/prices?from=&to=&interval=
- * 
- * Query parameters:
- * - from: ISO date string (optional)
- * - to: ISO date string (optional)  
- * - interval: string like '1m', '5m', '1h' (optional)
- */
-router.get('/:id/prices', async (req, res, next) => {
-  try {
-    const proposalId = parseInt(req.params.id);
-    
-    if (isNaN(proposalId) || proposalId < 0) {
-      return res.status(400).json({ error: 'Invalid proposal ID' });
-    }
-    
-    const { from, to, interval } = req.query;
-    
-    let fromDate: Date | undefined;
-    let toDate: Date | undefined;
-    
-    if (from && typeof from === 'string') {
-      fromDate = new Date(from);
-      if (isNaN(fromDate.getTime())) {
-        return res.status(400).json({ error: 'Invalid from date format' });
-      }
-    }
-    
-    if (to && typeof to === 'string') {
-      toDate = new Date(to);
-      if (isNaN(toDate.getTime())) {
-        return res.status(400).json({ error: 'Invalid to date format' });
-      }
-    }
-    
-    const historyService = HistoryService.getInstance();
-    const prices = await historyService.getPriceHistory(
-      proposalId,
-      fromDate,
-      toDate,
-      interval as string
-    );
-    
-    res.json({
-      proposalId,
-      count: prices.length,
-      data: prices.map(price => ({
-        id: price.id,
-        timestamp: price.timestamp.toISOString(),
-        market: price.market,
-        price: price.price.toString(),
-        baseLiquidity: price.baseLiquidity?.toString(),
-        quoteLiquidity: price.quoteLiquidity?.toString(),
-      }))
-    });
-  } catch (error) {
-    next(error);
-  }
-});
+router.use(requireModeratorId); // require moderatorId for all history routes
 
 /**
  * Get TWAP history for a proposal
@@ -74,12 +16,9 @@ router.get('/:id/prices', async (req, res, next) => {
  */
 router.get('/:id/twap', async (req, res, next) => {
   try {
-    const proposalId = parseInt(req.params.id);
-    
-    if (isNaN(proposalId) || proposalId < 0) {
-      return res.status(400).json({ error: 'Invalid proposal ID' });
-    }
-    
+    const moderatorId = req.moderatorId;
+    const proposalId = getProposalId(req);
+
     const { from, to } = req.query;
     
     let fromDate: Date | undefined;
@@ -99,14 +38,15 @@ router.get('/:id/twap', async (req, res, next) => {
       }
     }
     
-    const historyService = HistoryService.getInstance();
-    const twapData = await historyService.getTWAPHistory(
+    const twapData = await HistoryService.getTWAPHistory(
+      moderatorId,
       proposalId,
       fromDate,
       toDate
     );
     
     res.json({
+      moderatorId,
       proposalId,
       count: twapData.length,
       data: twapData.map(twap => ({
@@ -134,12 +74,9 @@ router.get('/:id/twap', async (req, res, next) => {
  */
 router.get('/:id/trades', async (req, res, next) => {
   try {
-    const proposalId = parseInt(req.params.id);
-    
-    if (isNaN(proposalId) || proposalId < 0) {
-      return res.status(400).json({ error: 'Invalid proposal ID' });
-    }
-    
+    const proposalId = getProposalId(req);
+    const moderatorId = req.moderatorId;
+
     const { from, to, limit } = req.query;
     
     let fromDate: Date | undefined;
@@ -167,8 +104,8 @@ router.get('/:id/trades', async (req, res, next) => {
       }
     }
     
-    const historyService = HistoryService.getInstance();
-    const trades = await historyService.getTradeHistory(
+    const trades = await HistoryService.getTradeHistory(
+      moderatorId,
       proposalId,
       fromDate,
       toDate,
@@ -176,6 +113,7 @@ router.get('/:id/trades', async (req, res, next) => {
     );
     
     res.json({
+      moderatorId,
       proposalId,
       count: trades.length,
       data: trades.map(trade => ({
@@ -206,11 +144,8 @@ router.get('/:id/trades', async (req, res, next) => {
  */
 router.get('/:id/chart', async (req, res, next) => {
   try {
-    const proposalId = parseInt(req.params.id);
-    
-    if (isNaN(proposalId) || proposalId < 0) {
-      return res.status(400).json({ error: 'Invalid proposal ID' });
-    }
+    const proposalId = getProposalId(req);
+    const moderatorId = req.moderatorId;
     
     const { interval, from, to } = req.query;
     
@@ -246,8 +181,8 @@ router.get('/:id/chart', async (req, res, next) => {
       }
     }
     
-    const historyService = HistoryService.getInstance();
-    const chartData = await historyService.getChartData(
+    const chartData = await HistoryService.getChartData(
+      moderatorId,
       proposalId,
       interval as '1m' | '5m' | '15m' | '1h' | '4h' | '1d',
       fromDate,
@@ -255,7 +190,7 @@ router.get('/:id/chart', async (req, res, next) => {
     );
 
     // Get proposal to access totalSupply
-    const persistenceService = (await import('../../app/services/persistence.service')).PersistenceService.getInstance();
+    const persistenceService = new PersistenceService(moderatorId);
     const proposal = await persistenceService.getProposalForFrontend(proposalId);
     const totalSupply = proposal?.total_supply || 1000000000;
 
@@ -282,6 +217,7 @@ router.get('/:id/chart', async (req, res, next) => {
     });
 
     res.json({
+      moderatorId,
       proposalId,
       interval,
       count: formattedData.length,
