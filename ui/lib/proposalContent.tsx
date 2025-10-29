@@ -401,6 +401,33 @@ export const proposalContentMap: Record<number, ProposalContent> = {
         </div>
       </div>
     )
+  },
+  9: {
+    id: 9,
+    title: "Standardized ZC emissions to Percent, ZTORIO, and SolPay by Hands (ZC-5)",
+    content: (
+      <div className="space-y-4 text-gray-300">
+        <p>
+          Should ZC merge PR #17 into main?
+        </p>
+
+        <p>
+          The proposal passes if TWAP Pass-Fail Gap &gt; 0%.
+        </p>
+
+        <div>
+          <h3 className="text-lg font-semibold text-white mb-2">Links</h3>
+          <ul className="list-disc list-inside space-y-1">
+            <li>
+              GitHub PR: <a href="https://github.com/zcombinatorio/zcombinator/pull/17" className="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">https://github.com/zcombinatorio/zcombinator/pull/13</a>
+            </li>
+            <li>
+              Discord Discussion: <a href="discord.gg/MQfcX9QM2r" className="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">View Discussion</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    )
   }
 };
 
