@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatDescription } from './formatDescription';
 
 interface ProposalContent {
   id: number;
@@ -453,7 +454,7 @@ export function getProposalContent(
     title: title,
     content: description ? (
       <div className="space-y-4 text-gray-300 whitespace-pre-wrap">
-        {description}
+        {formatDescription(description)}
       </div>
     ) : null
   };
