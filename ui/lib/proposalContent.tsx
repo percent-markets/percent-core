@@ -195,6 +195,75 @@ export const proposalContentMap: Record<number, ProposalContent> = {
       </div>
     )
   },
+  5: {
+    id: 5,
+    title: "Decision Market Proposal: Percent Pre-Sale Mechanics Adjustment (ZC-3)",
+    content: (
+      <div className="space-y-4 text-gray-300">
+        <div>
+          <h3 className="text-lg font-semibold text-white mb-2">Executive Summary</h3>
+          <p>
+            Due to higher-than-anticipated demand, the current pre-sale structure would result in an unsustainable 20x price appreciation with only 3% liquidity at launch. This proposal seeks market approval to modify the mechanics for a healthier market launch.
+          </p>
+        </div>
+
+        <div>
+          <h3 className="text-lg font-semibold text-white mb-2">Current Situation</h3>
+          <ul className="list-disc list-inside space-y-1">
+            <li><strong>Problem:</strong> Pre-sale participants would see 20x returns, but the pool would be illiquid (3% liquidity)</li>
+            <li><strong>Risk:</strong> Price volatility, difficulty in trading, potential cascade of sells with insufficient buy-side liquidity</li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 className="text-lg font-semibold text-white mb-2">Proposed Solution</h3>
+          <p className="mb-2">Adjust the pre-sale mechanics to:</p>
+          <ul className="list-disc list-inside space-y-1">
+            <li>Use pre-sale funds to pair with 20% of $PERC tokens on an Automated Market Maker (AMM)</li>
+            <li>Early backers allocation remains unchanged</li>
+            <li>If passing, the pre-sale would still blind close within the max deadline</li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 className="text-lg font-semibold text-white mb-2">Examples (Assuming 70M ZC deposited in presale)</h3>
+
+          <div className="mt-3">
+            <h4 className="font-semibold text-white mb-1">Proposed Mechanics:</h4>
+            <ul className="list-disc list-inside space-y-1 text-sm">
+              <li>627,900,000 PERC sold for 70,000,000 ZC</li>
+              <li>200,000,000 PERC deposited to AMM</li>
+              <li>With ZC at ~$2.5M market cap, $PERC opens public trading at a $820k market cap</li>
+              <li>20% liquidity</li>
+              <li>Results in 3x markup for pre-sale participants</li>
+            </ul>
+          </div>
+
+          <div className="mt-3">
+            <h4 className="font-semibold text-white mb-1">Current Mechanics:</h4>
+            <ul className="list-disc list-inside space-y-1 text-sm">
+              <li>795,840,286 PERC sold for 70,000,000 ZC</li>
+              <li>33,000,000 PERC deposited to AMM</li>
+              <li>$PERC opens at a $5.5m market cap</li>
+              <li>3% liquidity</li>
+              <li>Results in 20x markup for pre-sale participants</li>
+            </ul>
+          </div>
+        </div>
+
+        <p>
+          The proposal passes if pass-fail gap &gt; 0%. Pass-fail gap is calculated using TWAP.
+        </p>
+
+        <div>
+          <h3 className="text-lg font-semibold text-white mb-2">I need help - who can I talk to?</h3>
+          <p>
+            Come join our Discord: <a href="https://discord.gg/Vf38Mqhxu5" className="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">https://discord.gg/Vf38Mqhxu5</a>
+          </p>
+        </div>
+      </div>
+    )
+  },
   6: {
     id: 6,
     title: "What is the price of $ZC after OOG-1 settles?",
@@ -295,6 +364,67 @@ export const proposalContentMap: Record<number, ProposalContent> = {
           <p>
             Come join our telegram: <a href="https://t.me/oogwayexperimentportal" className="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">https://t.me/oogwayexperimentportal</a>
           </p>
+        </div>
+      </div>
+    )
+  },
+  8: {
+    id: 8,
+    title: "ZC Application Redesign by Shirtless (ZC-4)",
+    content: (
+      <div className="space-y-4 text-gray-300">
+        <p>
+          Should ZC merge PR #13 into main?
+        </p>
+
+        <p>
+          The proposal passes if pass-fail gap &gt; 0%. Pass-fail gap is calculated using TWAP.
+        </p>
+
+        <div>
+          <h3 className="text-lg font-semibold text-white mb-2">Links</h3>
+          <ul className="list-disc list-inside space-y-1">
+            <li>
+              GitHub PR: <a href="https://github.com/zcombinatorio/zcombinator/pull/13" className="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">https://github.com/zcombinatorio/zcombinator/pull/13</a>
+            </li>
+            <li>
+              Discord Discussion: <a href="https://discord.com/channels/1419789513382826006/1424768819330682993" className="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">View Discussion</a>
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 className="text-lg font-semibold text-white mb-2">I need help - who can I talk to?</h3>
+          <p>
+            Come join our Discord: <a href="https://discord.gg/Vf38Mqhxu5" className="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">https://discord.gg/Vf38Mqhxu5</a>
+          </p>
+        </div>
+      </div>
+    )
+  },
+  9: {
+    id: 9,
+    title: "Standardized ZC emissions to Percent, ZTORIO, and SolPay by Hands (ZC-5)",
+    content: (
+      <div className="space-y-4 text-gray-300">
+        <p>
+          Should ZC merge PR #17 into main?
+        </p>
+
+        <p>
+          The proposal passes if TWAP Pass-Fail Gap &gt; 0%.
+        </p>
+
+        <div>
+          <h3 className="text-lg font-semibold text-white mb-2">Links</h3>
+          <ul className="list-disc list-inside space-y-1">
+            <li>
+              GitHub PR: <a href="https://github.com/zcombinatorio/zcombinator/pull/17" className="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">https://github.com/zcombinatorio/zcombinator/pull/17</a>
+            </li>
+            <li>
+              Discord Discussion: <a href="discord.gg/MQfcX9QM2r" className="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer">View Discussion</a>
+            </li>
+          </ul>
         </div>
       </div>
     )

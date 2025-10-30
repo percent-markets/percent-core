@@ -2,6 +2,7 @@ import { Keypair, Transaction, PublicKey } from '@solana/web3.js';
 import { IProposal, IProposalConfig, IProposalSerializedData, IProposalDeserializeConfig } from './types/proposal.interface';
 import { IAMM } from './types/amm.interface';
 import { IVault, VaultType } from './types/vault.interface';
+import { IVault, VaultType } from './types/vault.interface';
 import { ITWAPOracle, TWAPStatus } from './types/twap-oracle.interface';
 import { ProposalStatus } from './types/moderator.interface';
 import { TWAPOracle } from './twap-oracle';

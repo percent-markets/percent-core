@@ -23,8 +23,8 @@ async function createProposal() {
   
   // Raw token amounts (smallest units)
   // Current_spot = ~0.010 SOL per ZC
-  const initialBaseAmount = '8554706000000';  // ZC (6 decimals)
-  const initialQuoteAmount = '42370000000'; // (9 decimals)
+  const initialBaseAmount = '3820766000000';  // ZC (6 decimals)
+  const initialQuoteAmount = '42827000000'; // (9 decimals)
   
   // Calculate decimal-adjusted price (same as AMM will return)
   // Convert to actual token amounts: raw / 10^decimals
@@ -43,7 +43,7 @@ async function createProposal() {
       initialTwapValue: ammPrice, // Decimal-adjusted price (0.1)
       twapMaxObservationChangePerUpdate: null,
       twapStartDelay: 0, // Changed from 5000
-      passThresholdBps: 300,
+      passThresholdBps: 10,
       minUpdateInterval: 6000 // 1 minute in milliseconds
     },
     amm: {
