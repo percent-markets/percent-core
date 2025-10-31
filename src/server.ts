@@ -23,7 +23,10 @@ const startServer = async () => {
     // Load moderators from database
     const router = RouterService.getInstance();
     await router.loadModerators();
-    
+
+    // Recover and reschedule tasks for pending proposals
+    await router.recoverPendingProposals();
+
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
       if (process.env.DB_URL) {

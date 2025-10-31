@@ -441,12 +441,12 @@ class PriceWebSocketServer {
       console.log('Connected to PostgreSQL for trade and price notifications');
 
       // Listen for both trade and price notifications
-      await this.pgClient.query('LISTEN new_trade');
-      await this.pgClient.query('LISTEN new_price');
+      await this.pgClient.query('LISTEN i_new_trade');
+      await this.pgClient.query('LISTEN i_new_price');
 
       this.pgClient.on('notification', (msg) => {
         console.log('PostgreSQL notification received:', msg.channel, msg.payload);
-        if (msg.channel === 'new_trade' && msg.payload) {
+        if (msg.channel === 'i_new_trade' && msg.payload) {
           try {
             const tradeData = JSON.parse(msg.payload);
             console.log('Parsed trade data:', tradeData);
@@ -454,7 +454,7 @@ class PriceWebSocketServer {
           } catch (error) {
             console.error('Error parsing trade notification:', error);
           }
-        } else if (msg.channel === 'new_price' && msg.payload) {
+        } else if (msg.channel === 'i_new_price' && msg.payload) {
           try {
             const priceData = JSON.parse(msg.payload);
             console.log('Parsed price data:', priceData);

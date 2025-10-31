@@ -149,3 +149,17 @@ CREATE TRIGGER i_price_notification_trigger
   AFTER INSERT ON i_price_history
   FOR EACH ROW
   EXECUTE FUNCTION notify_i_new_price();
+
+-- WebSocket notification for trades
+CREATE OR REPLACE FUNCTION notify_i_new_trade()
+RETURNS TRIGGER AS $$
+BEGIN
+  PERFORM pg_notify('i_new_trade', row_to_json(NEW)::text);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER i_trade_notification_trigger
+  AFTER INSERT ON i_trade_history
+  FOR EACH ROW
+  EXECUTE FUNCTION notify_i_new_trade();
