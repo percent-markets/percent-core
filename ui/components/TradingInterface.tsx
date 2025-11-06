@@ -61,8 +61,17 @@ const TradingInterface = memo(({
     return ['10000', '100000', '1000000', '10000000'];
   });
 
+  const [percentQuickAmounts, setPercentQuickAmounts] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('percentQuickAmounts');
+      return saved ? JSON.parse(saved) : ['10', '25', '50', '100'];
+    }
+    return ['10', '25', '50', '100'];
+  });
+
   const [tempSolAmounts, setTempSolAmounts] = useState(['0.01', '0.1', '1', '10']);
   const [tempZCAmounts, setTempZCAmounts] = useState(['10000', '100000', '1000000', '10000000']);
+  const [tempPercentAmounts, setTempPercentAmounts] = useState(['10', '25', '50', '100']);
 
   // Calculate user's position from balances
   const userPosition = useMemo(() => {
@@ -373,19 +382,14 @@ const TradingInterface = memo(({
     if (sellingToken === 'sol') {
       return isEditingQuickAmounts ? tempSolAmounts : solQuickAmounts;
     } else {
-      return isEditingQuickAmounts ? tempZCAmounts : zcQuickAmounts;
+      return isEditingQuickAmounts ? tempPercentAmounts : percentQuickAmounts;
     }
-  }, [sellingToken, isEditingQuickAmounts, tempSolAmounts, tempZCAmounts, solQuickAmounts, zcQuickAmounts]);
+  }, [sellingToken, isEditingQuickAmounts, tempSolAmounts, tempPercentAmounts, solQuickAmounts, percentQuickAmounts]);
 
-  // Format quick amount for display (abbreviate K/M for ZC)
+  // Format quick amount for display (show % for percentages)
   const formatQuickAmountDisplay = (val: string): string => {
-    if (sellingToken === 'zc' && !isEditingQuickAmounts) {
-      const num = parseFloat(val);
-      if (num >= 1000000) {
-        return (num / 1000000) + 'M';
-      } else if (num >= 1000) {
-        return (num / 1000) + 'K';
-      }
+    if (sellingToken === 'zc') {
+      return val + '%';
     }
     return val;
   };
@@ -395,19 +399,22 @@ const TradingInterface = memo(({
       // Save the changes
       setSolQuickAmounts([...tempSolAmounts]);
       setZCQuickAmounts([...tempZCAmounts]);
+      setPercentQuickAmounts([...tempPercentAmounts]);
 
       // Save to localStorage
       if (typeof window !== 'undefined') {
         localStorage.setItem('solQuickAmounts', JSON.stringify(tempSolAmounts));
         localStorage.setItem('zcQuickAmounts', JSON.stringify(tempZCAmounts));
+        localStorage.setItem('percentQuickAmounts', JSON.stringify(tempPercentAmounts));
       }
     } else {
       // Start editing, copy current values to temp
       setTempSolAmounts([...solQuickAmounts]);
       setTempZCAmounts([...zcQuickAmounts]);
+      setTempPercentAmounts([...percentQuickAmounts]);
     }
     setIsEditingQuickAmounts(!isEditingQuickAmounts);
-  }, [isEditingQuickAmounts, tempSolAmounts, tempZCAmounts, solQuickAmounts, zcQuickAmounts]);
+  }, [isEditingQuickAmounts, tempSolAmounts, tempZCAmounts, tempPercentAmounts, solQuickAmounts, zcQuickAmounts, percentQuickAmounts]);
 
   const handleQuickAmountChange = useCallback((index: number, value: string) => {
     // Only allow numbers and decimal points
@@ -417,12 +424,39 @@ const TradingInterface = memo(({
         newAmounts[index] = value;
         setTempSolAmounts(newAmounts);
       } else {
-        const newAmounts = [...tempZCAmounts];
+        const newAmounts = [...tempPercentAmounts];
         newAmounts[index] = value;
-        setTempZCAmounts(newAmounts);
+        setTempPercentAmounts(newAmounts);
       }
     }
-  }, [sellingToken, tempSolAmounts, tempZCAmounts]);
+  }, [sellingToken, tempSolAmounts, tempPercentAmounts]);
+
+  // Handle percentage quick amount click
+  const handlePercentageClick = useCallback((percentage: string) => {
+    if (!userBalances) return;
+
+    // Get the ZC balance based on selectedMarket
+    let balance: string;
+    if (selectedMarket === 'pass') {
+      balance = userBalances.base.passConditional;
+    } else {
+      balance = userBalances.base.failConditional;
+    }
+
+    // Convert from smallest units to decimal
+    const maxAmount = toDecimal(parseFloat(balance), 'zc');
+
+    // Calculate percentage
+    const percent = parseFloat(percentage);
+    const calculatedAmount = (maxAmount * percent) / 100;
+
+    // Set the amount
+    if (calculatedAmount > 0) {
+      setAmount(calculatedAmount.toString());
+    } else {
+      toast.error(`No ${selectedMarket} ZC balance available`);
+    }
+  }, [userBalances, selectedMarket]);
 
   // Don't show login button in trading interface when not authenticated
   if (!authenticated) {
@@ -525,35 +559,35 @@ const TradingInterface = memo(({
       {/* Only show betting interface for pending proposals */}
       {proposalStatus === 'Pending' && (
         <div className={visualFocusClassName}>
-      {/* Pass/Fail market toggle */}
-      <div className="flex flex-row flex-1 min-h-[40px] max-h-[40px] gap-[2px] p-[3px] justify-center items-center rounded-full mb-2 border border-[#2A2A2A]">
+      {/* Buy/Sell toggle */}
+      <div className="flex flex-row flex-1 min-h-[40px] max-h-[40px] gap-[2px] p-[3px] justify-center items-center rounded-[6px] mb-2 border border-[#191919]">
         <button
           onClick={() => {
-            onMarketChange('pass');
+            setSellingToken('sol');
             setAmount('');
           }}
-          className={`flex flex-row flex-1 min-h-[34px] max-h-[34px] px-4 justify-center items-center rounded-full transition cursor-pointer ${
-            selectedMarket === 'pass'
+          className={`flex flex-row flex-1 min-h-[34px] max-h-[34px] px-4 justify-center items-center rounded-[6px] transition cursor-pointer ${
+            sellingToken === 'sol'
               ? 'text-[#181818] font-bold'
-              : 'bg-transparent text-gray-400 font-medium hover:text-gray-300'
+              : 'bg-transparent text-[#6B6E71] font-medium'
           }`}
-          style={selectedMarket === 'pass' ? { backgroundColor: '#6ECC94' } : undefined}
+          style={sellingToken === 'sol' ? { backgroundColor: '#6ECC94', fontFamily: 'IBM Plex Mono, monospace' } : { fontFamily: 'IBM Plex Mono, monospace' }}
         >
-          <span className="text-[12px] leading-[16px]">Pass</span>
+          <span className="text-[12px] leading-[16px]">BUY</span>
         </button>
         <button
           onClick={() => {
-            onMarketChange('fail');
+            setSellingToken('zc');
             setAmount('');
           }}
-          className={`flex flex-row flex-1 min-h-[34px] max-h-[34px] px-4 justify-center items-center rounded-full transition cursor-pointer ${
-            selectedMarket === 'fail'
+          className={`flex flex-row flex-1 min-h-[34px] max-h-[34px] px-4 justify-center items-center rounded-[6px] transition cursor-pointer ${
+            sellingToken === 'zc'
               ? 'text-[#181818] font-bold'
-              : 'bg-transparent text-gray-400 font-medium hover:text-gray-300'
+              : 'bg-transparent text-[#6B6E71] font-medium'
           }`}
-          style={selectedMarket === 'fail' ? { backgroundColor: '#FF6F94' } : undefined}
+          style={sellingToken === 'zc' ? { backgroundColor: '#FF6F94', fontFamily: 'IBM Plex Mono, monospace' } : { fontFamily: 'IBM Plex Mono, monospace' }}
         >
-          <span className="text-[12px] leading-[16px]">Fail</span>
+          <span className="text-[12px] leading-[16px]">SELL</span>
         </button>
       </div>
 
@@ -572,46 +606,14 @@ const TradingInterface = memo(({
               }
             }}
             placeholder="0.0"
-            className="w-full px-3 py-3 pr-32 bg-[#2a2a2a] rounded-t-lg text-white placeholder-gray-600 focus:outline-none border-t border-l border-r border-[#2A2A2A]"
-            style={{ WebkitAppearance: 'none', MozAppearance: 'textfield' }}
+            className="w-full h-[56px] px-3 pr-16 bg-[#2a2a2a] rounded-t-[6px] text-white placeholder-gray-600 focus:outline-none border-t border-l border-r border-[#191919] text-2xl font-ibm-plex-mono"
+            style={{ WebkitAppearance: 'none', MozAppearance: 'textfield', fontFamily: 'IBM Plex Mono, monospace', letterSpacing: '0em' }}
           />
-          {/* MAX and Token Toggle Buttons */}
+          {/* Token Label */}
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-            {/* MAX Button */}
-            <button
-              onClick={handleMaxClick}
-              disabled={!userBalances}
-              className={`flex items-center justify-center px-2 h-7 rounded text-xs font-medium transition ${
-                userBalances
-                  ? 'bg-[#333] text-gray-300 hover:bg-[#404040] cursor-pointer'
-                  : 'bg-[#1a1a1a] text-gray-600 cursor-not-allowed'
-              }`}
-            >
-              MAX
-            </button>
-
-            {/* Token Toggle */}
-            <button
-              onClick={() => {
-                setSellingToken(sellingToken === 'sol' ? 'zc' : 'sol');
-                setAmount('');
-              }}
-              className="flex items-center justify-center gap-1 px-2 h-7 bg-[#333] rounded hover:bg-[#404040] transition cursor-pointer"
-            >
-              {sellingToken === 'zc' ? (
-                <>
-                  <span className="text-xs text-[#AFAFAF] font-medium">sell</span>
-                  <span className="text-xs text-[#AFAFAF] font-bold">$ZC</span>
-                </>
-              ) : (
-                <>
-                  <span className="text-xs text-[#AFAFAF] font-medium">buy with</span>
-                  <svg className="h-3 w-3" viewBox="0 0 101 88" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M100.48 69.3817L83.8068 86.8015C83.4444 87.1799 83.0058 87.4816 82.5185 87.6878C82.0312 87.894 81.5055 88.0003 80.9743 88H1.93563C1.55849 88 1.18957 87.8926 0.874202 87.6912C0.558829 87.4897 0.31074 87.2029 0.160416 86.8659C0.0100923 86.529 -0.0359181 86.1566 0.0280382 85.7945C0.0919944 85.4324 0.263131 85.0964 0.520422 84.8278L17.2061 67.408C17.5676 67.0306 18.0047 66.7295 18.4904 66.5234C18.9762 66.3172 19.5002 66.2104 20.0301 66.2095H99.0644C99.4415 66.2095 99.8104 66.3169 100.126 66.5183C100.441 66.7198 100.689 67.0065 100.84 67.3435C100.99 67.6804 101.036 68.0529 100.972 68.415C100.908 68.7771 100.737 69.1131 100.48 69.3817ZM83.8068 36.3032C83.4444 35.9248 83.0058 35.6231 82.5185 35.4169C82.0312 35.2108 81.5055 35.1045 80.9743 35.1048H1.93563C1.55849 35.1048 1.18957 35.2121 0.874202 35.4136C0.558829 35.6151 0.31074 35.9019 0.160416 36.2388C0.0100923 36.5758 -0.0359181 36.9482 0.0280382 37.3103C0.0919944 37.6723 0.263131 38.0083 0.520422 38.277L17.2061 55.6968C17.5676 56.0742 18.0047 56.3752 18.4904 56.5814C18.9762 56.7875 19.5002 56.8944 20.0301 56.8952H99.0644C99.4415 56.8952 99.8104 56.7879 100.126 56.5864C100.441 56.3849 100.689 56.0981 100.84 55.7612C100.99 55.4242 101.036 55.0518 100.972 54.6897C100.908 54.3277 100.737 53.9917 100.48 53.723L83.8068 36.3032ZM1.93563 21.7905H80.9743C81.5055 21.7898 82.0312 21.6835 82.5185 21.4773C83.0058 21.2712 83.4444 20.9695 83.8068 20.5911L100.48 3.17133C100.737 2.90265 100.908 2.56667 100.972 2.2046C101.036 1.84253 100.99 1.47008 100.84 1.13314C100.689 0.796193 100.441 0.509443 100.126 0.307961C99.8104 0.106479 99.4415 -0.000854492 99.0644 -0.000854492H20.0301C19.5002 -0.00013126 18.9762 0.106791 18.4904 0.312929C18.0047 0.519068 17.5676 0.820087 17.2061 1.19754L0.524723 18.6173C0.267481 18.8859 0.0963642 19.2219 0.0323936 19.584C-0.0315771 19.946 0.0144792 20.3184 0.164862 20.6554C0.315245 20.9923 0.563347 21.2791 0.878727 21.4806C1.19411 21.682 1.56303 21.7894 1.94013 21.7896L1.93563 21.7905Z" fill="#AFAFAF"/>
-                  </svg>
-                </>
-              )}
-            </button>
+            <span className="flex items-center justify-center px-2 h-7 text-xs font-semibold text-[#AFAFAF]">
+              {sellingToken === 'sol' ? 'SOL' : '%'}
+            </span>
           </div>
         </div>
       </div>
@@ -621,7 +623,13 @@ const TradingInterface = memo(({
         {quickAmounts.map((val: string, index: number) => (
           <button
             key={index}
-            onClick={isEditingQuickAmounts ? undefined : () => setAmount(val)}
+            onClick={isEditingQuickAmounts ? undefined : () => {
+              if (sellingToken === 'zc') {
+                handlePercentageClick(val);
+              } else {
+                setAmount(val);
+              }
+            }}
             contentEditable={isEditingQuickAmounts}
             suppressContentEditableWarning={true}
             onBlur={isEditingQuickAmounts ? (e) => {
@@ -642,22 +650,22 @@ const TradingInterface = memo(({
 
               handleQuickAmountChange(index, currentValue);
             } : undefined}
-            className={`flex-1 py-1.5 border-b border-l border-r border-[#2A2A2A] text-sm text-center ${
+            className={`flex-1 py-1.5 border-b border-l border-r border-[#191919] text-sm text-center ${
               isEditingQuickAmounts
-                ? 'text-gray-400 cursor-text focus:bg-[#2a2a2a] focus:text-white focus:outline-none'
-                : 'text-gray-400 hover:bg-[#303030] transition cursor-pointer'
+                ? 'text-[#6B6E71] cursor-text focus:bg-[#2a2a2a] focus:text-white focus:outline-none'
+                : 'text-[#6B6E71] hover:bg-[#303030] transition cursor-pointer'
             } ${
-              index === 0 ? 'rounded-bl-lg' : ''
+              index === 0 ? 'rounded-bl-[6px]' : ''
             } ${
               index > 0 ? 'border-l-0' : ''
             }`}
           >
-            {formatQuickAmountDisplay(val)}
+            {isEditingQuickAmounts ? val : formatQuickAmountDisplay(val)}
           </button>
         ))}
         <button
           onClick={handleEditToggle}
-          className={`px-3 py-1.5 border-b border-r border-[#2A2A2A] rounded-br-lg text-sm transition cursor-pointer text-gray-400 hover:bg-[#303030]`}
+          className={`px-3 py-1.5 border-b border-r border-[#191919] rounded-br-[6px] text-sm transition cursor-pointer text-[#6B6E71] hover:bg-[#303030]`}
           title={isEditingQuickAmounts ? 'Save' : 'Edit quick amounts'}
         >
           {isEditingQuickAmounts ? (
@@ -670,18 +678,18 @@ const TradingInterface = memo(({
 
       {/* Slippage Display */}
       {amount && parseFloat(amount) > 0 && (
-        <div className="my-3 px-3 py-2 bg-[#1a1a1a] border border-[#2A2A2A] rounded-lg">
+        <div className="my-3 px-3 py-2 border border-[#191919] rounded-[6px]">
           {isLoadingQuote ? (
-            <div className="flex items-center gap-2 text-xs text-gray-400">
-              <div className="animate-spin h-3 w-3 border border-gray-400 border-t-transparent rounded-full"></div>
+            <div className="flex items-center gap-2 text-sm" style={{ color: '#DDDDD7' }}>
+              <div className="animate-spin h-3 w-3 border border-t-transparent rounded-full" style={{ borderColor: '#DDDDD7' }}></div>
               <span>Calculating...</span>
             </div>
           ) : quote ? (
             <div className="space-y-1">
               {/* Expected Output */}
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-gray-400">Expected Output:</span>
-                <span className="text-white font-medium">
+              <div className="flex justify-between items-center text-sm">
+                <span style={{ color: '#DDDDD7' }}>Expected Output:</span>
+                <span className="font-medium" style={{ color: '#DDDDD7' }}>
                   ~{formatNumber(
                     toDecimal(parseFloat(quote.swapOutAmount), sellingToken === 'zc' ? 'sol' : 'zc'),
                     sellingToken === 'zc' ? 4 : 2
@@ -690,8 +698,8 @@ const TradingInterface = memo(({
               </div>
 
               {/* Price Impact */}
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-gray-400">Price Impact:</span>
+              <div className="flex justify-between items-center text-sm">
+                <span style={{ color: '#DDDDD7' }}>Price Impact:</span>
                 <span className={`font-medium ${
                   quote.priceImpact < 1 ? '' :
                   quote.priceImpact < 3 ? 'text-yellow-400' :
@@ -704,16 +712,12 @@ const TradingInterface = memo(({
                   undefined
                 }>
                   {quote.priceImpact.toFixed(2)}%
-                  {quote.priceImpact < 1 ? ' 🟢' :
-                   quote.priceImpact < 3 ? ' 🟡' :
-                   quote.priceImpact < 5 ? ' 🟠' :
-                   ' 🔴'}
                 </span>
               </div>
 
               {/* Warning for high price impact */}
               {quote.priceImpact >= 1 && (
-                <div className={`mt-2 pt-2 border-t border-[#2A2A2A] text-xs ${
+                <div className={`mt-2 pt-2 border-t border-[#191919] text-sm ${
                   quote.priceImpact < 3 ? 'text-yellow-400' :
                   quote.priceImpact < 5 ? 'text-orange-400' :
                   ''
@@ -741,38 +745,46 @@ const TradingInterface = memo(({
       <button
         onClick={handleTrade}
         disabled={!amount || parseFloat(amount) <= 0 || isTrading || !!balanceError}
-        className={`w-full py-3 rounded-full font-semibold transition cursor-pointer flex items-center justify-center gap-1 ${
-          selectedMarket === 'pass'
-            ? amount && parseFloat(amount) > 0 && !balanceError
-              ? 'text-[#181818]'
-              : 'bg-[#2a2a2a] text-gray-600 cursor-not-allowed'
-            : amount && parseFloat(amount) > 0 && !balanceError
-              ? 'text-[#181818]'
-              : 'bg-[#2a2a2a] text-gray-600 cursor-not-allowed'
+        className={`w-full h-[56px] rounded-full font-semibold transition cursor-pointer flex items-center justify-center gap-1 mt-6 uppercase font-ibm-plex-mono ${
+          amount && parseFloat(amount) > 0 && !balanceError && !isTrading
+            ? ''
+            : 'bg-[#414346] cursor-not-allowed'
         }`}
         style={
-          amount && parseFloat(amount) > 0 && !balanceError
-            ? selectedMarket === 'pass'
-              ? { backgroundColor: '#6ECC94' }
-              : { backgroundColor: '#FF6F94' }
-            : undefined
+          amount && parseFloat(amount) > 0 && !balanceError && !isTrading
+            ? {
+                backgroundColor: sellingToken === 'sol' ? '#6ECC94' : '#FF6F94',
+                color: '#161616',
+                fontFamily: 'IBM Plex Mono, monospace',
+                letterSpacing: '0em'
+              }
+            : { color: '#161616', fontFamily: 'IBM Plex Mono, monospace', letterSpacing: '0em' }
         }
-        onMouseEnter={(e) => {
-          if (amount && parseFloat(amount) > 0 && !balanceError) {
-            e.currentTarget.style.backgroundColor = selectedMarket === 'pass' ? '#5DB685' : '#E65F84';
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (amount && parseFloat(amount) > 0 && !balanceError) {
-            e.currentTarget.style.backgroundColor = selectedMarket === 'pass' ? '#6ECC94' : '#FF6F94';
-          }
-        }}
       >
         <span>
           {isTrading ? (
-            'Swapping...'
+            'SWAPPING...'
           ) : (
-            sellingToken === 'sol' ? 'Swap for $ZC' : 'Swap for SOL'
+            (() => {
+              const action = sellingToken === 'sol' ? 'BUY' : 'SELL';
+              const market = selectedMarket === 'pass' ? 'PASS' : 'FAIL';
+              const token = sellingToken === 'sol' ? 'SOL' : 'ZC';
+
+              // Format amount with K/M notation for ZC
+              let formattedAmount = amount;
+              if (sellingToken === 'zc' && amount) {
+                const num = parseFloat(amount);
+                if (!isNaN(num)) {
+                  if (num >= 1000000) {
+                    formattedAmount = (num / 1000000).toFixed(2).replace(/\.?0+$/, '') + 'M';
+                  } else if (num >= 1000) {
+                    formattedAmount = (num / 1000).toFixed(2).replace(/\.?0+$/, '') + 'K';
+                  }
+                }
+              }
+
+              return `${action} ${market} ${formattedAmount} ${token}`;
+            })()
           )}
         </span>
       </button>

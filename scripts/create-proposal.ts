@@ -23,8 +23,8 @@ async function createProposal() {
   
   // Raw token amounts (smallest units)
   // Current_spot = ~0.010 SOL per ZC
-  const initialBaseAmount = '7397005000000';  // ZC (6 decimals)
-  const initialQuoteAmount = '22807540000'; // (9 decimals)
+  const initialBaseAmount = '7280539000000';  // ZC (6 decimals)
+  const initialQuoteAmount = '23263450000'; // (9 decimals)
   
   // Calculate decimal-adjusted price (same as AMM will return)
   // Convert to actual token amounts: raw / 10^decimals
@@ -34,11 +34,11 @@ async function createProposal() {
   console.log(ammPrice);
   
   const request: CreateProposalRequest = {
-    title: 'Infinite Supply Mitigation',
-    description: 'Should ZC merge PR #29 into main? https://github.com/zcombinatorio/zcombinator/pull/29',
+    title: 'ZC Staking Benefits Proposal by Balloon',
+    description: 'Should ZC execute on PR #36? https://github.com/zcombinatorio/zcombinator/pull/36',
     proposalLength: 86400, // 24 hours
     spotPoolAddress: 'CCZdbVvDqPN8DmMLVELfnt9G1Q9pQNt3bTGifSpUY9Ad', // ZC/SOL spot pool
-    totalSupply: 1120710405, // 1 billion tokens for market cap calculation
+    totalSupply: 1125365578, // 1 billion tokens for market cap calculation
     twap: {
       initialTwapValue: ammPrice, // Decimal-adjusted price (0.1)
       twapMaxObservationChangePerUpdate: null,

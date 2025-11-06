@@ -12,6 +12,7 @@ import { TradeHistoryTable } from '@/components/TradeHistoryTable';
 import { CountdownTimer } from '@/components/CountdownTimer';
 import { ChartBox } from '@/components/ChartBox';
 import { ModeToggle } from '@/components/ModeToggle';
+import { DepositCard } from '@/components/DepositCard';
 import { useProposals } from '@/hooks/useProposals';
 import { useTradeHistory } from '@/hooks/useTradeHistory';
 import { useUserBalances } from '@/hooks/useUserBalances';
@@ -536,7 +537,7 @@ export default function HomePage() {
                         const cardInner = (
                           <div className="flex flex-col justify-between h-full">
                             <h1 className="text-sm font-semibold font-ibm-plex-mono tracking-[0.2em] mb-6 uppercase flex items-center justify-between" style={{ color: '#DDDDD7' }}>
-                              PROPOSAL
+                              PROPOSAL ZC-{proposal.id}
                               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="1">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                               </svg>
@@ -566,7 +567,7 @@ export default function HomePage() {
                       {/* Time Remaining */}
                       <div className="flex-1 bg-[#121212] border border-[#191919] rounded-[9px] py-4 px-5 transition-all duration-300">
                         <div className="text-white flex flex-col items-center">
-                          <span className="text-sm font-semibold font-ibm-plex-mono tracking-[0.2em] uppercase mb-6" style={{ color: '#DDDDD7' }}>Time Left</span>
+                          <span className="text-sm font-semibold font-ibm-plex-mono tracking-[0.2em] uppercase mb-6 block w-full text-left" style={{ color: '#DDDDD7' }}>TIME REMAINING</span>
                           <CountdownTimer
                             endsAt={proposal.finalizedAt}
                             onTimerEnd={handleTimerEnd}
@@ -585,23 +586,38 @@ export default function HomePage() {
 
                   {/* Right Column (1/3 width) */}
                   <div className="col-span-1 flex flex-col gap-4 pb-12">
+                    {/* Deposit Card */}
+                    {authenticated && (
+                      <DepositCard
+                        proposalId={proposal.id}
+                        solBalance={solBalance}
+                        zcBalance={zcBalance}
+                        onDepositSuccess={refetchBalances}
+                      />
+                    )}
+
                     {/* Mode Toggle */}
                     <ModeToggle isPassMode={isPassMode} onToggle={handleModeToggle} pfgPercentage={pfgPercentage} />
 
                     {/* Trading Interface */}
-                    <div
-                      className="bg-[#121212] border border-[#191919] rounded-[9px] p-3 transition-all duration-300"
-                    >
-                      <TradingInterface
-                        proposalId={proposal.id}
-                        selectedMarket={selectedMarket}
-                        onMarketChange={handleMarketChange}
-                        passPrice={livePrices.pass || 0.5}
-                        failPrice={livePrices.fail || 0.5}
-                        proposalStatus="Pending"
-                        userBalances={userBalances}
-                        refetchBalances={refetchBalances}
-                      />
+                    <div className="bg-[#121212] border border-[#191919] rounded-[9px] py-4 px-5 transition-all duration-300">
+                      <div className="text-white flex flex-col items-center">
+                        <span className="text-sm font-semibold font-ibm-plex-mono tracking-[0.2em] uppercase mb-6 block w-full text-center" style={{ color: '#DDDDD7' }}>
+                          III. Trade {selectedMarket === 'pass' ? 'Pass' : 'Fail'} Coin
+                        </span>
+                        <div className="w-full">
+                          <TradingInterface
+                            proposalId={proposal.id}
+                            selectedMarket={selectedMarket}
+                            onMarketChange={handleMarketChange}
+                            passPrice={livePrices.pass || 0.5}
+                            failPrice={livePrices.fail || 0.5}
+                            proposalStatus="Pending"
+                            userBalances={userBalances}
+                            refetchBalances={refetchBalances}
+                          />
+                        </div>
+                      </div>
                     </div>
 
                     {/* User Balances - Side by Side */}
@@ -680,7 +696,7 @@ export default function HomePage() {
                     {/* Trade History */}
                     <div className="bg-[#121212] border border-[#191919] rounded-[9px] py-4 px-5 transition-all duration-300">
                       <span className="text-sm font-semibold font-ibm-plex-mono tracking-[0.2em] uppercase mb-6 block" style={{ color: '#DDDDD7' }}>
-                        {selectedMarket === 'pass' ? 'Trade History: Pass Coin' : 'Trade History: Fail Coin'}
+                        {selectedMarket === 'pass' ? 'History: Pass Coin' : 'History: Fail Coin'}
                       </span>
                       <TradeHistoryTable
                         trades={trades.filter(trade => trade.market === selectedMarket)}

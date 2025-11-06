@@ -23,7 +23,7 @@ export function ModeToggle({ isPassMode, onToggle, pfgPercentage }: ModeTogglePr
     <div className="bg-[#121212] border border-[#191919] rounded-[9px] py-4 transition-all duration-300">
       <div className="flex flex-col items-center gap-4">
         <span className="text-sm font-semibold font-ibm-plex-mono tracking-[0.2em] uppercase mb-2" style={{ color: '#DDDDD7' }}>
-          Toggle Coin
+          II. Select Coin
         </span>
         <div className="border border-[#191919] rounded-[6px] py-4 px-6 flex flex-col items-center gap-4">
         <div className="inline-flex flex-row items-center select-none py-2">
@@ -105,7 +105,7 @@ export function ModeToggle({ isPassMode, onToggle, pfgPercentage }: ModeTogglePr
           color: '#FFFFFF',
         }}
       >
-        PFG {pfgPercentage !== null ? pfgPercentage.toFixed(2) : '0.00'}%
+        TWAP PFG {pfgPercentage !== null ? pfgPercentage.toFixed(2) : '0.00'}%
       </div>
       </div>
       </div>
