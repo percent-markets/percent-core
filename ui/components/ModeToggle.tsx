@@ -1,12 +1,16 @@
 'use client';
 
+import { formatMarketCap } from '@/lib/formatters';
+
 interface ModeToggleProps {
   isPassMode: boolean;
   onToggle: (isPassMode: boolean) => void;
   pfgPercentage: number | null;
+  passMarketCap: number | null;
+  failMarketCap: number | null;
 }
 
-export function ModeToggle({ isPassMode, onToggle, pfgPercentage }: ModeToggleProps) {
+export function ModeToggle({ isPassMode, onToggle, pfgPercentage, passMarketCap, failMarketCap }: ModeToggleProps) {
   const handleToggleClick = () => {
     onToggle(!isPassMode);
   };
@@ -26,23 +30,30 @@ export function ModeToggle({ isPassMode, onToggle, pfgPercentage }: ModeTogglePr
           II. Select Coin
         </span>
         <div className="border border-[#191919] rounded-[6px] py-4 px-6 flex flex-col items-center gap-4">
-        <div className="inline-flex flex-row items-center select-none py-2">
+        <div className="inline-flex flex-row items-center select-none">
         {/* Dark Label */}
-        <h6
-          className={`text-md uppercase pr-6 py-3 min-w-[48px] cursor-pointer transition-colors duration-200 flex items-center gap-2.5 ${
-            isPassMode
-              ? 'text-[#FFFFFF] pointer-events-none'
-              : 'text-[#5B5E62] hover:text-[#404346] active:text-[#010101]'
-          }`}
-          onClick={handleDarkClick}
-          style={{ fontFamily: 'IBM Plex Mono, monospace', letterSpacing: '0em' }}
-        >
-          PASS COIN
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 20 20" strokeWidth="1.5">
-            <circle cx="10" cy="10" r="8" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M7 10l2 2 4-4" />
-          </svg>
-        </h6>
+        <div className="pl-2 pr-10 py-3 min-w-[48px] cursor-pointer" onClick={handleDarkClick}>
+          <h6
+            className={`text-md uppercase transition-colors duration-200 text-center ${
+              isPassMode
+                ? 'text-[#FFFFFF] pointer-events-none'
+                : 'text-[#5B5E62] hover:text-[#404346] active:text-[#010101]'
+            }`}
+            style={{ fontFamily: 'IBM Plex Mono, monospace', letterSpacing: '0em' }}
+          >
+            PASS COIN
+          </h6>
+          <div
+            className={`text-xs mt-1 transition-colors duration-200 text-center ${
+              isPassMode
+                ? 'text-[#FFFFFF]'
+                : 'text-[#5B5E62]'
+            }`}
+            style={{ fontFamily: 'IBM Plex Mono, monospace' }}
+          >
+            {formatMarketCap(passMarketCap)}
+          </div>
+        </div>
 
         {/* Toggle Switch */}
         <button
@@ -79,26 +90,33 @@ export function ModeToggle({ isPassMode, onToggle, pfgPercentage }: ModeTogglePr
         </button>
 
         {/* Light Label */}
-        <h6
-          className={`text-md uppercase pl-6 py-3 min-w-[48px] cursor-pointer transition-colors duration-200 flex items-center gap-2.5 ${
-            isPassMode
-              ? 'text-[#6B6E71] hover:text-[#9B9E9F] active:text-[#8B8E8F]'
-              : 'text-[#FFFFFF] pointer-events-none'
-          }`}
-          onClick={handleLightClick}
-          style={{ fontFamily: 'IBM Plex Mono, monospace', letterSpacing: '0em' }}
-        >
-          FAIL COIN
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 20 20" strokeWidth="1.5">
-            <circle cx="10" cy="10" r="8" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M7 7l6 6M13 7l-6 6" />
-          </svg>
-        </h6>
+        <div className="pl-10 pr-2 py-3 min-w-[48px] cursor-pointer" onClick={handleLightClick}>
+          <h6
+            className={`text-md uppercase transition-colors duration-200 text-center ${
+              isPassMode
+                ? 'text-[#6B6E71] hover:text-[#9B9E9F] active:text-[#8B8E8F]'
+                : 'text-[#FFFFFF] pointer-events-none'
+            }`}
+            style={{ fontFamily: 'IBM Plex Mono, monospace', letterSpacing: '0em' }}
+          >
+            FAIL COIN
+          </h6>
+          <div
+            className={`text-xs mt-1 transition-colors duration-200 text-center ${
+              isPassMode
+                ? 'text-[#6B6E71]'
+                : 'text-[#FFFFFF]'
+            }`}
+            style={{ fontFamily: 'IBM Plex Mono, monospace' }}
+          >
+            {formatMarketCap(failMarketCap)}
+          </div>
+        </div>
       </div>
 
       {/* PFG Value */}
       <div
-        className="text-md pb-2"
+        className="text-md pb-1"
         style={{
           fontFamily: 'IBM Plex Mono, monospace',
           letterSpacing: '0em',

@@ -8,7 +8,6 @@ import { useTokenPrices } from '@/hooks/useTokenPrices';
 // import Sidebar from '@/components/Sidebar';
 import TradingInterface from '@/components/TradingInterface';
 import Header from '@/components/Header';
-import { TradeHistoryTable } from '@/components/TradeHistoryTable';
 import { CountdownTimer } from '@/components/CountdownTimer';
 import { ChartBox } from '@/components/ChartBox';
 import { ModeToggle } from '@/components/ModeToggle';
@@ -49,6 +48,7 @@ export default function HomePage() {
   const { proposals, loading, refetch } = useProposals();
   const [livePrices, setLivePrices] = useState<{ pass: number | null; fail: number | null }>({ pass: null, fail: null });
   const [twapData, setTwapData] = useState<{ passTwap: number | null; failTwap: number | null }>({ passTwap: null, failTwap: null });
+  const [marketCaps, setMarketCaps] = useState<{ pass: number | null; fail: number | null }>({ pass: null, fail: null });
   const [navTab, setNavTab] = useState<'live' | 'history'>('live');
   const [hoveredProposalId, setHoveredProposalId] = useState<number | null>(null);
   const [proposalPfgs, setProposalPfgs] = useState<Record<number, number>>({});
@@ -175,7 +175,6 @@ export default function HomePage() {
     trades,
     loading: tradesLoading,
     getTimeAgo,
-    formatAddress,
     getTokenUsed
   } = useTradeHistory(proposal?.id || null);
   
@@ -204,7 +203,16 @@ export default function HomePage() {
 
   const handlePricesUpdate = useCallback((prices: { pass: number | null; fail: number | null }) => {
     setLivePrices(prices);
-  }, []);
+
+    // Calculate market caps: price * total supply * SOL price
+    const TOTAL_SUPPLY = 1_000_000_000;
+    if (solPrice) {
+      setMarketCaps({
+        pass: prices.pass ? prices.pass * TOTAL_SUPPLY * solPrice : null,
+        fail: prices.fail ? prices.fail * TOTAL_SUPPLY * solPrice : null,
+      });
+    }
+  }, [solPrice]);
 
   const handleTwapUpdate = useCallback((twap: { passTwap: number | null; failTwap: number | null }) => {
     console.log('TWAP update from LivePriceDisplay:', twap);
@@ -581,6 +589,10 @@ export default function HomePage() {
                     <ChartBox
                       proposalId={proposal.id}
                       selectedMarket={selectedMarket}
+                      trades={trades.filter(trade => trade.market === selectedMarket)}
+                      tradesLoading={tradesLoading}
+                      getTimeAgo={getTimeAgo}
+                      getTokenUsed={getTokenUsed}
                     />
                   </div>
 
@@ -597,7 +609,13 @@ export default function HomePage() {
                     )}
 
                     {/* Mode Toggle */}
-                    <ModeToggle isPassMode={isPassMode} onToggle={handleModeToggle} pfgPercentage={pfgPercentage} />
+                    <ModeToggle
+                      isPassMode={isPassMode}
+                      onToggle={handleModeToggle}
+                      pfgPercentage={pfgPercentage}
+                      passMarketCap={marketCaps.pass}
+                      failMarketCap={marketCaps.fail}
+                    />
 
                     {/* Trading Interface */}
                     <div className="bg-[#121212] border border-[#191919] rounded-[9px] py-4 px-5 transition-all duration-300">
@@ -626,8 +644,26 @@ export default function HomePage() {
                         {/* ZC Balance Card */}
                         <div className="flex-1 bg-[#121212] border border-[#191919] rounded-[9px] py-3 px-5 transition-all duration-300">
                           <div className="text-white flex flex-col">
-                            <span className="text-sm font-semibold font-ibm-plex-mono tracking-[0.2em] uppercase mb-6 text-center" style={{ color: '#DDDDD7' }}>
-                              {selectedMarket === 'pass' ? 'IV. Bullish Proposal Bal' : 'IV. Bearish Proposal Bal'}
+                            <span className="text-sm font-semibold font-ibm-plex-mono tracking-[0.2em] uppercase mb-6 text-center block" style={{ color: '#DDDDD7' }}>
+                              {selectedMarket === 'pass' ? (
+                                <>
+                                  IV. BULLISH{' '}
+                                  <svg className="w-4 h-4 inline-block pb-0.5 -ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 20 20" strokeWidth="1.5">
+                                    <circle cx="10" cy="10" r="8" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 10l2 2 4-4" />
+                                  </svg>
+                                  {' '}PROPOSAL BAL
+                                </>
+                              ) : (
+                                <>
+                                  IV. BEARISH{' '}
+                                  <svg className="w-4 h-4 inline-block pb-0.5 -ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 20 20" strokeWidth="1.5">
+                                    <circle cx="10" cy="10" r="8" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 7l6 6M13 7l-6 6" />
+                                  </svg>
+                                  {' '}PROPOSAL BAL
+                                </>
+                              )}
                             </span>
                             <div className="group flex items-center justify-center border border-[#191919] rounded-[6px] py-3 px-4 text-lg font-ibm-plex-mono cursor-default" style={{ color: '#DDDDD7', fontFamily: 'IBM Plex Mono, monospace' }}>
                               <span className="group-hover:hidden">
@@ -645,8 +681,26 @@ export default function HomePage() {
                         {/* SOL Balance Card */}
                         <div className="flex-1 bg-[#121212] border border-[#191919] rounded-[9px] py-3 px-5 transition-all duration-300">
                           <div className="text-white flex flex-col">
-                            <span className="text-sm font-semibold font-ibm-plex-mono tracking-[0.2em] uppercase mb-6 text-center" style={{ color: '#DDDDD7' }}>
-                              {selectedMarket === 'pass' ? 'IV. Bearish Proposal Bal' : 'IV. Bullish Proposal Bal'}
+                            <span className="text-sm font-semibold font-ibm-plex-mono tracking-[0.2em] uppercase mb-6 text-center block" style={{ color: '#DDDDD7' }}>
+                              {selectedMarket === 'pass' ? (
+                                <>
+                                  IV. BEARISH{' '}
+                                  <svg className="w-4 h-4 inline-block pb-0.5 -ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 20 20" strokeWidth="1.5">
+                                    <circle cx="10" cy="10" r="8" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 7l6 6M13 7l-6 6" />
+                                  </svg>
+                                  {' '}PROPOSAL BAL
+                                </>
+                              ) : (
+                                <>
+                                  IV. BULLISH{' '}
+                                  <svg className="w-4 h-4 inline-block pb-0.5 -ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 20 20" strokeWidth="1.5">
+                                    <circle cx="10" cy="10" r="8" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 10l2 2 4-4" />
+                                  </svg>
+                                  {' '}PROPOSAL BAL
+                                </>
+                              )}
                             </span>
                             <div className="group flex items-center justify-center border border-[#191919] rounded-[6px] py-3 px-4 text-lg font-ibm-plex-mono cursor-default" style={{ color: '#DDDDD7', fontFamily: 'IBM Plex Mono, monospace' }}>
                               <span className="group-hover:hidden">
@@ -662,20 +716,6 @@ export default function HomePage() {
                         </div>
                       </div>
                     )}
-
-                    {/* Trade History */}
-                    <div className="bg-[#121212] border border-[#191919] rounded-[9px] py-4 px-5 transition-all duration-300">
-                      <span className="text-sm font-semibold font-ibm-plex-mono tracking-[0.2em] uppercase mb-6 block text-center" style={{ color: '#DDDDD7' }}>
-                        {selectedMarket === 'pass' ? 'History: Pass Coin' : 'History: Fail Coin'}
-                      </span>
-                      <TradeHistoryTable
-                        trades={trades.filter(trade => trade.market === selectedMarket)}
-                        loading={tradesLoading}
-                        getTimeAgo={getTimeAgo}
-                        formatAddress={formatAddress}
-                        getTokenUsed={getTokenUsed}
-                      />
-                    </div>
                   </div>
                 </div>
 

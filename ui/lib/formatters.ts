@@ -102,3 +102,29 @@ export function formatVolume(value: number | string): string {
   // For values between $1 and $999, show 2 decimal places
   return `$${num.toFixed(2)}`;
 }
+
+/**
+ * Format market cap with K/M/B abbreviations and 2 decimal places
+ * @param value - The market cap value to format
+ * @returns Formatted string like "$1.50M" (always shows 2 decimal places)
+ */
+export function formatMarketCap(value: number | null | undefined): string {
+  if (value === null || value === undefined || isNaN(value)) return '$0.00';
+
+  const absValue = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+
+  if (absValue >= 1_000_000_000) {
+    // Billions
+    return `${sign}$${(absValue / 1_000_000_000).toFixed(2)}B`;
+  } else if (absValue >= 1_000_000) {
+    // Millions
+    return `${sign}$${(absValue / 1_000_000).toFixed(2)}M`;
+  } else if (absValue >= 1_000) {
+    // Thousands
+    return `${sign}$${(absValue / 1_000).toFixed(2)}K`;
+  } else {
+    // Less than 1000
+    return `${sign}$${absValue.toFixed(2)}`;
+  }
+}
