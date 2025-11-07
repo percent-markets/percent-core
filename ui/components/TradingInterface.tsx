@@ -651,6 +651,10 @@ const TradingInterface = memo(({
             type="text"
             inputMode="decimal"
             pattern="[0-9]*[.]?[0-9]*"
+            autoComplete="off"
+            data-form-type="other"
+            data-lpignore="true"
+            data-1p-ignore="true"
             value={sellingToken === 'zc' ? percentage : amount}
             onChange={(e) => {
               const value = e.target.value;
