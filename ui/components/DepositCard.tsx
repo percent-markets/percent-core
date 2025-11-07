@@ -179,8 +179,11 @@ export function DepositCard({ proposalId, solBalance, zcBalance, onDepositSucces
                 }
               }
             }}
-            placeholder="0.0"
-            className="w-full h-[56px] px-3 pr-22 bg-[#2a2a2a] rounded-[6px] text-white placeholder-gray-600 focus:outline-none border border-[#191919] text-2xl font-ibm-plex-mono"
+            placeholder={!authenticated ? "LOG IN" : "0.0"}
+            disabled={!authenticated}
+            className={`w-full h-[56px] px-3 pr-22 bg-[#2a2a2a] rounded-[6px] text-white placeholder-gray-600 focus:outline-none border border-[#191919] text-2xl font-ibm-plex-mono ${
+              !authenticated ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
             style={{ WebkitAppearance: 'none', MozAppearance: 'textfield', fontFamily: 'IBM Plex Mono, monospace', letterSpacing: '0em' }}
           />
           <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">

@@ -602,14 +602,12 @@ export default function HomePage() {
                   {/* Right Column (1/3 width) */}
                   <div className="col-span-1 flex flex-col gap-4 pb-12">
                     {/* Deposit Card */}
-                    {authenticated && (
-                      <DepositCard
-                        proposalId={proposal.id}
-                        solBalance={solBalance}
-                        zcBalance={zcBalance}
-                        onDepositSuccess={refetchBalances}
-                      />
-                    )}
+                    <DepositCard
+                      proposalId={proposal.id}
+                      solBalance={solBalance}
+                      zcBalance={zcBalance}
+                      onDepositSuccess={refetchBalances}
+                    />
 
                     {/* Mode Toggle */}
                     <ModeToggle
@@ -643,8 +641,7 @@ export default function HomePage() {
                     </div>
 
                     {/* User Balances - Separate ZC and SOL cards */}
-                    {authenticated && walletAddress && userBalances && (
-                      <div className="flex gap-4">
+                    <div className="flex gap-4">
                         {/* ZC Balance Card */}
                         <div className="flex-1 bg-[#121212] border border-[#191919] rounded-[9px] py-3 px-5 transition-all duration-300">
                           <div className="text-white flex flex-col">
@@ -671,11 +668,11 @@ export default function HomePage() {
                             </span>
                             <div className="group flex items-center justify-center border border-[#191919] rounded-[6px] py-3 px-4 text-lg font-ibm-plex-mono cursor-default" style={{ color: '#DDDDD7', fontFamily: 'IBM Plex Mono, monospace' }}>
                               <span className="group-hover:hidden">
-                                {formatNumber(parseFloat(selectedMarket === 'pass' ? userBalances.base.passConditional : userBalances.base.failConditional || '0') / 1e6, 0)} {selectedMarket === 'pass' ? 'PASS' : 'FAIL'}
+                                {formatNumber(userBalances ? parseFloat(selectedMarket === 'pass' ? userBalances.base.passConditional : userBalances.base.failConditional || '0') / 1e6 : 0, 0)} {selectedMarket === 'pass' ? 'PASS' : 'FAIL'}
                               </span>
                               {zcPrice && (
                                 <span className="hidden group-hover:inline">
-                                  {formatCurrency((parseFloat(selectedMarket === 'pass' ? userBalances.base.passConditional : userBalances.base.failConditional || '0') / 1e6) * zcPrice, 2)}
+                                  {formatCurrency(userBalances ? (parseFloat(selectedMarket === 'pass' ? userBalances.base.passConditional : userBalances.base.failConditional || '0') / 1e6) * zcPrice : 0, 2)}
                                 </span>
                               )}
                             </div>
@@ -708,18 +705,17 @@ export default function HomePage() {
                             </span>
                             <div className="group flex items-center justify-center border border-[#191919] rounded-[6px] py-3 px-4 text-lg font-ibm-plex-mono cursor-default" style={{ color: '#DDDDD7', fontFamily: 'IBM Plex Mono, monospace' }}>
                               <span className="group-hover:hidden">
-                                {formatNumber(parseFloat(selectedMarket === 'pass' ? userBalances.quote.passConditional : userBalances.quote.failConditional || '0') / 1e9, 6)} SOL
+                                {formatNumber(userBalances ? parseFloat(selectedMarket === 'pass' ? userBalances.quote.passConditional : userBalances.quote.failConditional || '0') / 1e9 : 0, 6)} SOL
                               </span>
                               {solPrice && (
                                 <span className="hidden group-hover:inline">
-                                  {formatCurrency((parseFloat(selectedMarket === 'pass' ? userBalances.quote.passConditional : userBalances.quote.failConditional || '0') / 1e9) * solPrice, 2)}
+                                  {formatCurrency(userBalances ? (parseFloat(selectedMarket === 'pass' ? userBalances.quote.passConditional : userBalances.quote.failConditional || '0') / 1e9) * solPrice : 0, 2)}
                                 </span>
                               )}
                             </div>
                           </div>
                         </div>
-                      </div>
-                    )}
+                    </div>
                   </div>
                 </div>
 

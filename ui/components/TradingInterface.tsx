@@ -510,11 +510,6 @@ const TradingInterface = memo(({
     }
   }, [userBalances, selectedMarket]);
 
-  // Don't show login button in trading interface when not authenticated
-  if (!authenticated) {
-    return null;
-  }
-
   return (
     <div>
       {/* Payouts Section - Only show for finished proposals with user position */}
@@ -678,10 +673,10 @@ const TradingInterface = memo(({
                 }
               }
             }}
-            placeholder={hasZeroBalances ? "DEPOSIT FUNDS" : "0.0"}
-            disabled={hasZeroBalances}
+            placeholder={!authenticated ? "LOG IN TO TRADE" : hasZeroBalances ? "DEPOSIT FUNDS" : "0.0"}
+            disabled={!authenticated || hasZeroBalances}
             className={`w-full h-[56px] px-3 pr-16 bg-[#2a2a2a] rounded-t-[6px] text-white placeholder-gray-600 focus:outline-none border-t border-l border-r border-[#191919] text-2xl font-ibm-plex-mono ${
-              hasZeroBalances ? 'opacity-50 cursor-not-allowed' : ''
+              !authenticated || hasZeroBalances ? 'opacity-50 cursor-not-allowed' : ''
             }`}
             style={{ WebkitAppearance: 'none', MozAppearance: 'textfield', fontFamily: 'IBM Plex Mono, monospace', letterSpacing: '0em' }}
           />

@@ -55,12 +55,12 @@ export default function Header({ walletAddress, authenticated, solBalance, zcBal
             </div>
             <span
               onClick={login}
-              className="text-sm font-mono font-medium cursor-pointer transition-colors"
-              style={{ color: '#EF6300' }}
+              className="text-sm font-ibm-plex-mono font-medium cursor-pointer transition-colors"
+              style={{ color: '#EF6300', fontFamily: 'IBM Plex Mono, monospace' }}
               onMouseEnter={(e) => e.currentTarget.style.color = '#C56125'}
               onMouseLeave={(e) => e.currentTarget.style.color = '#EF6300'}
             >
-              Click to login
+              Click to log in
             </span>
           </div>
         )}
@@ -79,7 +79,7 @@ export default function Header({ walletAddress, authenticated, solBalance, zcBal
                 className="text-sm font-ibm-plex-mono font-medium transition-colors"
                 style={{ color: isHoveringWallet ? '#EF6300' : '#DDDDD7', fontFamily: 'IBM Plex Mono, monospace' }}
               >
-                {isHoveringWallet ? 'Export or Copy' : walletPrefix}
+                {isHoveringWallet ? 'Export or copy' : walletPrefix}
               </span>
             </div>
             <span className="text-2xl" style={{ color: '#2D2D2D' }}>/</span>
