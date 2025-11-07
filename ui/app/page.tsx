@@ -857,20 +857,21 @@ export default function HomePage() {
                               </div>
 
                               {/* Rewards display */}
-                              <div className="flex items-center gap-2 text-sm" style={{ color: '#EF6300' }}>
-                                {proposalRewards.map((reward, idx) => (
-                                  <div key={idx} className="flex items-center gap-2">
-                                    {idx > 0 && (
-                                      <div className="w-px h-4 bg-[#2A2A2A]"></div>
-                                    )}
-                                    <span>
-                                      {reward.claimableToken === 'zc'
-                                        ? formatNumber(reward.claimableAmount, 0)
-                                        : reward.claimableAmount.toFixed(4)
-                                      } {reward.claimableToken === 'zc' ? 'ZC' : 'SOL'}
-                                    </span>
-                                  </div>
-                                ))}
+                              <div className="text-sm" style={{ color: '#EF6300' }}>
+                                {(() => {
+                                  const zcReward = proposalRewards.find(r => r.claimableToken === 'zc');
+                                  const solReward = proposalRewards.find(r => r.claimableToken === 'sol');
+
+                                  const parts = [];
+                                  if (zcReward) {
+                                    parts.push(`${formatNumber(zcReward.claimableAmount, 0)} ZC`);
+                                  }
+                                  if (solReward) {
+                                    parts.push(`${solReward.claimableAmount.toFixed(4)} SOL`);
+                                  }
+
+                                  return parts.join(' / ');
+                                })()}
                               </div>
                             </div>
                           )}
