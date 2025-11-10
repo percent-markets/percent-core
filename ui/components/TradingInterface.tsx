@@ -809,13 +809,6 @@ const TradingInterface = memo(({
         </div>
       )}
 
-      {/* Balance Error Message */}
-      {balanceError && (
-        <div className="text-xs px-1" style={{ color: '#FF6F94' }}>
-          {balanceError}
-        </div>
-      )}
-
       {/* Swap Button */}
       <button
         onClick={handleTrade}

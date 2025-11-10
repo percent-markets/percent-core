@@ -107,13 +107,6 @@ export function MarketEntryControls({
         </div>
       </div>
 
-      {/* Balance Error Message */}
-      {balanceError && (
-        <div className="text-xs px-1 mb-2" style={{ color: '#FF6F94' }}>
-          {balanceError}
-        </div>
-      )}
-
       {/* Bottom Row: Toggle and Action Button */}
       <div className="flex items-center gap-3">
         {/* Enter/Exit Toggle with Label */}

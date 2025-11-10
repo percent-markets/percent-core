@@ -228,13 +228,6 @@ export function DepositCard({ proposalId, solBalance, zcBalance, onDepositSucces
           )}
         </button>
         </div>
-
-        {/* Balance Error */}
-        {balanceError && (
-          <div className="text-xs px-1 mt-2" style={{ color: '#FF6F94' }}>
-            {balanceError}
-          </div>
-        )}
       </div>
     </div>
   );
