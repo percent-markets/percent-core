@@ -23,8 +23,8 @@ async function createProposal() {
   
   // Raw token amounts (smallest units)
   // Current_spot = ~0.010 SOL per ZC
-  const initialBaseAmount = '8538038000000';  // ZC (6 decimals)
-  const initialQuoteAmount = '19875600000'; // (9 decimals)
+  const initialBaseAmount = '9202331000000';  // ZC (6 decimals)
+  const initialQuoteAmount = '18456560000'; // (9 decimals)
   
   // Calculate decimal-adjusted price (same as AMM will return)
   // Convert to actual token amounts: raw / 10^decimals
@@ -34,11 +34,11 @@ async function createProposal() {
   console.log(ammPrice);
   
   const request: CreateProposalRequest = {
-    title: 'Decision Market Gated Creator Fees by BORD',
-    description: 'Should ZC execute on PR #35? https://github.com/zcombinatorio/zcombinator/pull/35',
+    title: 'Transition to a Liquid, Commitment-Based Staking System by Deflation',
+    description: 'Should ZC execute on PR #41? https://github.com/zcombinatorio/zcombinator/pull/41',
     proposalLength: 64800, // 24 hours
     spotPoolAddress: 'CCZdbVvDqPN8DmMLVELfnt9G1Q9pQNt3bTGifSpUY9Ad', // ZC/SOL spot pool
-    totalSupply: 1125365478, // 1 billion tokens for market cap calculation
+    totalSupply: 1125741747, // 1 billion tokens for market cap calculation
     twap: {
       initialTwapValue: ammPrice, // Decimal-adjusted price (0.1)
       twapMaxObservationChangePerUpdate: null,

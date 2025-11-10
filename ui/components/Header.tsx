@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Wallet, FileText } from 'lucide-react';
 import { useSolanaWallets } from '@privy-io/react-auth/solana';
+import Image from 'next/image';
 
 interface HeaderProps {
   walletAddress: string | null;
@@ -42,23 +43,32 @@ export default function Header({ walletAddress, authenticated, solBalance, zcBal
       <div className="h-14 flex items-center justify-between px-8">
         {/* Left side: Logo / wallet / balances / links */}
         <div className="flex items-center gap-4 text-gray-400">
-        <img
-          src="/long-logo.svg"
-          alt="percent.markets"
-          className="h-8"
-        />
+          <a
+            href="/"
+            className="hover:opacity-80 transition-opacity"
+          >
+            <h1 className="text-2xl font-semibold flex items-center gap-2">
+              <Image
+                src="/z-logo-white.png"
+                alt="Z"
+                width={18}
+                height={18}
+              />
+              <span className="hidden md:inline" style={{ color: '#E9E9E4' }}>Combinator</span>
+            </h1>
+          </a>
         <span className="text-2xl" style={{ color: '#2D2D2D' }}>/</span>
         {!authenticated && login && (
           <div className="flex items-center gap-1.5">
             <div className="w-5 h-5 rounded-full flex items-center justify-center border border-[#191919]" style={{ backgroundColor: '#121212' }}>
-              <Wallet className="w-3 h-3" style={{ color: '#EF6300' }} />
+              <Wallet className="w-3 h-3" style={{ color: '#BEE8FC' }} />
             </div>
             <span
               onClick={login}
               className="text-sm font-ibm-plex-mono font-medium cursor-pointer transition-colors"
-              style={{ color: '#EF6300', fontFamily: 'IBM Plex Mono, monospace' }}
+              style={{ color: '#BEE8FC', fontFamily: 'IBM Plex Mono, monospace' }}
               onMouseEnter={(e) => e.currentTarget.style.color = '#C56125'}
-              onMouseLeave={(e) => e.currentTarget.style.color = '#EF6300'}
+              onMouseLeave={(e) => e.currentTarget.style.color = '#BEE8FC'}
             >
               Click to log in
             </span>
@@ -73,11 +83,11 @@ export default function Header({ walletAddress, authenticated, solBalance, zcBal
               onClick={() => exportWallet()}
             >
               <div className="w-5 h-5 rounded-full flex items-center justify-center border border-[#191919]" style={{ backgroundColor: '#121212' }}>
-                <Wallet className="w-3 h-3 transition-colors" style={{ color: isHoveringWallet ? '#EF6300' : '#ffffff' }} />
+                <Wallet className="w-3 h-3 transition-colors" style={{ color: isHoveringWallet ? '#BEE8FC' : '#ffffff' }} />
               </div>
               <span
                 className="text-sm font-ibm-plex-mono font-medium transition-colors"
-                style={{ color: isHoveringWallet ? '#EF6300' : '#DDDDD7', fontFamily: 'IBM Plex Mono, monospace' }}
+                style={{ color: isHoveringWallet ? '#BEE8FC' : '#DDDDD7', fontFamily: 'IBM Plex Mono, monospace' }}
               >
                 {isHoveringWallet ? 'Export or copy' : walletPrefix}
               </span>

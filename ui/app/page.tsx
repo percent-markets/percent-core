@@ -850,14 +850,14 @@ export default function HomePage() {
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-1.5">
                                 <div className="relative flex items-center justify-center">
-                                  <div className="w-2 h-2 rounded-full absolute" style={{ backgroundColor: '#EF6300', opacity: 0.75, animation: 'ping 3s cubic-bezier(0, 0, 0.2, 1) infinite' }}></div>
-                                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#EF6300' }}></div>
+                                  <div className="w-2 h-2 rounded-full absolute" style={{ backgroundColor: '#BEE8FC', opacity: 0.75, animation: 'ping 3s cubic-bezier(0, 0, 0.2, 1) infinite' }}></div>
+                                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#BEE8FC' }}></div>
                                 </div>
-                                <span className="text-sm" style={{ color: '#EF6300' }}>Click to claim</span>
+                                <span className="text-sm" style={{ color: '#BEE8FC' }}>Click to claim</span>
                               </div>
 
                               {/* Rewards display */}
-                              <div className="text-sm" style={{ color: '#EF6300' }}>
+                              <div className="text-sm" style={{ color: '#BEE8FC' }}>
                                 {(() => {
                                   const zcReward = proposalRewards.find(r => r.claimableToken === 'zc');
                                   const solReward = proposalRewards.find(r => r.claimableToken === 'sol');
