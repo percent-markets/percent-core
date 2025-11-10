@@ -682,25 +682,7 @@ export default function HomePage() {
                         <div className="flex-1 bg-[#121212] border border-[#191919] rounded-[9px] py-3 px-5 transition-all duration-300">
                           <div className="text-white flex flex-col">
                             <span className="text-sm font-semibold font-ibm-plex-mono tracking-[0.2em] uppercase mb-6 text-center block" style={{ color: '#DDDDD7' }}>
-                              {selectedMarket === 'pass' ? (
-                                <>
-                                  IV. BULLISH{' '}
-                                  <svg className="w-4 h-4 inline-block pb-0.5 -ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 20 20" strokeWidth="1.5">
-                                    <circle cx="10" cy="10" r="8" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 10l2 2 4-4" />
-                                  </svg>
-                                  {' '}PROPOSAL BAL
-                                </>
-                              ) : (
-                                <>
-                                  IV. BEARISH{' '}
-                                  <svg className="w-4 h-4 inline-block pb-0.5 -ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 20 20" strokeWidth="1.5">
-                                    <circle cx="10" cy="10" r="8" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 7l6 6M13 7l-6 6" />
-                                  </svg>
-                                  {' '}PROPOSAL BAL
-                                </>
-                              )}
+                              {selectedMarket === 'pass' ? 'IV. If Pass ZC Balance' : 'IV. If Fail ZC Balance'}
                             </span>
                             <div className="group flex items-center justify-center border border-[#191919] rounded-[6px] py-3 px-4 text-lg font-ibm-plex-mono cursor-default" style={{ color: '#DDDDD7', fontFamily: 'IBM Plex Mono, monospace' }}>
                               <span className="group-hover:hidden">
@@ -719,25 +701,7 @@ export default function HomePage() {
                         <div className="flex-1 bg-[#121212] border border-[#191919] rounded-[9px] py-3 px-5 transition-all duration-300">
                           <div className="text-white flex flex-col">
                             <span className="text-sm font-semibold font-ibm-plex-mono tracking-[0.2em] uppercase mb-6 text-center block" style={{ color: '#DDDDD7' }}>
-                              {selectedMarket === 'pass' ? (
-                                <>
-                                  IV. BEARISH{' '}
-                                  <svg className="w-4 h-4 inline-block pb-0.5 -ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 20 20" strokeWidth="1.5">
-                                    <circle cx="10" cy="10" r="8" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 7l6 6M13 7l-6 6" />
-                                  </svg>
-                                  {' '}PROPOSAL BAL
-                                </>
-                              ) : (
-                                <>
-                                  IV. BULLISH{' '}
-                                  <svg className="w-4 h-4 inline-block pb-0.5 -ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 20 20" strokeWidth="1.5">
-                                    <circle cx="10" cy="10" r="8" />
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 10l2 2 4-4" />
-                                  </svg>
-                                  {' '}PROPOSAL BAL
-                                </>
-                              )}
+                              {selectedMarket === 'pass' ? 'IV. If Pass SOL Balance' : 'IV. If Fail SOL Balance'}
                             </span>
                             <div className="group flex items-center justify-center border border-[#191919] rounded-[6px] py-3 px-4 text-lg font-ibm-plex-mono cursor-default" style={{ color: '#DDDDD7', fontFamily: 'IBM Plex Mono, monospace' }}>
                               <span className="group-hover:hidden">
