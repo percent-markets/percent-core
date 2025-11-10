@@ -267,9 +267,9 @@ export function DepositCard({ proposalId, solBalance, zcBalance, userBalances, o
   }, [authenticated, walletAddress, amount, balanceError, selectedToken, wallets, proposalId, login, onDepositSuccess]);
 
   return (
-    <div className="bg-[#121212] border border-[#191919] rounded-[9px] py-4 px-5 transition-all duration-300">
+    <div className="bg-[#121212] border border-[#191919] rounded-[9px] pt-2.5 pb-4 px-5 transition-all duration-300">
       <div className="text-white flex flex-col items-center">
-        <div className="flex items-center justify-center gap-2 w-full mb-3">
+        <div className="flex items-center justify-center gap-2 w-full mb-4.5">
           <span className="text-sm font-semibold font-ibm-plex-mono tracking-[0.2em] uppercase block" style={{ color: '#DDDDD7' }}>
             I. {mode === 'deposit' ? 'Deposit' : 'Withdraw'} Funds
           </span>
