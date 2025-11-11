@@ -11,29 +11,16 @@ This project uses TradingView's Advanced Charts library, which requires a separa
 
 ## Installation
 
-Once you have access:
-
-### Option 1: NPM (Recommended)
+Once you have access to TradingView's GitHub repository:
 
 ```bash
 cd ui
-npm install
-# The library will be automatically installed if you have GitHub access
+git clone git@github.com:tradingview/charting_library.git public/charting_library
 ```
 
-The `postinstall` script will automatically copy the library to `public/charting_library/`.
+This will place the library in `ui/public/charting_library/` where the application expects it.
 
-### Option 2: Manual
-
-1. Clone the library:
-   ```bash
-   git clone git@github.com:tradingview/charting_library.git
-   ```
-
-2. Copy the charting_library folder to ui/public/charting_library/:
-   ```bash
-   cp -r charting_library/charting_library ui/public/charting_library/
-   ```
+**Note**: If you have access to a private fork, use that repository URL instead of the official TradingView one.
 
 ## Verification
 
