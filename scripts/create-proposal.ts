@@ -6,7 +6,7 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 // Global configuration
-const MODERATOR_ID = 2; // Change this to target different moderators
+const MODERATOR_ID = 1; // Change this to target different moderators
 
 async function createProposal() {
   const API_URL = process.env.API_URL || 'http://localhost:3001';
@@ -23,8 +23,8 @@ async function createProposal() {
   
   // Raw token amounts (smallest units)
   // Current_spot = ~0.010 SOL per ZC
-  const initialBaseAmount = '7807530000000';  // ZC (6 decimals)
-  const initialQuoteAmount = '21838110000'; // (9 decimals)
+  const initialBaseAmount = '1000000';  // ZC (6 decimals)
+  const initialQuoteAmount = '100000000'; // (9 decimals)
   
   // Calculate decimal-adjusted price (same as AMM will return)
   // Convert to actual token amounts: raw / 10^decimals
@@ -34,7 +34,7 @@ async function createProposal() {
   console.log(ammPrice);
   
   const request: CreateProposalRequest = {
-    title: 'PERC <> ZC Merger by Oogway',
+    title: 'Test Proposal',
     description: 'Should ZC execute on PR #42? https://github.com/zcombinatorio/zcombinator/pull/42',
     proposalLength: 86400, // 24 hours
     spotPoolAddress: 'CCZdbVvDqPN8DmMLVELfnt9G1Q9pQNt3bTGifSpUY9Ad', // ZC/SOL spot pool
